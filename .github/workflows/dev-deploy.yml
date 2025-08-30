@@ -3,6 +3,7 @@ name: Development Deployment
 on:
   push:
     branches: [develop]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -69,7 +70,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-server
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/server
           tags: |
             type=raw,value=dev-latest
             type=sha,prefix=dev-,format=short
@@ -81,8 +82,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/server:dev-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/server:dev-buildcache,mode=max
 
   deploy-web:
     needs: changes
@@ -114,7 +115,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-web
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/web
           tags: |
             type=raw,value=dev-latest
             type=sha,prefix=dev-,format=short
@@ -130,5 +131,5 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_WS_URL=${{ env.NEXT_PUBLIC_WS_URL }}
             NEXT_PUBLIC_ENV=${{ env.NEXT_PUBLIC_ENV }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/web:dev-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/web:dev-buildcache,mode=max
