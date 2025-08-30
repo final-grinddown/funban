@@ -2,6 +2,8 @@
 
 A real-time collaborative Kanban board system with customizable workflow states, execution context tags, and seamless synchronization.
 
+> **Note**: This is a private hobby project created to solve a specific problem and is so far not intended for wider public use.
+
 ## Architecture
 
 - **Backend** (`server/`): Rust/Axum API with MySQL and WebSocket support
