@@ -1,10 +1,8 @@
-.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server clean docker-up docker-down docker-build
+.PHONY: dev-web dev-server build build-web build-server test test-web test-server check check-web check-server precommit precommit-web precommit-server clean docker-up docker-down docker-build kill-dev
 
 # Development
-dev: dev-server dev-web
-
 dev-web:
-	cd web && yarn dev
+	cd web && yarn install --silent && yarn dev
 
 dev-server:
 	cd server && cargo run
@@ -13,7 +11,7 @@ dev-server:
 build: build-web build-server
 
 build-web:
-	cd web && yarn build
+	cd web && yarn install --silent && yarn build
 
 build-server:
 	cd server && cargo build --release
@@ -22,7 +20,7 @@ build-server:
 test: test-web test-server
 
 test-web:
-	cd web && yarn test
+	@echo "No tests configured for web component"
 
 test-server:
 	cd server && cargo test
@@ -30,23 +28,40 @@ test-server:
 # Check/Lint
 check: check-web check-server
 
+# Precommit checks - run before committing
+precommit: precommit-web precommit-server
+	@echo "✅ All precommit checks passed!"
+
+precommit-web:
+	@echo "🔍 Running web precommit checks..."
+	cd web && yarn install --silent && yarn check:ts && yarn check:lint && yarn build
+
+precommit-server:
+	@echo "🔍 Running server precommit checks..."
+	cd server && cargo build && cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo sqlx prepare --check -- --bins --tests
+
 check-web:
 	cd web && yarn check:ts && yarn check:lint
 
 check-server:
-	cd server && cargo clippy && cargo fmt --check
+	cd server && cargo clippy -- -D warnings && cargo fmt --check
 
 # Docker
 docker-up:
-	docker-compose up --build
+	docker compose up --build
 
 docker-down:
-	docker-compose down
+	docker compose down
 
 docker-build:
-	docker-compose build
+	docker compose build
 
 # Clean
 clean:
 	cd web && rm -rf .next node_modules
 	cd server && cargo clean
+
+# Kill any running dev processes
+kill-dev:
+	@pkill -f "funban-server" || true
+	@pkill -f "yarn dev" || true
