@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT password FROM users\n\t\tWHERE email = ?\t\t\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "password",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL",
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4c7b174c5a1359d543770eab37602a69691d2780999bdc0086e46c03ec8145e7"
+}

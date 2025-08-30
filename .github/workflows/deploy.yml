@@ -1,0 +1,142 @@
+name: Production Deployment
+
+on:
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Needed for cosign
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libmysqlclient-dev -y
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v3.3.0
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          server/target
+        key: ${{ runner.os }}-cargo-server-${{ hashFiles('server/Cargo.lock') }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}-server
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+        labels: |
+          org.opencontainers.image.title=Funban Server
+          org.opencontainers.image.description=Funban Server - Production Release
+          org.opencontainers.image.version=${{ github.ref_name }}
+
+    - name: Build and push Docker image
+      id: build-and-push
+      uses: docker/build-push-action@v5
+      with:
+        context: ./server
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache
+        cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache,mode=max
+
+    - name: Sign the published Docker image
+      env:
+        COSIGN_EXPERIMENTAL: "true"
+      run: cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository }}-server@${{ steps.build-and-push.outputs.digest }}
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Needed for cosign
+
+    env:
+      NEXT_PUBLIC_API_URL: https://api.funban.dev/api
+      NEXT_PUBLIC_WS_URL: wss://api.funban.dev/ws
+      NEXT_PUBLIC_ENV: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-web
+          tags: |
+            type=sha,format=short
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Funban Web
+            org.opencontainers.image.description=Funban Web - Production Release
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ env.NEXT_PUBLIC_WS_URL }}
+            NEXT_PUBLIC_ENV=${{ env.NEXT_PUBLIC_ENV }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache,mode=max
+
+      - name: Sign the published Docker image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository }}-web@${{ steps.build-and-push.outputs.digest }}

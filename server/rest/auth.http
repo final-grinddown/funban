@@ -1,0 +1,37 @@
+@apiUrl = http://localhost:3001/api
+
+POST {{apiUrl}}/auth/signin HTTP/1.1
+Content-Type: application/json
+
+{
+	"email" : "admin",
+	"password" : "badmin"
+}
+
+###
+# @name login
+
+POST {{apiUrl}}/auth/signin HTTP/1.1
+Content-Type: application/json
+
+{
+	"email" : "josef.jura@hotmail.com",
+	"password" : "password"
+}
+
+### 
+
+GET {{apiUrl}}/auth/me HTTP/1.1
+Authorization: Bearer {{login.response.body.token}}
+
+### 
+
+GET {{apiUrl}}/auth/me HTTP/1.1
+
+### 
+
+GET {{apiUrl}}/auth/ws HTTP/1.1
+
+### 
+
+GET {{apiUrl}}/auth/signout HTTP/1.1

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE notes SET text = ? WHERE id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5a4365a646c894c83c208296ea34aabbf052bcdfcb32f3f4bfe3d01c6ae01336"
+}

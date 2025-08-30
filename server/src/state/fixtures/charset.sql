@@ -1,0 +1,9 @@
+ALTER DATABASE funban CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+ALTER TABLE notes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+ALTER TABLE notes
+MODIFY text VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE users
+MODIFY name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

@@ -1,0 +1,54 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\t\t  SELECT snapshot, label, created_at, id\n    \t\t\t\t\tFROM history\n    \t\t\t\t\tWHERE id = ?;\n\t\t\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot",
+        "type_info": {
+          "type": "Blob",
+          "flags": "NOT_NULL | BLOB | NO_DEFAULT_VALUE",
+          "max_size": 67108860
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "label",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b1abd76663b82a7352dc2826faf65ca0e9d269d36d6da46a13d6b8f0c989ab65"
+}

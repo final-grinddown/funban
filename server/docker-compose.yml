@@ -1,0 +1,24 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+  server:
+    build: ../server
+    container_name: server
+    env_file:
+      - .env
+    ports:
+      - 3001:3001
+  db:
+    image: mysql:5.7.44
+    container_name: db
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
+      MYSQL_USER: web
+      MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
+      MYSQL_DATABASE: funban
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql

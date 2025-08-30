@@ -1,0 +1,58 @@
+name: Web PR Checks
+
+on:
+  pull_request:
+    branches: [develop]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'web/**'
+              - 'web/src/**'
+              - 'web/package.json'
+              - 'web/yarn.lock'
+              - 'web/.yarnrc.yml'
+              - 'web/tsconfig.json'
+              - 'web/next.config.mjs'
+
+  lint-and-build:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Type check
+        run: yarn check:ts
+
+      - name: Lint
+        run: yarn check:lint
+
+      - name: Build
+        run: yarn build

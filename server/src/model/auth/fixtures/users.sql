@@ -1,0 +1,1 @@
+insert into users (id, color, name, email, password) values (1, 'red', 'Alice', 'alice@email.com', '$argon2i$v=19$m=16,t=2,p=1$YlpjRFNUd2E5SFVrY3dYVQ$KLpDbYfrCmt8ItsKt19HMg');

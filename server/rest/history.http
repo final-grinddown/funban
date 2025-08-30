@@ -1,0 +1,48 @@
+@apiUrl = http://localhost:3001/api
+
+###
+# @name login
+
+POST {{apiUrl}}/auth/signin HTTP/1.1
+Content-Type: application/json
+
+{
+	"username" : "pepa@eurowag.cz",
+	"password" : "password"
+}
+
+###
+
+GET {{apiUrl}}/history HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+GET {{apiUrl}}/history/1 HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+GET {{apiUrl}}/history/last HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+POST {{apiUrl}}/history HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+		"label": "Test",
+		"snapshot" : "eyJ0ZXN0IjogInRlc3QifQ=="
+}
+
+###
+
+GET {{apiUrl}}/history/browser HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+GET {{apiUrl}}/history/browser/2 HTTP/1.1a
+Authorization: Bearer {{login.response.body.token}}

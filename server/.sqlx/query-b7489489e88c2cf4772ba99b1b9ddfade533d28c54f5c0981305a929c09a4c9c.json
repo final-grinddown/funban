@@ -1,0 +1,44 @@
+{
+  "db_name": "MySQL",
+  "query": "\nSELECT n.id, n.predecessor_id, n.state FROM notes as n WHERE change_set = ?\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "predecessor_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "state",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 124
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b7489489e88c2cf4772ba99b1b9ddfade533d28c54f5c0981305a929c09a4c9c"
+}

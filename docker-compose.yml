@@ -1,0 +1,41 @@
+version: '3.1'
+
+services:
+  web:
+    build: 
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_WS_URL: ws://localhost:3001/ws
+        NEXT_PUBLIC_ENV: development
+    container_name: funban-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    environment:
+      - NODE_ENV=production
+
+  server:
+    build: ./server
+    container_name: funban-server
+    env_file:
+      - ./server/.env
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+
+  db:
+    image: mysql:5.7.44
+    container_name: funban-db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
+      MYSQL_USER: web
+      MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
+      MYSQL_DATABASE: funban
+    volumes:
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql

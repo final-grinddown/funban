@@ -1,0 +1,134 @@
+name: Development Deployment
+
+on:
+  push:
+    branches: [develop]
+
+env:
+  REGISTRY: ghcr.io
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+            web:
+              - 'web/**'
+
+  deploy-server:
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libmysqlclient-dev -y
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-server-${{ hashFiles('server/Cargo.lock') }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-server
+          tags: |
+            type=raw,value=dev-latest
+            type=sha,prefix=dev-,format=short
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-server:dev-buildcache,mode=max
+
+  deploy-web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      NEXT_PUBLIC_API_URL: https://api.funban-dev.joseforge.cz/api
+      NEXT_PUBLIC_WS_URL: wss://api.funban-dev.joseforge.cz/ws
+      NEXT_PUBLIC_ENV: development
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-web
+          tags: |
+            type=raw,value=dev-latest
+            type=sha,prefix=dev-,format=short
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ env.NEXT_PUBLIC_WS_URL }}
+            NEXT_PUBLIC_ENV=${{ env.NEXT_PUBLIC_ENV }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-web:dev-buildcache,mode=max

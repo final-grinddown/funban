@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\tINSERT INTO history (label, snapshot)\n\t\t\t\t\tVALUES (?, ?)\n\t\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "61119d763fa87b3ef86fda8cccd182bae592c8df7876e887e657db6126d69abd"
+}

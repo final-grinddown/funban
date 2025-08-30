@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE users\n\t\t\tSET color = ?\n\t\t\tWHERE id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "3bcfcf87f9479eb628ec1b15b91c6fcccbe705658fa8096ab4f2519ba7f33f16"
+}

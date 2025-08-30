@@ -1,0 +1,114 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tSELECT n.id, n.text, n.owner as owner_id, u.color, u.name, n.state, n.predecessor_id, n.updated, n.created, n.tag\n\t\t\t\tFROM notes as n\n\t\t\t\tJOIN users as u ON owner = u.id\n\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "text",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 4000
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "color",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 124
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "state",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 124
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "predecessor_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | BINARY | TIMESTAMP | ON_UPDATE_NOW",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tag",
+        "type_info": {
+          "type": "String",
+          "flags": "ENUM",
+          "max_size": 36
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f731097deb5d72057bfd63f38b89e474d4d52356298734f14776139e1d995b09"
+}

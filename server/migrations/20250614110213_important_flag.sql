@@ -1,0 +1,2 @@
+-- Add migration script here
+ALTER TABLE notes ADD COLUMN tag ENUM('IMPORTANT', 'DEADLINE', 'WAITING', 'QUICK') DEFAULT NULL;

@@ -1,0 +1,639 @@
+asyncapi: 3.0.0
+info:
+  title: Funban Service
+  version: 0.4.0
+  description: Funban synchronization service
+channels:
+  root:
+    address: /
+    messages:
+      Users:
+        summary: Updates the current state of users on server
+        payload:
+          $ref: '#/components/schemas/Users'
+      Notes:
+        summary: Updates the current state of notes on server
+        payload:
+          $ref: '#/components/schemas/Notes'
+      Patch:
+        summary: Notification about a differential change on server
+        payload:
+          $ref: '#/components/schemas/Patch'
+      AddNote:
+        summary: Requests new note creation
+        payload:
+          $ref: '#/components/schemas/AddNote'
+      UpdateNoteText:
+        summary: Requests note text update
+        payload:
+          $ref: '#/components/schemas/UpdateNoteText'
+      Reorder:
+        summary: Requests note order or state change. If the new_index is not supplied, the note will move to last postition in the column.
+        payload:
+          $ref: '#/components/schemas/Reorder'
+      RemoveNote:
+        summary: Requests note removal
+        payload:
+          $ref: '#/components/schemas/RemoveNote'
+      CloneNote:
+        summary: Requests creation of a clone of a note
+        payload:
+          $ref: '#/components/schemas/CloneNote'
+      AddUser:
+        summary: Requests new user creation
+        payload:
+          $ref: '#/components/schemas/AddUser'
+      UpdateUserName:
+        summary: Requests user name update
+        payload:
+          $ref: '#/components/schemas/UpdateUserName'
+      UpdateUserColor:
+        summary: Requests user color update
+        payload:
+          $ref: '#/components/schemas/UpdateUserColor'
+      RemoveUser:
+        summary: >-
+          Requests user removal. This will remove all notes created under the
+          deleted user
+        payload:
+          $ref: '#/components/schemas/RemoveUser'
+      NoteUpdate:
+        summary: Update specified note
+        payload:
+          $ref: '#/components/schemas/NoteUpdate'
+      UserUpdate:
+        summary: Update specified user
+        payload:
+          $ref: '#/components/schemas/UserUpdate'
+      DeleteNotes:
+        summary: Requests removal of all notes by specific condition
+        payload:
+          $ref: '#/components/schemas/DeleteNotes'
+operations:
+  Users:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: receive
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/Users'
+  Notes:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: receive
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/Notes'
+  Patch:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: receive
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/Patch'
+  AddNote:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/AddNote'
+  UpdateNoteText:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/UpdateNoteText'
+  Reorder:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/Reorder'
+  RemoveNote:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/RemoveNote'
+  CloneNote:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/CloneNote'
+  AddUser:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/AddUser'
+  UpdateUserName:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/UpdateUserName'
+  UpdateUserColor:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/UpdateUserColor'
+  RemoveUser:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/RemoveUser'
+  DeleteNotes:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/DeleteNotes'     
+  NoteUpdate:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/NoteUpdate'
+  UserUpdate:
+    security:
+      - $ref: '#/components/securitySchemes/jwt'
+    action: send
+    channel:
+      $ref: '#/channels/root'
+    messages:
+      - $ref: '#/channels/root/messages/UserUpdate'
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Users:
+      type: object
+      description: List of valid users currently on server
+      properties:
+        type:
+          type: string
+          const: Users
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    Notes:
+      type: object
+      description: List of notes currently on server
+      properties:
+        type:
+          type: string
+          const: Notes
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Note'
+    Note:
+      type: object
+      description: Note
+      properties:
+        id:
+          type: number
+        text:
+          type: string
+        name:
+          type: string
+    User:
+      type: object
+      description: Funban user
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        color:
+          type: string
+    Patch:
+      type: object
+      properties:
+        ops:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/NoteAdded'
+              - $ref: '#/components/schemas/NoteTextUpdated'
+    NoteAdded:
+      type: object
+      required:
+        - type
+        - note
+      properties:
+        type:
+          type: string
+          const: NoteAdded
+        note:
+          $ref: '#/components/schemas/Note'
+    NoteTextUpdated:
+      type: object
+      required:
+        - type
+        - id
+        - text
+      properties:
+        type:
+          type: string
+          const: NoteTextUpdated
+        id:
+          type: number
+        text:
+          type: string
+    NoteOrderChanged:
+      type: object
+      required:
+        - type
+        - id
+        - state
+        - index
+      properties:
+        type:
+          type: string
+          const: NoteOrderChanged
+        id:
+          type: number
+        state:
+          type: string
+        index:
+          type: number
+    NoteRemoved:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          const: NoteRemoved
+        id:
+          type: number
+    UserAdded:
+      type: object
+      required:
+        - type
+        - user
+      properties:
+        type:
+          type: string
+          const: UserAdded
+        user:
+          $ref: '#/components/schemas/User'
+    UserNameUpdated:
+      type: object
+      required:
+        - type
+        - id
+        - name
+      properties:
+        type:
+          type: string
+          const: UserNameUpdated
+        id:
+          type: number
+        name:
+          type: string
+    UserColorUpdated:
+      type: object
+      required:
+        - type
+        - id
+        - color
+      properties:
+        type:
+          type: string
+          const: UserColorUpdated
+        id:
+          type: number
+        color:
+          type: string
+    UserRemoved:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          const: UserRemoved
+        id:
+          type: number
+    AddNote:
+      type: object
+      required:
+        - type
+        - owner
+        - state
+      properties:
+        type:
+          type: string
+          const: AddNote
+        uuid:
+          type: string
+          format: uuid
+        owner:
+          type: number
+        state:
+          type: string
+        text:
+          type: string
+    UpdateNoteText:
+      type: object
+      required:
+        - type
+        - id
+        - text
+      properties:
+        type:
+          type: string
+          const: UpdateNoteText
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+        text:
+          type: string
+    Reorder:
+      type: object
+      required:
+        - moved_item_id
+        - destination_status
+        - type
+      properties:
+        type:
+          type: string
+          const: Reorder
+        uuid:
+          type: string
+          format: uuid          
+        moved_item_id:
+          type: number
+        new_index:
+          type: number
+        destination_status:
+          type: string
+    RemoveNote:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          const: RemoveNote
+        uuid:
+          type: string
+          format: uuid        
+        id:
+          type: number
+    CloneNote:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          const: CloneNote
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+    AddUser:
+      type: object
+      required:
+        - type
+        - id
+        - name
+        - color
+      properties:
+        type:
+          type: string
+          const: AddUser
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+        name:
+          type: string
+        color:
+          type: string
+    UpdateUserName:
+      type: object
+      required:
+        - type
+        - id
+        - name
+      properties:
+        type:
+          type: string
+          const: UpdateUserName
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+        name:
+          type: string
+    UpdateUserColor:
+      type: object
+      required:
+        - type
+        - id
+        - color
+      properties:
+        type:
+          type: string
+          const: UpdateUserColor
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+        color:
+          type: string
+    RemoveUser:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          const: RemoveUser
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: number
+    DeleteNotes:
+      type: object
+      required:
+        - type
+      examples:
+        - type: DeleteNotes
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+        - type: DeleteNotes
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+          owner: 1 
+        - type: DeleteNotes
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+          status: done
+        - type: DeleteNotes
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+          status: done
+          owner: 1
+      properties:
+        type:
+          type: string
+          const: DeleteNotes
+        uuid:
+          type: string
+          format: uuid
+        owner:
+          type: number
+        status:
+          type: string
+    UserUpdate:
+      type: object
+      required:
+        - type
+        - id
+      examples:
+        - type: UserUpdate
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+          id: 1
+          updates:                       
+            - target: Name
+              name: Johny Walker
+            - target: Color
+              color: Cyan
+      properties:
+        type:
+          type: string
+          const: UserUpdate
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: integer
+        updates:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/UserUpdateName'
+              - $ref: '#/components/schemas/UserUpdateColor'
+    UserUpdateName:
+      type: object
+      required:
+        - target
+        - name
+      properties:
+        target:
+          type: string
+          const: Name
+        name:
+          type: string
+    UserUpdateColor:
+      type: object
+      required:
+        - target
+        - color
+      properties:
+        target:
+          type: string
+          const: Color
+        color:
+          type: string
+    NoteUpdate:
+      type: object
+      required:
+        - type
+        - id
+      examples:
+        - type: NoteUpdate
+          uuid: 095be615-a8ad-4c33-8e9c-c7612fbf6c9f
+          id: 1
+          updates:                       
+            - target: Text
+              text: Hello, world!
+            - target: Order
+              new_index: 0
+              new_status: Hello, world!
+            - target: Order
+              new_status: Hello, world!
+      properties:
+        type:
+          type: string
+          const: NoteUpdate
+        uuid:
+          type: string
+          format: uuid          
+        id:
+          type: integer
+        updates:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/NoteUpdateText'
+              - $ref: '#/components/schemas/NoteUpdateOrder'
+    NoteUpdateText:
+      type: object
+      required:
+        - target
+        - text
+      properties:
+        target:
+          type: string
+          const: Text
+        text:
+          type: string
+    NoteUpdateOrder:
+      type: object
+      required:
+        - target
+        - new_status
+      properties:
+        target:
+          type: string
+          const: Order
+        new_index:
+          type: integer
+        new_status:
+          type: string      

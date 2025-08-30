@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT id FROM notes\n\t\t\tWHERE state = ? AND owner = ?\n\t\t\tORDER BY id\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d463b73c506f75e1c4fc98b718ec2f46801381d8863f31ca0153e5ccf0d7d867"
+}

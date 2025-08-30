@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT id FROM notes\n\t\t\tWHERE state = ?\n\t\t\tORDER BY id\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "652218c0cdc143d5c6641508a50f1d4f79f46f2bcaa3fbaa9bc8c2bdf02c14d5"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tUPDATE history SET label = ?\t\t\n\t\t\t\tWHERE id = ?\n\t\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "488c4cde4494f0d9bd85a571b11c80f1d25e6aa2f1d0ee56f7d59dae8d6ceb48"
+}

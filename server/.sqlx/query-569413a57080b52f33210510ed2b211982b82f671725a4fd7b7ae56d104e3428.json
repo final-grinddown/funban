@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT state, predecessor_id FROM notes WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 124
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "predecessor_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "569413a57080b52f33210510ed2b211982b82f671725a4fd7b7ae56d104e3428"
+}
