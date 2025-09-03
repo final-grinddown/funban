@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [develop]
 
+permissions:
+  contents: write
+  pull-requests: read
+
 env:
   CARGO_TERM_COLOR: always
   SQLX_OFFLINE: true
