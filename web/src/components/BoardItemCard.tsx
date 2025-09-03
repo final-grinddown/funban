@@ -66,13 +66,16 @@ export function BoardItemCard({
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
   const matchedColor = matchColorName(color, availableColors) || "#000000"
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+  } | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
-  const openMenu = Boolean(anchorEl)
+  const openMenu = contextMenu !== null
   const contrastColor = theme.palette.getContrastText(matchedColor)
   const { updatedDate, createdDate, updatedRelative, createdRelative } = formatDateToShow(created, updated)
   const dateToShow =
@@ -81,18 +84,20 @@ export function BoardItemCard({
       : `Created at ${isEditable ? createdRelative : createdDate}`
   const headerConfig = localStorage.getItem(HEADER_CONFIG_KEY) || "updated_only"
   const devSettings: DevSettings = { ids: getStoredDevIdsValue(), predecessors: getStoredDevPredecessorsValue() }
-  const handleMenu = useCallback(
-    (event: SyntheticEvent<HTMLButtonElement> | null) => {
-      setAnchorEl(event ? event.currentTarget : null)
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setContextMenu({
+      mouseX: event.clientX + 2,
+      mouseY: event.clientY - 6,
+    })
 
-      if (isSubmitting) setIsSubmitting(false)
-    },
-    [isSubmitting],
-  )
+    if (isSubmitting) setIsSubmitting(false)
+  }
 
-  const handleOpenMenu = (event: SyntheticEvent<HTMLButtonElement>) => handleMenu(event)
-
-  const handleCloseMenu = useCallback(() => handleMenu(null), [handleMenu])
+  const handleCloseMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
 
   const handleEditModal = (focusText: boolean = false) => {
     setTextFocus(focusText)
@@ -158,12 +163,31 @@ export function BoardItemCard({
     }
   }, [handleCloseMenu, isLoading, isSubmitting])
 
+  useEffect(() => {
+    const handleGlobalContextMenu = (event: MouseEvent) => {
+      if (openMenu && !(event.target as Element)?.closest('[data-context-menu-card]')) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    if (openMenu) {
+      document.addEventListener('contextmenu', handleGlobalContextMenu, true)
+    }
+
+    return () => {
+      document.removeEventListener('contextmenu', handleGlobalContextMenu, true)
+    }
+  }, [openMenu])
+
   return (
     <>
       <Card
         draggable={isEditable}
         onDragStart={(event) => handleDrag(event, true)}
         onDragEnd={(event) => handleDrag(event, false)}
+        onContextMenu={isEditable ? handleContextMenu : undefined}
+        data-context-menu-card={isEditable ? true : undefined}
         elevation={4}
         sx={{
           m: 2,
@@ -213,78 +237,7 @@ export function BoardItemCard({
               )}
             </>
           }
-          action={
-            isEditable &&
-            (!isFocus || (isFocus && name === currentUser)) && (
-              <>
-                <IconButton
-                  sx={{ color: contrastColor, border: `2px solid ${alpha(contrastColor, 0.75)}` }}
-                  onClick={handleOpenMenu}
-                  aria-controls={openMenu ? "basic-menu" : undefined}
-                  aria-haspopup="true"
-                  aria-expanded={openMenu ? "true" : undefined}
-                  size="small"
-                >
-                  <EditNoteIcon />
-                </IconButton>
-                <Menu
-                  anchorEl={anchorEl}
-                  open={openMenu}
-                  onClose={handleCloseMenu}
-                  MenuListProps={{
-                    "aria-labelledby": "open edit note menu",
-                  }}
-                >
-                  <MenuItem onClick={handleEditOpenModal}>
-                    <ListItemIcon>
-                      <EditIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Edit note</ListItemText>
-                  </MenuItem>
-                  <MenuItem onClick={handleCloneNote}>
-                    {isSubmitting ? (
-                      <CircularProgress size={24} sx={{ mx: "auto" }} />
-                    ) : (
-                      <>
-                        <ListItemIcon>
-                          <FileCopyIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>Clone note</ListItemText>
-                      </>
-                    )}
-                  </MenuItem>
-                  <Divider />
-                  <MenuItem onClick={handleDeleteOpenModal}>
-                    <ListItemIcon>
-                      <DeleteIcon fontSize="small" color="error" />
-                    </ListItemIcon>
-                    <ListItemText sx={{ color: theme.palette.error.main }}>Delete note</ListItemText>
-                  </MenuItem>
-                  <Divider />
-                  <ListSubheader>Modifier</ListSubheader>
-                  {tag !== null && (
-                    <MenuItem onClick={handleClearModifier}>
-                      <ListItemIcon>
-                        <AddLinkIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>None</ListItemText>
-                    </MenuItem>
-                  )}
-                  {allowedModifiers.map(
-                    (modifier) =>
-                      tag !== modifier && (
-                        <MenuItem key={modifier} onClick={() => handleSet(modifier)}>
-                          <ListItemIcon>
-                            <AddLinkIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText>{modifier}</ListItemText>
-                        </MenuItem>
-                      ),
-                  )}
-                </Menu>
-              </>
-            )
-          }
+          action={null}
           sx={{
             bgcolor: alpha(matchedColor, 0.75),
           }}
@@ -325,6 +278,69 @@ export function BoardItemCard({
           </CardMedia>
         )}
       </Card>
+
+      {isEditable && (
+        <Menu
+          open={openMenu}
+          onClose={handleCloseMenu}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+          MenuListProps={{
+            "aria-labelledby": "context-menu",
+          }}
+        >
+          <MenuItem onClick={handleEditOpenModal}>
+            <ListItemIcon>
+              <EditIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit note</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleCloneNote}>
+            {isSubmitting ? (
+              <CircularProgress size={24} sx={{ mx: "auto" }} />
+            ) : (
+              <>
+                <ListItemIcon>
+                  <FileCopyIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Clone note</ListItemText>
+              </>
+            )}
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleDeleteOpenModal}>
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" color="error" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: theme.palette.error.main }}>Delete note</ListItemText>
+          </MenuItem>
+          <Divider />
+          <ListSubheader>Modifier</ListSubheader>
+          {tag !== null && (
+            <MenuItem onClick={handleClearModifier}>
+              <ListItemIcon>
+                <AddLinkIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>None</ListItemText>
+            </MenuItem>
+          )}
+          {allowedModifiers.map(
+            (modifier) =>
+              tag !== modifier && (
+                <MenuItem key={modifier} onClick={() => handleSet(modifier)}>
+                  <ListItemIcon>
+                    <AddLinkIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{modifier}</ListItemText>
+                </MenuItem>
+              ),
+          )}
+        </Menu>
+      )}
 
       {isEditable && (
         <>
