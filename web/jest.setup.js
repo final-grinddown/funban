@@ -15,6 +15,18 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }))
 
+// Mock Next.js Link to prevent async state updates
+jest.mock('next/link', () => {
+  const { forwardRef } = require('react')
+  return forwardRef(({ children, href, ...props }, ref) => {
+    return (
+      <a href={href} ref={ref} {...props}>
+        {children}
+      </a>
+    )
+  })
+})
+
 // Mock NextAuth
 jest.mock('next-auth/react', () => ({
   signIn: jest.fn(),
