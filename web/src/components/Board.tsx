@@ -1,11 +1,11 @@
 import { DragEvent, useMemo, useRef, useState } from "react"
 import { Box, Divider, Stack } from "@mui/material"
+import { BackdropLoading } from "./BackdropLoading"
+import { BoardColumn } from "./BoardColumn"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { IColumnData, INote } from "@/utils/interfaces"
 import { getStoredColumnOrder } from "@/utils/storage"
-import { BackdropLoading } from "./BackdropLoading"
-import { BoardColumn } from "./BoardColumn"
 
 interface Props {
   notes: INote[]

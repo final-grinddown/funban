@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import AddIcon from "@mui/icons-material/Add"
 import { Box, Button, Grid } from "@mui/material"
+import { AddNewTeamMemberModal } from "./AddNewTeamMemberModal"
+import { ColorEditModal } from "./ColorEditModal"
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal"
+import { NameEditModal } from "./NameEditModal"
+import { TeamMemberCard } from "./TeamMemberCard"
 import {
   createAddUserMessage,
   createDeleteUser,
@@ -10,11 +15,6 @@ import {
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { availableColors } from "@/utils/constants"
 import { IUser } from "@/utils/interfaces"
-import { AddNewTeamMemberModal } from "./AddNewTeamMemberModal"
-import { ColorEditModal } from "./ColorEditModal"
-import { DeleteConfirmationModal } from "./DeleteConfirmationModal"
-import { NameEditModal } from "./NameEditModal"
-import { TeamMemberCard } from "./TeamMemberCard"
 
 interface Props {
   users: IUser[]

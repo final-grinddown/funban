@@ -23,9 +23,9 @@ import {
 } from "@mui/material"
 import getConfig from "next/config"
 import Link from "next/link"
+import pkg from "../../package.json"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { ERoutes } from "@/utils/enums"
-import pkg from "../../package.json"
 interface Props {
   children: ReactNode
   userEmail: string

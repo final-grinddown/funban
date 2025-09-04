@@ -6,6 +6,7 @@ import {
   Select,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
+import { TextLengthCounter } from "./TextLengthCounter"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
