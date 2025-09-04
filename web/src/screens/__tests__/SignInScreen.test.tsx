@@ -206,7 +206,7 @@ describe('SignInScreen', () => {
 
   describe('Error Handling', () => {
     it('displays error message for CredentialsSignin error', () => {
-      mockGet.mockImplementation((param) => {
+      mockGet.mockImplementation((param: string) => {
         if (param === 'error') return 'CredentialsSignin'
         if (param === 'callbackUrl') return null
         return null
@@ -218,7 +218,7 @@ describe('SignInScreen', () => {
     })
 
     it('displays generic error message for other errors', () => {
-      mockGet.mockImplementation((param) => {
+      mockGet.mockImplementation((param: string) => {
         if (param === 'error') return 'SomeOtherError'
         if (param === 'callbackUrl') return null
         return null
