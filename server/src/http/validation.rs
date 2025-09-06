@@ -58,11 +58,15 @@ pub fn validate_input<T: Validate>(input: &T) -> Result<(), ValidationErrorRespo
 }
 
 /// Text validation constants
+#[allow(dead_code)]
 pub const MAX_NOTE_TEXT_LENGTH: usize = 5000;
+#[allow(dead_code)]
 pub const MAX_USER_NAME_LENGTH: usize = 100;
+#[allow(dead_code)]
 pub const MIN_PASSWORD_LENGTH: usize = 8;
 
 /// Custom validation functions
+#[allow(dead_code)]
 pub mod validators {
     use validator::ValidationError;
 
@@ -114,6 +118,7 @@ pub mod validators {
 }
 
 /// Common validation structs for API inputs
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate)]
 pub struct AddNoteInput {
     pub owner: u32,
@@ -160,6 +165,7 @@ pub struct UpdateUserNameInput {
 }
 
 /// Middleware to validate request bodies
+#[allow(dead_code)]
 pub async fn validation_middleware(request: Request, next: Next) -> Response {
     // For now, this is a placeholder for request-level validation
     // Individual endpoints handle their own validation
@@ -223,7 +229,7 @@ mod tests {
         // Test AddNoteInput validation
         let valid_note = AddNoteInput {
             owner: 1,
-            state: "todo".to_string(),
+            state: crate::constants::note_states::TODO.to_string(),
             text: Some("Valid note text".to_string()),
         };
         assert!(valid_note.validate().is_ok());

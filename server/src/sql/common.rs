@@ -16,6 +16,7 @@ pub async fn execute_delete(
 }
 
 /// Helper function for checking existence by ID
+#[allow(dead_code)]
 pub async fn exists_by_id(
     db: &MySqlPool,
     table: &str,
