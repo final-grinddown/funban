@@ -503,3 +503,77 @@ pub async fn delete_bulk(
 
     Ok(())
 }
+
+pub async fn split_note(
+    db: &MySqlPool,
+    original_id: u32,
+    original_text: &str,
+    new_text: &str,
+    new_state: Option<&str>,
+    new_owner: Option<u32>,
+) -> sqlx::Result<(NoteDto, NoteDto)> {
+    let mut transaction = db.begin().await?;
+
+    // First, read the original note to get its current state and owner
+    let original_note = sqlx::query!(
+        r#"
+        SELECT id, text, owner, state, predecessor_id, tag, updated, created
+        FROM notes 
+        WHERE id = ?
+        "#,
+        original_id
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+
+    // Update the original note with new text
+    sqlx::query!(
+        r#"
+        UPDATE notes SET text = ? WHERE id = ?
+        "#,
+        original_text,
+        original_id
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    // Use provided new_state and new_owner, or fall back to original values
+    let target_state = new_state.unwrap_or(&original_note.state);
+    let target_owner = new_owner.unwrap_or(original_note.owner as u32);
+
+    // Find the last note in the target state for proper ordering
+    let last_id = sqlx::query!(
+        r#"
+        SELECT n1.id as id FROM notes as n1
+        LEFT JOIN notes as n2 ON n1.id = n2.predecessor_id
+        WHERE n1.state = ? AND n2.id IS NULL
+        "#,
+        target_state
+    )
+    .fetch_optional(&mut *transaction)
+    .await?;
+
+    // Create the new note
+    let new_note_result = sqlx::query!(
+        r#"
+        INSERT INTO notes (text, owner, state, predecessor_id, tag)
+        VALUES (?, ?, ?, ?, ?)
+        "#,
+        new_text,
+        target_owner,
+        target_state,
+        last_id.map(|row| row.id),
+        original_note.tag
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    // Commit the transaction
+    transaction.commit().await?;
+
+    // Read back both notes to return complete data
+    let updated_original = read_by_id(db, original_id).await?;
+    let new_note = read_by_id(db, new_note_result.last_insert_id() as u32).await?;
+
+    Ok((updated_original, new_note))
+}

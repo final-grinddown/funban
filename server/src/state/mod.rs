@@ -274,6 +274,36 @@ impl AppState {
             WsAction::NotifySnapshot {} => Ok(OperationResult::Broadcast(vec![
                 WsOperation::SnapshotCreated {},
             ])),
+            WsAction::SplitNote {
+                uuid,
+                original_id,
+                original_text,
+                new_text,
+                new_state,
+                new_owner,
+            } => {
+                let (_updated_note, new_note) = note::split_note(
+                    db,
+                    original_id,
+                    &original_text,
+                    &new_text,
+                    new_state.as_deref(),
+                    new_owner,
+                )
+                .await?;
+
+                let operations = vec![
+                    WsOperation::NoteTextUpdated {
+                        id: original_id,
+                        text: original_text,
+                    },
+                    WsOperation::NoteAdded {
+                        note: new_note.into(),
+                    },
+                ];
+
+                Self::broadcast_notes(uuid, operations)
+            }
         }
     }
 }
@@ -341,6 +371,14 @@ pub enum WsAction {
         updates: Vec<UserUpdate>,
     },
     NotifySnapshot {},
+    SplitNote {
+        uuid: Option<String>,
+        original_id: u32,
+        original_text: String,
+        new_text: String,
+        new_state: Option<String>,
+        new_owner: Option<u32>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]

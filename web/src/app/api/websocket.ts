@@ -5,6 +5,7 @@ import {
 	IRemoveNote,
 	IRemoveNoteBulk,
 	IRemoveUser,
+	ISplitNote,
 	IUpdateNote,
 	IUpdateNoteTag,
 	IUpdateNoteText,
@@ -163,6 +164,25 @@ export function createCloneNote(id: string): string {
 	const action: ICloneNote = {
 		type: "CloneNote",
 		id: parseInt(id),
+	}
+
+	return JSON.stringify(action)
+}
+
+export function createSplitNote(
+	originalId: string,
+	originalText: string,
+	newText: string,
+	newState?: string,
+	newOwner?: string
+): string {
+	const action: ISplitNote = {
+		type: "SplitNote",
+		original_id: parseInt(originalId),
+		original_text: originalText,
+		new_text: newText,
+		new_state: newState,
+		new_owner: newOwner ? parseInt(newOwner) : undefined,
 	}
 
 	return JSON.stringify(action)
