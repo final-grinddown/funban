@@ -8,7 +8,6 @@ import {
   Select,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
-import { TextLengthCounter } from "./TextLengthCounter"
 import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
@@ -17,6 +16,7 @@ import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
+import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   users: IUser[]

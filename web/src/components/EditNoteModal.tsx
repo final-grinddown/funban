@@ -6,7 +6,6 @@ import {
   Select,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
-import { TextLengthCounter } from "./TextLengthCounter"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
@@ -14,6 +13,7 @@ import { handleKeyDownSubmit } from "@/utils/helpers"
 import { INote } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
+import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   isOpen: boolean

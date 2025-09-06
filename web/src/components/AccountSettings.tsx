@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Box, Button, TextField, Typography } from "@mui/material"
 import { useSession } from "next-auth/react"
+import { IExtendedSession } from "@/utils/interfaces"
 import { ChangeEmailModal } from "./ChangeEmailModal"
 import { ChangePasswordModal } from "./ChangePasswordModal"
-import { IExtendedSession } from "@/utils/interfaces"
 
 export function AccountSettings() {
   const { data } = useSession()
