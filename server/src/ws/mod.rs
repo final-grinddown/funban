@@ -103,6 +103,7 @@ impl WsContext {
         }
 
         let message = serde_json::to_string(&ServerMessage::Patch { ops })?;
+        let message_bytes = Utf8Bytes::from(message);
         let mut txs = self.txs.lock().await;
 
         // Collect disconnected clients
@@ -110,7 +111,7 @@ impl WsContext {
 
         for (client_id, tx) in txs.iter_mut() {
             if let Err(err) = tx
-                .send(Message::Text(Utf8Bytes::from(message.clone())))
+                .send(Message::Text(message_bytes.clone()))
                 .await
             {
                 warn!("Client {} disconnected: {}", client_id, err);

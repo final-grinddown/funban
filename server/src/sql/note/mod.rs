@@ -394,7 +394,7 @@ pub async fn delete_by(
     }?;
 
     // Fix chains for each deleted note
-    for id in note_ids.clone() {
+    for &id in &note_ids {
         remove_from_chain(&mut transaction, id as u32, &change_set).await?;
     }
 
