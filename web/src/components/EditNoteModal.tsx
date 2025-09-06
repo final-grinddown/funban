@@ -17,7 +17,7 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { MaxTextLength } from "@/utils/constants"
+import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { INote } from "@/utils/interfaces"
 import { TextLengthCounter } from "./TextLengthCounter"
@@ -118,10 +118,11 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="state-label">State</InputLabel>
                 <Select {...field} labelId="state-label" label="State">
-                  <MenuItem value="notes">Notes</MenuItem>
-                  <MenuItem value="todo">To Do</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="done">Done</MenuItem>
+                  {noteStateOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             )}
