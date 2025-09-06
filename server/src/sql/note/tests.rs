@@ -800,7 +800,7 @@ async fn test_split_note_different_state_and_owner(db: MySqlPool) -> sqlx::Resul
         "Original updated",
         "New note in progress",
         Some("in_progress"), // Different state
-        Some(2), // Different owner
+        Some(2),             // Different owner
     )
     .await?;
 
