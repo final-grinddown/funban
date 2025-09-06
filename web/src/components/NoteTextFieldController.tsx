@@ -1,6 +1,7 @@
 import { forwardRef } from "react"
 import { TextField } from "@mui/material"
 import { Controller, Control, FieldErrors, FieldPath } from "react-hook-form"
+import { textValidationRules } from "@/hooks/useFormValidation"
 import { MaxTextLength } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { TextLengthCounter } from "./TextLengthCounter"
@@ -44,8 +45,9 @@ export const NoteTextFieldController = <TFormData extends Record<string, any>>({
         name={name}
         control={control}
         rules={{
-          ...(required && { required: "Text is required" }),
-          maxLength: { value: maxLength, message: `Text cannot exceed ${maxLength} characters` }
+          ...(required && { required: textValidationRules.required }),
+          maxLength: { value: maxLength, message: `Text cannot exceed ${maxLength} characters` },
+          minLength: required ? textValidationRules.minLength : undefined
         }}
         render={({ field }) => (
           <TextField

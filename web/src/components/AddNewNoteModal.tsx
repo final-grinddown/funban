@@ -10,7 +10,8 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { MaxTextLength, noteStateOptions } from "@/utils/constants"
+import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
+import { noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
@@ -59,6 +60,12 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
 
   const isSaveAndCreateNext = watch("saveAndCreateNext")
   const text = watch("text")
+
+  const textValidation = useFormValidation({
+    text,
+    isDirty,
+    isValid,
+  })
 
   const onSubmit = (data: FormInputs) => {
     const message = createNewNote(data.owner, data.text, data.state)
@@ -115,7 +122,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
       title="Add New Note"
       primaryButtonText="Create Note"
       primaryButtonAction={handleSubmit(onSubmit)}
-      primaryButtonDisabled={isSubmitting || !isDirty || !isValid}
+      primaryButtonDisabled={isSubmitting || !textValidation.isFormSubmittable}
       primaryButtonLoading={isSubmitting}
       primaryButtonWidth="120px"
     >
@@ -139,7 +146,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
           <Controller
             name="owner"
             control={control}
-            rules={{ required: "Owner is required" }}
+            rules={requiredSelectRules}
             render={({ field }) => (
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="owner-label">Note Owner</InputLabel>
@@ -160,7 +167,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
             currentText={text}
             inputRef={textAreaRef}
             sx={{ mt: 2 }}
-            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty || !isValid)}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !textValidation.isFormSubmittable)}
           />
           <Controller
             name="saveAndCreateNext"
