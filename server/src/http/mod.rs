@@ -8,6 +8,7 @@ use std::sync::Arc;
 pub mod errors;
 pub mod middleware;
 pub mod routes;
+pub mod validation;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
