@@ -1,20 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
-  Button,
   Checkbox,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
   FormControlLabel,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
-  TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { createNewNote } from "@/app/api/websocket"
@@ -22,6 +13,7 @@ import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
+import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
@@ -117,15 +109,17 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
   }, [isLoading, isOpen, isSaveAndCreateNext, isSubmitting, onClose, reset, setFocus, hasTextFocus, clearTextFocus])
 
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Add New Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Note"
+      primaryButtonText="Create Note"
+      primaryButtonAction={handleSubmit(onSubmit)}
+      primaryButtonDisabled={isSubmitting || !isDirty || !isValid}
+      primaryButtonLoading={isSubmitting}
+      primaryButtonWidth="120px"
+    >
+      <form onSubmit={handleSubmit(onSubmit)}>
           <Controller
             name="state"
             control={control}
@@ -176,21 +170,6 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
             )}
           />
         </form>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
-        <Button onClick={onClose} color="secondary" variant="contained">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit(onSubmit)}
-          color="primary"
-          variant="contained"
-          disabled={isSubmitting || !isDirty || !isValid || text.length > MaxTextLength}
-          sx={{ width: "92px" }}
-        >
-          {isSubmitting ? <CircularProgress size={20} /> : "Create"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </BaseModal>
   )
 }
