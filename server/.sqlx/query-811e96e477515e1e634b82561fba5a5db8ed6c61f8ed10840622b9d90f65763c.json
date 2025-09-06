@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO notes (text, owner, state, predecessor_id, tag)\n        VALUES (?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "811e96e477515e1e634b82561fba5a5db8ed6c61f8ed10840622b9d90f65763c"
+}

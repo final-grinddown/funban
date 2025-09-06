@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT n1.id as id FROM notes as n1\n        LEFT JOIN notes as n2 ON n1.id = n2.predecessor_id\n        WHERE n1.state = ? AND n2.id IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6a2c88d3fe02ba1597d7df9ff4ef6742b98bf0398843ce67b1dc2b0e25ec4850"
+}
