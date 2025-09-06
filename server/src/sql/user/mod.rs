@@ -2,6 +2,7 @@ use serde::Serialize;
 use sqlx::MySqlPool;
 
 use crate::model::user::User;
+use super::common;
 
 #[cfg(test)]
 pub mod tests;
@@ -128,18 +129,7 @@ pub async fn update_color(db: &MySqlPool, id: u32, color: &str) -> sqlx::Result<
 }
 
 pub async fn remove(db: &MySqlPool, id: u32) -> sqlx::Result<bool> {
-    let deleted_rows = sqlx::query!(
-        r#"
-			DELETE FROM users
-			WHERE id = ?
-			"#,
-        id
-    )
-    .execute(db)
-    .await?
-    .rows_affected();
-
-    Ok(deleted_rows > 0)
+    common::execute_delete(db, "users", "id", id).await
 }
 
 pub async fn get_password(db: &MySqlPool, email: &str) -> sqlx::Result<Option<String>> {

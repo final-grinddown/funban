@@ -4,6 +4,7 @@ use sqlx::FromRow;
 use sqlx::MySqlPool;
 
 use crate::model::history::History;
+use super::common;
 
 #[cfg(test)]
 pub mod tests;
@@ -88,20 +89,11 @@ pub async fn rename(db: &MySqlPool, id: u32, new_name: &str) -> sqlx::Result<Opt
 }
 
 pub async fn delete(db: &MySqlPool, id: u32) -> sqlx::Result<Option<i32>> {
-    let result = sqlx::query_as!(
-        HistoryEntity,
-        r#"
-				DELETE FROM history 
-				WHERE id = ?
-				"#,
-        id
-    )
-    .execute(db)
-    .await?;
-
-    match result.rows_affected() {
-        1 => Ok(Some(id.try_into().unwrap())),
-        _ => Ok(None),
+    let deleted = common::execute_delete(db, "history", "id", id).await?;
+    
+    match deleted {
+        true => Ok(Some(id.try_into().unwrap())),
+        false => Ok(None),
     }
 }
 
