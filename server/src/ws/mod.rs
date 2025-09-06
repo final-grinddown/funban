@@ -110,10 +110,7 @@ impl WsContext {
         let mut to_remove = Vec::new();
 
         for (client_id, tx) in txs.iter_mut() {
-            if let Err(err) = tx
-                .send(Message::Text(message_bytes.clone()))
-                .await
-            {
+            if let Err(err) = tx.send(Message::Text(message_bytes.clone())).await {
                 warn!("Client {} disconnected: {}", client_id, err);
                 to_remove.push(client_id.clone());
             }

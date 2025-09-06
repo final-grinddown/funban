@@ -12,10 +12,10 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use cookie::time::Duration;
 
+use crate::http::validation::validate_input;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
-use crate::http::validation::validate_input;
 
 use crate::http::ApiContext;
 

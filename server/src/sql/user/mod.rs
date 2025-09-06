@@ -1,8 +1,8 @@
 use serde::Serialize;
 use sqlx::MySqlPool;
 
-use crate::model::user::User;
 use super::common;
+use crate::model::user::User;
 
 #[cfg(test)]
 pub mod tests;

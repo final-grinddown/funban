@@ -100,16 +100,14 @@ impl Message {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Self::Sqlx(ref e) => {
-                match e {
-                    sqlx::Error::RowNotFound => {
-                        tracing::warn!("SQLx: Row not found");
-                        return (StatusCode::NOT_FOUND, Json(Message::new("Row not found")))
-                            .into_response();
-                    }
-                    _ => tracing::error!("SQLx: {}", e),
+            Self::Sqlx(ref e) => match e {
+                sqlx::Error::RowNotFound => {
+                    tracing::warn!("SQLx: Row not found");
+                    return (StatusCode::NOT_FOUND, Json(Message::new("Row not found")))
+                        .into_response();
                 }
-            }
+                _ => tracing::error!("SQLx: {}", e),
+            },
 
             Self::Anyhow(ref e) => {
                 tracing::error!("{}", e);

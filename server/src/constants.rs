@@ -4,12 +4,12 @@ use crate::model::note::{NoteState, NoteTag};
 /// Note state constants for easy access
 pub mod note_states {
     use super::NoteState;
-    
+
     pub const NOTES: &str = "notes";
     pub const TODO: &str = "todo";
     pub const IN_PROGRESS: &str = "in_progress";
     pub const DONE: &str = "done";
-    
+
     /// Helper function to convert string to NoteState
     pub fn from_str(s: &str) -> NoteState {
         s.to_string().into()
@@ -19,12 +19,12 @@ pub mod note_states {
 /// Note tag constants for easy access
 pub mod note_tags {
     use super::NoteTag;
-    
+
     pub const IMPORTANT: &str = "Important";
     pub const DEADLINE: &str = "Deadline";
     pub const WAITING: &str = "Waiting";
     pub const QUICK: &str = "Quick";
-    
+
     /// Helper function to convert string to NoteTag
     pub fn from_str(s: &str) -> NoteTag {
         s.to_string().into()
@@ -39,13 +39,19 @@ mod tests {
     fn test_note_states_conversion() {
         assert_eq!(note_states::from_str(note_states::TODO), NoteState::Todo);
         assert_eq!(note_states::from_str(note_states::DONE), NoteState::Done);
-        assert_eq!(note_states::from_str(note_states::IN_PROGRESS), NoteState::InProgress);
+        assert_eq!(
+            note_states::from_str(note_states::IN_PROGRESS),
+            NoteState::InProgress
+        );
         assert_eq!(note_states::from_str(note_states::NOTES), NoteState::Notes);
     }
 
     #[test]
     fn test_note_tags_conversion() {
-        assert_eq!(note_tags::from_str(note_tags::IMPORTANT), NoteTag::Important);
+        assert_eq!(
+            note_tags::from_str(note_tags::IMPORTANT),
+            NoteTag::Important
+        );
         assert_eq!(note_tags::from_str(note_tags::DEADLINE), NoteTag::Deadline);
         assert_eq!(note_tags::from_str(note_tags::WAITING), NoteTag::Waiting);
         assert_eq!(note_tags::from_str(note_tags::QUICK), NoteTag::Quick);

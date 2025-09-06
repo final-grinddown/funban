@@ -8,7 +8,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationErrors};
 
-
 /// Common validation error response
 #[derive(Debug, Serialize)]
 pub struct ValidationErrorResponse {
@@ -31,7 +30,9 @@ impl From<ValidationErrors> for ValidationErrorResponse {
             .flat_map(|(field, field_errors)| {
                 field_errors.iter().map(move |error| FieldError {
                     field: field.to_string(),
-                    message: error.message.as_ref()
+                    message: error
+                        .message
+                        .as_ref()
                         .map(|msg| msg.to_string())
                         .unwrap_or_else(|| format!("Invalid {}", field)),
                 })
@@ -72,7 +73,7 @@ pub mod validators {
         }
         Ok(())
     }
-    
+
     /// Validate required text length for notes
     pub fn validate_required_note_text(text: &str) -> Result<(), ValidationError> {
         if text.is_empty() {
@@ -100,14 +101,14 @@ pub mod validators {
         if password.len() < super::MIN_PASSWORD_LENGTH {
             return Err(ValidationError::new("password_too_short"));
         }
-        
+
         let has_letter = password.chars().any(|c| c.is_alphabetic());
         let has_number = password.chars().any(|c| c.is_numeric());
-        
+
         if !has_letter || !has_number {
             return Err(ValidationError::new("password_weak"));
         }
-        
+
         Ok(())
     }
 }
@@ -116,7 +117,11 @@ pub mod validators {
 #[derive(Debug, Deserialize, Validate)]
 pub struct AddNoteInput {
     pub owner: u32,
-    #[validate(length(min = 1, max = 20, message = "State must be between 1 and 20 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 20,
+        message = "State must be between 1 and 20 characters"
+    ))]
     pub state: String,
     #[validate(length(max = 5000, message = "Text cannot exceed 5000 characters"))]
     pub text: Option<String>,
@@ -124,13 +129,21 @@ pub struct AddNoteInput {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateNoteTextInput {
-    #[validate(length(min = 1, max = 5000, message = "Text must be between 1 and 5000 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 5000,
+        message = "Text must be between 1 and 5000 characters"
+    ))]
     pub text: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct AddUserInput {
-    #[validate(length(min = 1, max = 100, message = "Name must be between 1 and 100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Name must be between 1 and 100 characters"
+    ))]
     pub name: String,
     #[validate(length(min = 3, max = 7, message = "Color must be a valid color name"))]
     pub color: String,
@@ -138,7 +151,11 @@ pub struct AddUserInput {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateUserNameInput {
-    #[validate(length(min = 1, max = 100, message = "Name must be between 1 and 100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Name must be between 1 and 100 characters"
+    ))]
     pub name: String,
 }
 
@@ -151,21 +168,21 @@ pub async fn validation_middleware(request: Request, next: Next) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::validators::*;
+    use super::*;
 
     #[test]
     fn test_note_text_validation() {
         // Valid text
         assert!(validate_note_text("Valid note text").is_ok());
-        
+
         // Empty text is now allowed (for optional fields)
         assert!(validate_note_text("").is_ok());
-        
+
         // Too long text should fail
         let long_text = "a".repeat(MAX_NOTE_TEXT_LENGTH + 1);
         assert!(validate_note_text(&long_text).is_err());
-        
+
         // Test required text validation
         assert!(validate_required_note_text("Valid text").is_ok());
         assert!(validate_required_note_text("").is_err());
@@ -175,11 +192,11 @@ mod tests {
     fn test_user_name_validation() {
         // Valid name
         assert!(validate_user_name("John Doe").is_ok());
-        
+
         // Empty name should fail
         assert!(validate_user_name("").is_err());
         assert!(validate_user_name("   ").is_err());
-        
+
         // Too long name should fail
         let long_name = "a".repeat(MAX_USER_NAME_LENGTH + 1);
         assert!(validate_user_name(&long_name).is_err());
@@ -190,13 +207,13 @@ mod tests {
         // Valid passwords
         assert!(validate_password_strength("password123").is_ok());
         assert!(validate_password_strength("MySecure1Pass").is_ok());
-        
+
         // Too short
         assert!(validate_password_strength("short1").is_err());
-        
+
         // No numbers
         assert!(validate_password_strength("onlyletters").is_err());
-        
+
         // No letters
         assert!(validate_password_strength("12345678").is_err());
     }

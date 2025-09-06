@@ -11,10 +11,7 @@ pub async fn execute_delete(
     id: u32,
 ) -> SqlResult<bool> {
     let query = format!("DELETE FROM {} WHERE {} = ?", table, id_column);
-    let result = sqlx::query(&query)
-        .bind(id)
-        .execute(db)
-        .await?;
+    let result = sqlx::query(&query).bind(id).execute(db).await?;
     Ok(result.rows_affected() > 0)
 }
 
@@ -25,11 +22,11 @@ pub async fn exists_by_id(
     id_column: &str,
     id: u32,
 ) -> SqlResult<bool> {
-    let query = format!("SELECT COUNT(*) as count FROM {} WHERE {} = ?", table, id_column);
-    let row = sqlx::query(&query)
-        .bind(id)
-        .fetch_one(db)
-        .await?;
+    let query = format!(
+        "SELECT COUNT(*) as count FROM {} WHERE {} = ?",
+        table, id_column
+    );
+    let row = sqlx::query(&query).bind(id).fetch_one(db).await?;
     let count: i64 = row.get("count");
     Ok(count > 0)
 }
@@ -51,7 +48,10 @@ mod tests {
     async fn test_execute_delete_nonexistent(db: MySqlPool) -> sqlx::Result<()> {
         // Test deleting a non-existent user
         let result = execute_delete(&db, "users", "id", 999).await?;
-        assert!(!result, "Should return false when deleting non-existent record");
+        assert!(
+            !result,
+            "Should return false when deleting non-existent record"
+        );
         Ok(())
     }
 
