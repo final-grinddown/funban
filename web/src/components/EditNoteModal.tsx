@@ -20,7 +20,7 @@ import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { INote } from "@/utils/interfaces"
-import { TextLengthCounter } from "./TextLengthCounter"
+import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   isOpen: boolean
@@ -127,28 +127,16 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
               </FormControl>
             )}
           />
-          <Controller
+          <NoteTextFieldController
             name="text"
             control={control}
-            rules={{ required: "Text is required" }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                inputRef={inputRef}
-                autoFocus={hasTextFocus}
-                label="Note Text"
-                multiline
-                minRows={4}
-                variant="outlined"
-                fullWidth={true}
-                sx={{ my: 2 }}
-                error={!!errors.text}
-                helperText={errors.text ? errors.text.message : ""}
-                onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty)}
-              />
-            )}
+            errors={errors}
+            currentText={text}
+            autoFocus={hasTextFocus}
+            inputRef={inputRef}
+            sx={{ my: 2 }}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty)}
           />
-          {text && text.length > 0 && <TextLengthCounter currentLength={text.length} maxLength={MaxTextLength} />}
         </form>
       </DialogContent>
       <DialogActions sx={{ px: 3, alignItems: "stretch" }}>

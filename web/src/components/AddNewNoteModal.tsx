@@ -22,7 +22,7 @@ import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
-import { TextLengthCounter } from "./TextLengthCounter"
+import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   users: IUser[]
@@ -159,27 +159,15 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
               </FormControl>
             )}
           />
-          <Controller
+          <NoteTextFieldController
             name="text"
             control={control}
-            rules={{ required: "Text is required" }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Note Text"
-                multiline
-                minRows={4}
-                variant="outlined"
-                fullWidth={true}
-                sx={{ mt: 2 }}
-                error={!!errors.text}
-                helperText={errors.text ? errors.text.message : ""}
-                inputRef={textAreaRef}
-                onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty || !isValid)}
-              />
-            )}
+            errors={errors}
+            currentText={text}
+            inputRef={textAreaRef}
+            sx={{ mt: 2 }}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty || !isValid)}
           />
-          {text && text.length > 0 && <TextLengthCounter currentLength={text.length} maxLength={MaxTextLength} />}
           <Controller
             name="saveAndCreateNext"
             control={control}
