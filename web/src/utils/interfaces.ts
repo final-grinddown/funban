@@ -137,6 +137,15 @@ export interface ICloneNote {
 	id: number
 }
 
+export interface ISplitNote {
+	type: "SplitNote"
+	original_id: number
+	original_text: string
+	new_text: string
+	new_state?: string
+	new_owner?: number
+}
+
 export interface IUpdateReorderNote {
 	type: "Reorder"
 	moved_item_id: number

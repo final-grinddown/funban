@@ -1,5 +1,6 @@
 import { DragEvent, SyntheticEvent, useCallback, useEffect, useState } from "react"
 import AddLinkIcon from "@mui/icons-material/AddLink"
+import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EditNoteIcon from "@mui/icons-material/EditNote"
@@ -29,6 +30,7 @@ import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/sto
 import { useFocusStateStore } from "@/utils/store"
 import { DeleteNoteModal } from "./DeleteNoteModal"
 import { EditNoteModal } from "./EditNoteModal"
+import { SplitNoteModal } from "./SplitNoteModal"
 
 const HEADER_CONFIG_KEY = "funban-header-config"
 
@@ -56,13 +58,14 @@ export function BoardItemCard({
   updated,
   created,
   id,
+  owner_id,
   isEditable,
   predecessor_id,
   tag,
   onDragStart,
   onDragEnd,
 }: Props) {
-  const { sendMessage, sendMessageAsync, isLoading } = useWebSocketContext()
+  const { sendMessage, sendMessageAsync, isLoading, users } = useWebSocketContext()
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
   const matchedColor = matchColorName(color, availableColors) || "#000000"
@@ -72,6 +75,7 @@ export function BoardItemCard({
   } | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
@@ -138,6 +142,15 @@ export function BoardItemCard({
 
   const handleDeleteCloseModal = () => {
     setIsDeleteModalOpen(false)
+  }
+
+  const handleSplitOpenModal = () => {
+    setIsSplitModalOpen(true)
+    handleCloseMenu()
+  }
+
+  const handleSplitCloseModal = () => {
+    setIsSplitModalOpen(false)
   }
 
   const handleCloneNote = () => {
@@ -299,6 +312,12 @@ export function BoardItemCard({
             </ListItemIcon>
             <ListItemText>Edit note</ListItemText>
           </MenuItem>
+          <MenuItem onClick={handleSplitOpenModal}>
+            <ListItemIcon>
+              <CallSplitIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Split note</ListItemText>
+          </MenuItem>
           <MenuItem onClick={handleCloneNote}>
             {isSubmitting ? (
               <CircularProgress size={24} sx={{ mx: "auto" }} />
@@ -352,6 +371,13 @@ export function BoardItemCard({
             onClose={handleEditCloseModal}
             hasTextFocus={textFocus}
             clearTextFocus={handleClearTextFocus}
+          />
+
+          <SplitNoteModal
+            isOpen={isSplitModalOpen}
+            originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
+            users={users}
+            onClose={handleSplitCloseModal}
           />
 
           <DeleteNoteModal isOpen={isDeleteModalOpen} noteId={id} onClose={handleDeleteCloseModal} />

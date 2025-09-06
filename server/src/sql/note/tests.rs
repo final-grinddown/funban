@@ -762,3 +762,58 @@ async fn test_clear_tag(db: MySqlPool) -> sqlx::Result<()> {
 
     Ok(())
 }
+
+#[sqlx::test(fixtures("users", "notes"))]
+async fn test_split_note(db: MySqlPool) -> sqlx::Result<()> {
+    // Split note 1 with same state and owner
+    let (_updated_original, new_note) = note::split_note(
+        &db,
+        1,
+        "Updated original text",
+        "New split note text",
+        None, // Keep same state
+        None, // Keep same owner
+    )
+    .await?;
+
+    // Verify original note was updated
+    let original = read_by_id(&db, 1).await?;
+    assert_eq!(original.text, "Updated original text");
+    assert_eq!(original.state, "todo"); // Should remain same
+    assert_eq!(original.owner_id, 1); // Should remain same
+
+    // Verify new note was created with correct content
+    assert_eq!(new_note.text, "New split note text");
+    assert_eq!(new_note.state, "todo"); // Should inherit from original
+    assert_eq!(new_note.owner_id, 1); // Should inherit from original
+    assert!(new_note.id != 1); // Should have different ID
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users", "notes"))]
+async fn test_split_note_different_state_and_owner(db: MySqlPool) -> sqlx::Result<()> {
+    // Split note 1 with different state and owner
+    let (_updated_original, new_note) = note::split_note(
+        &db,
+        1,
+        "Original updated",
+        "New note in progress",
+        Some("in_progress"), // Different state
+        Some(2),             // Different owner
+    )
+    .await?;
+
+    // Verify original note was updated
+    let original = read_by_id(&db, 1).await?;
+    assert_eq!(original.text, "Original updated");
+    assert_eq!(original.state, "todo"); // Original state unchanged
+    assert_eq!(original.owner_id, 1); // Original owner unchanged
+
+    // Verify new note has the specified state and owner
+    assert_eq!(new_note.text, "New note in progress");
+    assert_eq!(new_note.state, "in_progress"); // New state applied
+    assert_eq!(new_note.owner_id, 2); // New owner applied
+
+    Ok(())
+}

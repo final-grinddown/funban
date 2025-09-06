@@ -121,5 +121,6 @@ fn extract_uuid(action: &WsAction) -> Option<String> {
         WsAction::NoteUpdate { uuid, .. } => uuid.clone(),
         WsAction::UserUpdate { uuid, .. } => uuid.clone(),
         WsAction::NotifySnapshot {} => None,
+        WsAction::SplitNote { uuid, .. } => uuid.clone(),
     }
 }
