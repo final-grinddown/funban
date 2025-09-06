@@ -50,7 +50,6 @@ pub struct MeResponse {
     pub username: String,
 }
 
-// TODO: Generalize this to be used in both auth.rs and history.rs
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EmptyResponse {
     pub message: &'static str,
