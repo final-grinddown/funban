@@ -1,26 +1,18 @@
 import { useEffect, useRef, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
-  TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { MaxTextLength } from "@/utils/constants"
+import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { INote } from "@/utils/interfaces"
-import { TextLengthCounter } from "./TextLengthCounter"
+import { BaseModal } from "./BaseModal"
+import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   isOpen: boolean
@@ -102,15 +94,15 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
   }, [isLoading, isSubmitting, onClose])
 
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth={true} disableRestoreFocus={true}>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Edit Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit Note"
+      primaryButtonAction={handleSubmit(onSubmit)}
+      primaryButtonDisabled={isSubmitting || !isDirty || text.length > MaxTextLength}
+      primaryButtonLoading={isSubmitting}
+    >
+      <form onSubmit={handleSubmit(onSubmit)}>
           <Controller
             name="state"
             control={control}
@@ -118,52 +110,26 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="state-label">State</InputLabel>
                 <Select {...field} labelId="state-label" label="State">
-                  <MenuItem value="notes">Notes</MenuItem>
-                  <MenuItem value="todo">To Do</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="done">Done</MenuItem>
+                  {noteStateOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             )}
           />
-          <Controller
+          <NoteTextFieldController
             name="text"
             control={control}
-            rules={{ required: "Text is required" }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                inputRef={inputRef}
-                autoFocus={hasTextFocus}
-                label="Note Text"
-                multiline
-                minRows={4}
-                variant="outlined"
-                fullWidth={true}
-                sx={{ my: 2 }}
-                error={!!errors.text}
-                helperText={errors.text ? errors.text.message : ""}
-                onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty)}
-              />
-            )}
+            errors={errors}
+            currentText={text}
+            autoFocus={hasTextFocus}
+            inputRef={inputRef}
+            sx={{ my: 2 }}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty)}
           />
-          {text && text.length > 0 && <TextLengthCounter currentLength={text.length} maxLength={MaxTextLength} />}
         </form>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
-        <Button onClick={onClose} color="secondary" variant="contained">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit(onSubmit)}
-          color="primary"
-          variant="contained"
-          disabled={isSubmitting || !isDirty || text.length > MaxTextLength}
-          sx={{ width: "72px" }}
-        >
-          {isSubmitting ? <CircularProgress size={20} /> : "Save"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </BaseModal>
   )
 }

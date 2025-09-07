@@ -1,28 +1,21 @@
 import { useEffect, useRef, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
-  Button,
   Checkbox,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
   FormControlLabel,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
-  TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { MaxTextLength } from "@/utils/constants"
+import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
+import { noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
-import { TextLengthCounter } from "./TextLengthCounter"
+import { BaseModal } from "./BaseModal"
+import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   users: IUser[]
@@ -67,6 +60,12 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
 
   const isSaveAndCreateNext = watch("saveAndCreateNext")
   const text = watch("text")
+
+  const textValidation = useFormValidation({
+    text,
+    isDirty,
+    isValid,
+  })
 
   const onSubmit = (data: FormInputs) => {
     const message = createNewNote(data.owner, data.text, data.state)
@@ -117,15 +116,17 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
   }, [isLoading, isOpen, isSaveAndCreateNext, isSubmitting, onClose, reset, setFocus, hasTextFocus, clearTextFocus])
 
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Add New Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Note"
+      primaryButtonText="Create Note"
+      primaryButtonAction={handleSubmit(onSubmit)}
+      primaryButtonDisabled={isSubmitting || !textValidation.isFormSubmittable}
+      primaryButtonLoading={isSubmitting}
+      primaryButtonWidth="120px"
+    >
+      <form onSubmit={handleSubmit(onSubmit)}>
           <Controller
             name="state"
             control={control}
@@ -133,10 +134,11 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="state-label">State</InputLabel>
                 <Select {...field} labelId="state-label" label="State">
-                  <MenuItem value="notes">Notes</MenuItem>
-                  <MenuItem value="todo">To Do</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="done">Done</MenuItem>
+                  {noteStateOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             )}
@@ -144,7 +146,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
           <Controller
             name="owner"
             control={control}
-            rules={{ required: "Owner is required" }}
+            rules={requiredSelectRules}
             render={({ field }) => (
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="owner-label">Note Owner</InputLabel>
@@ -158,27 +160,15 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
               </FormControl>
             )}
           />
-          <Controller
+          <NoteTextFieldController
             name="text"
             control={control}
-            rules={{ required: "Text is required" }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Note Text"
-                multiline
-                minRows={4}
-                variant="outlined"
-                fullWidth={true}
-                sx={{ mt: 2 }}
-                error={!!errors.text}
-                helperText={errors.text ? errors.text.message : ""}
-                inputRef={textAreaRef}
-                onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty || !isValid)}
-              />
-            )}
+            errors={errors}
+            currentText={text}
+            inputRef={textAreaRef}
+            sx={{ mt: 2 }}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !textValidation.isFormSubmittable)}
           />
-          {text && text.length > 0 && <TextLengthCounter currentLength={text.length} maxLength={MaxTextLength} />}
           <Controller
             name="saveAndCreateNext"
             control={control}
@@ -187,21 +177,6 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
             )}
           />
         </form>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
-        <Button onClick={onClose} color="secondary" variant="contained">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit(onSubmit)}
-          color="primary"
-          variant="contained"
-          disabled={isSubmitting || !isDirty || !isValid || text.length > MaxTextLength}
-          sx={{ width: "92px" }}
-        >
-          {isSubmitting ? <CircularProgress size={20} /> : "Create"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </BaseModal>
   )
 }

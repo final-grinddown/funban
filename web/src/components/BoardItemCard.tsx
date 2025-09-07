@@ -22,6 +22,7 @@ import {
 import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useSimpleModal } from "@/hooks/useSimpleModal"
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, INote } from "@/utils/interfaces"
@@ -73,9 +74,9 @@ export function BoardItemCard({
     mouseX: number;
     mouseY: number;
   } | null>(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false)
+  const editModal = useSimpleModal()
+  const deleteModal = useSimpleModal()
+  const splitModal = useSimpleModal()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
@@ -105,7 +106,7 @@ export function BoardItemCard({
 
   const handleEditModal = (focusText: boolean = false) => {
     setTextFocus(focusText)
-    setIsEditModalOpen(true)
+    editModal.openModal()
     handleCloseMenu()
   }
 
@@ -118,7 +119,7 @@ export function BoardItemCard({
   }
 
   const handleEditCloseModal = () => {
-    setIsEditModalOpen(false)
+    editModal.closeModal()
   }
 
   const handleClearModifier = () => {
@@ -136,21 +137,21 @@ export function BoardItemCard({
   }
 
   const handleDeleteOpenModal = () => {
-    setIsDeleteModalOpen(true)
+    deleteModal.openModal()
     handleCloseMenu()
   }
 
   const handleDeleteCloseModal = () => {
-    setIsDeleteModalOpen(false)
+    deleteModal.closeModal()
   }
 
   const handleSplitOpenModal = () => {
-    setIsSplitModalOpen(true)
+    splitModal.openModal()
     handleCloseMenu()
   }
 
   const handleSplitCloseModal = () => {
-    setIsSplitModalOpen(false)
+    splitModal.closeModal()
   }
 
 
@@ -347,7 +348,7 @@ export function BoardItemCard({
       {isEditable && (
         <>
           <EditNoteModal
-            isOpen={isEditModalOpen}
+            isOpen={editModal.isOpen}
             noteId={id}
             noteState={state}
             noteText={text}
@@ -357,13 +358,13 @@ export function BoardItemCard({
           />
 
           <SplitNoteModal
-            isOpen={isSplitModalOpen}
+            isOpen={splitModal.isOpen}
             originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
             users={users}
-            onClose={handleSplitCloseModal}
+            onClose={splitModal.closeModal}
           />
 
-          <DeleteNoteModal isOpen={isDeleteModalOpen} noteId={id} onClose={handleDeleteCloseModal} />
+          <DeleteNoteModal isOpen={deleteModal.isOpen} noteId={id} onClose={deleteModal.closeModal} />
         </>
       )}
     </>
