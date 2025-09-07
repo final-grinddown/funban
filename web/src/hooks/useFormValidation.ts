@@ -10,8 +10,8 @@ export interface FormValidationResult {
 }
 
 export interface UseFormValidationProps {
-  /** Current text value */
-  text: string
+  /** Current text value (should not be undefined with proper form initialization) */
+  text: string | undefined
   /** Original text value for comparison */
   originalText?: string
   /** Whether form has any changes */
@@ -33,8 +33,10 @@ export function useFormValidation({
   isValid,
   customValidation = true,
 }: UseFormValidationProps): FormValidationResult {
-  const isTextValid = text.length > 0 && text.length <= MaxTextLength
-  const isTextChanged = originalText !== undefined ? text !== originalText : true
+  // Defensive handling for undefined text (should not happen with proper form initialization)
+  const safeText = text ?? ""
+  const isTextValid = safeText.length > 0 && safeText.length <= MaxTextLength
+  const isTextChanged = originalText !== undefined ? safeText !== originalText : true
   
   const isFormSubmittable = 
     isValid && 

@@ -87,8 +87,10 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
   useEffect(() => {
     if (isOpen && defaultValues?.state && defaultValues?.ownerId) {
       reset({
+        text: "", // Keep text field properly initialized
         state: defaultValues?.state,
         owner: defaultValues?.ownerId,
+        saveAndCreateNext: false, // Keep all fields properly initialized
       })
     }
   }, [isOpen, reset, defaultValues])
