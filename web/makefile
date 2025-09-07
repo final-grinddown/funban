@@ -12,3 +12,12 @@ run-prod: ## Run production environment
 
 check: ## TS and ESLint checks
 	yarn check:ts && yarn run check:lint
+
+test: ## Run all tests
+	yarn test
+
+test-watch: ## Run tests in watch mode
+	yarn test:watch
+
+test-coverage: ## Run tests with coverage report
+	yarn test:coverage

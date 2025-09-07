@@ -20,7 +20,7 @@ build-server:
 test: test-web test-server
 
 test-web:
-	@echo "No tests configured for web component"
+	cd web && yarn install --silent && yarn test
 
 test-server:
 	cd server && cargo test
@@ -34,7 +34,7 @@ precommit: precommit-web precommit-server
 
 precommit-web:
 	@echo "🔍 Running web precommit checks..."
-	cd web && yarn install --silent && yarn check:ts && yarn check:lint && yarn build
+	cd web && yarn install --silent && yarn check:ts && yarn check:lint && yarn test && yarn build
 
 precommit-server:
 	@echo "🔍 Running server precommit checks..."
