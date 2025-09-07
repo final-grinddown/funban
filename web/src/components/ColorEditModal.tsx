@@ -19,7 +19,7 @@ interface Props {
   currentColor: string
   availableColors: { name: string; value: string }[]
   onClose: () => void
-  onSave: (newColor: string) => void
+  onSave: (_newColor: string) => void
   isSubmitting: boolean
 }
 

@@ -1,17 +1,14 @@
-import { DragEvent, SyntheticEvent, useCallback, useEffect, useState } from "react"
+import { DragEvent, useCallback, useEffect, useState } from "react"
 import AddLinkIcon from "@mui/icons-material/AddLink"
 import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
-import EditNoteIcon from "@mui/icons-material/EditNote"
 import {
   Card,
   CardContent,
   CardHeader,
   CardMedia,
-  CircularProgress,
   Divider,
-  IconButton,
   ListItemIcon,
   ListItemText,
   ListSubheader,
@@ -21,8 +18,6 @@ import {
 } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
-import { DeleteNoteModal } from "./DeleteNoteModal"
-import { EditNoteModal } from "./EditNoteModal"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useSimpleModal } from "@/hooks/useSimpleModal"
 import { availableColors } from "@/utils/constants"
@@ -30,6 +25,8 @@ import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, INote } from "@/utils/interfaces"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/storage"
 import { useFocusStateStore } from "@/utils/store"
+import { DeleteNoteModal } from "./DeleteNoteModal"
+import { EditNoteModal } from "./EditNoteModal"
 import { SplitNoteModal } from "./SplitNoteModal"
 
 const HEADER_CONFIG_KEY = "funban-header-config"
@@ -65,7 +62,7 @@ export function BoardItemCard({
   onDragStart,
   onDragEnd,
 }: Props) {
-  const { sendMessage, sendMessageAsync, isLoading, users } = useWebSocketContext()
+  const { sendMessageAsync, isLoading, users } = useWebSocketContext()
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
   // After migration, color should be a hex value, but fallback to color name matching for safety
@@ -141,17 +138,9 @@ export function BoardItemCard({
     handleCloseMenu()
   }
 
-  const handleDeleteCloseModal = () => {
-    deleteModal.closeModal()
-  }
-
   const handleSplitOpenModal = () => {
     splitModal.openModal()
     handleCloseMenu()
-  }
-
-  const handleSplitCloseModal = () => {
-    splitModal.closeModal()
   }
 
 

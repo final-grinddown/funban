@@ -16,7 +16,6 @@ import { handleKeyDownSubmit } from "@/utils/helpers"
 import { IUser } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
-import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   users: IUser[]

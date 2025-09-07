@@ -1,8 +1,8 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { EndStatusModal } from '../EndStatusModal'
 import { IRawNote } from '@/utils/interfaces'
+import { EndStatusModal } from '../EndStatusModal'
 
 // Mock the postSnapshot API function
 jest.mock('@/app/api/fetches', () => ({
@@ -11,24 +11,24 @@ jest.mock('@/app/api/fetches', () => ({
 
 const mockNotes: IRawNote[] = [
   {
-    id: 1,
+    id: '1',
     text: 'Test note 1',
     state: 'todo',
-    owner: 1,
-    predecessor: null,
+    owner: { id: '1', name: 'Test User 1', color: '#000000' },
+    predecessor_id: null,
     tag: null,
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z',
+    created: '2023-01-01T00:00:00Z',
+    updated: '2023-01-01T00:00:00Z',
   },
   {
-    id: 2,
+    id: '2',
     text: 'Test note 2',
     state: 'done',
-    owner: 2,
-    predecessor: null,
+    owner: { id: '2', name: 'Test User 2', color: '#000000' },
+    predecessor_id: null,
     tag: null,
-    created_at: '2023-01-01T01:00:00Z',
-    updated_at: '2023-01-01T01:00:00Z',
+    created: '2023-01-01T01:00:00Z',
+    updated: '2023-01-01T01:00:00Z',
   },
 ]
 
@@ -213,7 +213,7 @@ describe('EndStatusModal', () => {
       const { postSnapshot } = require('@/app/api/fetches')
       // Create a promise that we can control
       let resolvePromise: () => void
-      postSnapshot.mockImplementation(() => new Promise(resolve => { resolvePromise = resolve }))
+      postSnapshot.mockImplementation(() => new Promise<void>(resolve => { resolvePromise = resolve }))
       
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
@@ -336,10 +336,10 @@ describe('EndStatusModal', () => {
       expect(labelInput).toHaveValue('Test content')
       
       // Close modal
-      rerender(<EndStatusModal {...defaultProps} isOpen={false} />, { wrapper: Wrapper })
+      rerender(<EndStatusModal {...defaultProps} isOpen={false} />)
       
       // Reopen modal
-      rerender(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      rerender(<EndStatusModal {...defaultProps} />)
       
       await waitFor(() => {
         const newLabelInput = screen.getByLabelText('Snapshot Label')

@@ -33,7 +33,7 @@ jest.mock('../TextLengthCounter', () => ({
 const defaultProps = {
   isOpen: true,
   noteId: 123,
-  noteState: 'todo',
+  noteState: 'todo' as const,
   noteText: 'Original note text',
   onClose: jest.fn(),
 }

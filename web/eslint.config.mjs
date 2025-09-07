@@ -2,6 +2,8 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import path from "path";
 import { fileURLToPath } from "url";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,14 +60,20 @@ export default [
 
 	// React and general configuration
 	{
+		files: ["**/*.{ts,tsx}"],
 		languageOptions: {
+			parser: tsparser,
 			globals: {
 				React: "readonly",
 			},
 		},
+		plugins: {
+			"@typescript-eslint": tseslint,
+		},
 		rules: {
-			// Allow unused variables for now (can be tightened later)
-			"no-unused-vars": "warn",
+			// Turn off base no-unused-vars rule and use TypeScript version instead
+			"no-unused-vars": "off",
+			"@typescript-eslint/no-unused-vars": ["warn"],
 			"no-empty-pattern": "warn",
 			"react/react-in-jsx-scope": "off",
 			"react/jsx-curly-brace-presence": [

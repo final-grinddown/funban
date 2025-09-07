@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AddNewNoteModal } from '../AddNewNoteModal'
 import { IUser } from '@/utils/interfaces'
+import { AddNewNoteModal } from '../AddNewNoteModal'
 
 // Mock WebSocket context
 const mockWebSocketContext = {

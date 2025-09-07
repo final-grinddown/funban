@@ -36,7 +36,7 @@ export function AddNewTeamMemberModal({ isOpen, existingNames, onClose, onSave, 
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isValid },
+    formState: { isValid },
   } = useForm<FormInputs>({
     defaultValues: { name: "", color: availableColors[0].name },
     mode: "onChange",

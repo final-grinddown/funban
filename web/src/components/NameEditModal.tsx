@@ -17,7 +17,7 @@ interface Props {
   initialName: string
   existingNames: string[]
   onClose: () => void
-  onSave: (newName: string) => void
+  onSave: (_newName: string) => void
   isSubmitting: boolean
 }
 
@@ -30,7 +30,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
     control,
     handleSubmit,
     reset,
-    formState: { errors, isValid, isDirty },
+    formState: { isValid, isDirty },
   } = useForm<FormInputs>({
     defaultValues: { name: initialName },
     mode: "onChange",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import SettingsIcon from "@mui/icons-material/Settings"
 import { Box, Button, ButtonGroup, Typography } from "@mui/material"
 import { useHotkeys } from "react-hotkeys-hook"

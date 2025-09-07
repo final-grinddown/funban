@@ -53,8 +53,8 @@ jest.mock('@/components/BackdropLoading', () => ({
 
 // Mock base64 decode utility
 jest.mock('@/utils/helpers', () => ({
-  base64DecodeUnicode: jest.fn((str: string) => JSON.stringify({ notes: [] })),
-  normalizeNotes: jest.fn((data: any) => [
+  base64DecodeUnicode: jest.fn(() => JSON.stringify({ notes: [] })),
+  normalizeNotes: jest.fn(() => [
     { id: 1, text: 'Note 1', name: 'John Doe', state: 'todo' },
     { id: 2, text: 'Note 2', name: 'Jane Smith', state: 'in_progress' },
     { id: 3, text: 'Note 3', name: 'John Doe', state: 'done' },
@@ -71,14 +71,6 @@ describe('HistoryDetailScreen', () => {
     next: { id: 3, label: 'Board Snapshot v3' },
   }
 
-  const mockHistoryItemFirst: IHistoryItem = {
-    id: 1,
-    created_at: '2024-01-15T10:00:00Z',
-    label: 'Board Snapshot v1',
-    snapshot: 'mock-base64-snapshot',
-    previous: { id: 0, label: 'Initial' },
-    next: { id: 2, label: 'Board Snapshot v2' },
-  }
 
   const mockHistoryItemLast: IHistoryItem = {
     id: 3,
@@ -89,11 +81,6 @@ describe('HistoryDetailScreen', () => {
     next: { id: 4, label: 'Next Item' },
   }
 
-  const mockNotes = [
-    { id: 1, text: 'Note 1', name: 'John Doe', state: 'todo' },
-    { id: 2, text: 'Note 2', name: 'Jane Smith', state: 'in_progress' },
-    { id: 3, text: 'Note 3', name: 'John Doe', state: 'done' },
-  ]
 
   const user = userEvent.setup()
 

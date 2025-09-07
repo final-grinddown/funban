@@ -8,9 +8,9 @@ interface Props {
   id: number
   name: string
   color: string
-  onEditName: (id: number) => void
-  onEditColor: (id: number) => void
-  onDelete: (id: number) => void
+  onEditName: (_id: number) => void
+  onEditColor: (_id: number) => void
+  onDelete: (_id: number) => void
   availableColors: { name: string; value: string }[]
 }
 

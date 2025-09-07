@@ -13,7 +13,6 @@ import { handleKeyDownSubmit } from "@/utils/helpers"
 import { INote } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
-import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   isOpen: boolean
@@ -33,7 +32,6 @@ interface FormInputs {
 export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, hasTextFocus, clearTextFocus }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSelectLocked, setIsSelectLocked] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const {
     control,

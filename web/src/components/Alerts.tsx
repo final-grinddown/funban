@@ -1,9 +1,7 @@
 import { Alert, Snackbar } from "@mui/material"
 import { useActionStateStore } from "@/utils/store"
 
-interface Props {}
-
-export function Alerts({}: Props) {
+export function Alerts() {
   const { visibleAction, close } = useActionStateStore()
 
   function handleSnackbarClose() {
