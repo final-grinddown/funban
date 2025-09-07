@@ -301,7 +301,7 @@ describe('EditNoteModal', () => {
       )
     })
 
-    it('shows loading state during submission', async () => {
+    it('disables save button during submission', async () => {
       const user = userEvent.setup()
       
       render(<EditNoteModal {...defaultProps} />)
@@ -310,9 +310,14 @@ describe('EditNoteModal', () => {
       await user.type(textField, ' updated')
       
       const saveButton = screen.getByRole('button', { name: 'Save' })
+      
+      // Button should be enabled before clicking
+      expect(saveButton).toBeEnabled()
+      
       await user.click(saveButton)
       
-      expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      // Button should be disabled during submission
+      expect(saveButton).toBeDisabled()
     })
   })
 
