@@ -76,6 +76,7 @@ export function BoardItemCard({
   } | null>(null)
   const editModal = useSimpleModal()
   const deleteModal = useSimpleModal()
+  const splitModal = useSimpleModal()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
@@ -145,12 +146,12 @@ export function BoardItemCard({
   }
 
   const handleSplitOpenModal = () => {
-    setIsSplitModalOpen(true)
+    splitModal.openModal()
     handleCloseMenu()
   }
 
   const handleSplitCloseModal = () => {
-    setIsSplitModalOpen(false)
+    splitModal.closeModal()
   }
 
   const handleCloneNote = () => {
@@ -374,13 +375,13 @@ export function BoardItemCard({
           />
 
           <SplitNoteModal
-            isOpen={isSplitModalOpen}
+            isOpen={splitModal.isOpen}
             originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
             users={users}
-            onClose={handleSplitCloseModal}
+            onClose={splitModal.closeModal}
           />
 
-          <DeleteNoteModal isOpen={isDeleteModalOpen} noteId={id} onClose={handleDeleteCloseModal} />
+          <DeleteNoteModal isOpen={deleteModal.isOpen} noteId={id} onClose={deleteModal.closeModal} />
         </>
       )}
     </>
