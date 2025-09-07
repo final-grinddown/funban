@@ -173,7 +173,7 @@ describe('AddNewNoteModal', () => {
     it('disables create button when form is invalid', () => {
       render(<AddNewNoteModal {...defaultProps} />)
       
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       expect(createButton).toBeDisabled()
     })
 
@@ -196,7 +196,7 @@ describe('AddNewNoteModal', () => {
       await user.click(johnOption)
       
       await waitFor(() => {
-        const createButton = screen.getByRole('button', { name: 'Create' })
+        const createButton = screen.getByRole('button', { name: 'Create Note' })
         expect(createButton).toBeEnabled()
       })
     })
@@ -209,7 +209,7 @@ describe('AddNewNoteModal', () => {
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Test note')
       
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       expect(createButton).toBeDisabled()
     })
 
@@ -237,7 +237,7 @@ describe('AddNewNoteModal', () => {
       await user.click(johnOption)
       
       await waitFor(() => {
-        const createButton = screen.getByRole('button', { name: 'Create' })
+        const createButton = screen.getByRole('button', { name: 'Create Note' })
         expect(createButton).toBeDisabled()
       })
     })
@@ -277,7 +277,7 @@ describe('AddNewNoteModal', () => {
       await user.click(johnOption)
       
       // Submit
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       await user.click(createButton)
       
       expect(createNewNote).toHaveBeenCalledWith('1', 'Test note content', 'todo')
@@ -306,7 +306,7 @@ describe('AddNewNoteModal', () => {
       const johnOption = screen.getByRole('option', { name: 'John Doe' })
       await user.click(johnOption)
       
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       await user.click(createButton)
       
       // Check that the button shows loading state (progress bar appears)
@@ -334,7 +334,7 @@ describe('AddNewNoteModal', () => {
       await user.click(johnOption)
       
       // Submit
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       await user.click(createButton)
       
       // Wait for the effect to process and close modal
@@ -378,7 +378,7 @@ describe('AddNewNoteModal', () => {
       await user.click(checkbox)
       
       // Submit
-      const createButton = screen.getByRole('button', { name: 'Create' })
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
       await user.click(createButton)
       
       // Modal should not close, text should be cleared but other fields preserved
