@@ -67,7 +67,8 @@ export function BoardItemCard({
   const { sendMessage, sendMessageAsync, isLoading, users } = useWebSocketContext()
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
-  const matchedColor = matchColorName(color, availableColors) || "#000000"
+  // After migration, color should be a hex value, but fallback to color name matching for safety
+  const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
