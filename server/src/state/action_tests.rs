@@ -129,3 +129,29 @@ async fn add_user_without_transaction(db: MySqlPool) -> sqlx::Result<()> {
 
     Ok(())
 }
+
+#[sqlx::test(fixtures("users", "notes"))]
+async fn test_tag_conversion_integration(db: MySqlPool) -> sqlx::Result<()> {
+    use crate::model::note::NoteTag;
+
+    // Test the complete integration flow that WebSocket clients actually experience
+    // The fixture has note id=3 with tag='IMPORTANT' (uppercase) in the database
+
+    let app_state = AppState::new();
+
+    // Get notes using the same path as WebSocket initial connection
+    let notes = app_state.get_notes(&db).await.unwrap();
+
+    // Find the note with the uppercase tag from the fixture
+    let tagged_note = notes.iter().find(|n| n.id == 3).unwrap();
+
+    // The backend should properly handle 'IMPORTANT' from database and convert it to NoteTag::Important
+    // This test will FAIL until we fix the backend to handle both uppercase and title case
+    assert_eq!(
+        tagged_note.tag,
+        Some(NoteTag::Important),
+        "Backend should convert 'IMPORTANT' from database to NoteTag::Important, not Error"
+    );
+
+    Ok(())
+}
