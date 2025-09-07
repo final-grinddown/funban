@@ -12,6 +12,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use cookie::time::Duration;
 
+use crate::http::validation::validate_input;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
@@ -50,7 +51,6 @@ pub struct MeResponse {
     pub username: String,
 }
 
-// TODO: Generalize this to be used in both auth.rs and history.rs
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EmptyResponse {
     pub message: &'static str,
@@ -160,21 +160,13 @@ pub async fn change_email(
     Extension(claims): Extension<Claims>,
     Json(payload): Json<EmailChange>,
 ) -> Result<Json<EmptyResponse>> {
-    let result = payload.validate();
+    validate_input(&payload).map_err(|e| Error::BadRequest(e.message))?;
 
-    match result {
-        Ok(_) => {
-            sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
+    sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
 
-            Ok(Json(EmptyResponse {
-                message: "Email successfully changed.",
-            }))
-        }
-        Err(_) => Err(Error::BadRequest(
-            serde_json::json!({"message": "Not a valid email", "code": "INVALID_EMAIL"})
-                .to_string(),
-        )),
-    }
+    Ok(Json(EmptyResponse {
+        message: "Email successfully changed.",
+    }))
 }
 
 #[utoipa::path(post, path = "/auth/password", responses((status = 200, body = EmptyResponse, description = "Password successfully changed."), (status = UNAUTHORIZED, description = "Not logged in")), security(("jwt" = [])))]

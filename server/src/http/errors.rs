@@ -58,7 +58,7 @@ pub enum Error {
     #[error("{0}")]
     Unauthorized(String),
 
-    #[error("BadRwequest{0}")]
+    #[error("Bad Request: {0}")]
     BadRequest(String),
 
     #[error("{0}")]
@@ -100,23 +100,16 @@ impl Message {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Self::Sqlx(ref e) => {
-                // TODO: we probably want to use `tracing` instead
-                // so that this gets linked to the HTTP request by `TraceLayer`.
-                match e {
-                    sqlx::Error::RowNotFound => {
-                        tracing::warn!("SQLx: Row not found");
-                        return (StatusCode::NOT_FOUND, Json(Message::new("Row not found")))
-                            .into_response();
-                    }
-                    _ => tracing::error!("SQLx: {}", e),
+            Self::Sqlx(ref e) => match e {
+                sqlx::Error::RowNotFound => {
+                    tracing::warn!("SQLx: Row not found");
+                    return (StatusCode::NOT_FOUND, Json(Message::new("Row not found")))
+                        .into_response();
                 }
-            }
+                _ => tracing::error!("SQLx: {}", e),
+            },
 
             Self::Anyhow(ref e) => {
-                // TODO: we probably want to use `tracing` instead
-                // so that this gets linked to the HTTP request by `TraceLayer`.
-                //log::error!("Generic error: {:?}", e);
                 tracing::error!("{}", e);
             }
             Self::BadRequest(ref e) => {

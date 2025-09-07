@@ -1,17 +1,18 @@
 use sqlx::MySqlPool;
 
 use crate::{
+    constants::note_states,
     model::note::NoteInsert,
     sql::note::{self, get_last_id, read_by_id, MoveTarget},
 };
 
 #[sqlx::test(fixtures("users", "notes"))]
 async fn test_get_next_id(db: MySqlPool) -> sqlx::Result<()> {
-    let id = note::get_last_id(&db, "todo").await?;
+    let id = note::get_last_id(&db, note_states::TODO).await?;
 
     assert_eq!(id, Some(2));
 
-    let id = note::get_last_id(&db, "in_progress").await?;
+    let id = note::get_last_id(&db, note_states::IN_PROGRESS).await?;
 
     assert_eq!(id, Some(3));
 
@@ -30,7 +31,7 @@ async fn test_get_next_id_neg(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users", "notes_transfer"))]
 async fn test_transfer_last_no_change(db: MySqlPool) -> sqlx::Result<()> {
     let id = 4;
-    let state = "todo";
+    let state = note_states::TODO;
     let done = note::transfer_last(&db, id, state).await?;
 
     assert_eq!(0, done.len(), "No notes should be updated");
@@ -41,7 +42,7 @@ async fn test_transfer_last_no_change(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users", "notes_transfer"))]
 async fn test_transfer_last_from_first(db: MySqlPool) -> sqlx::Result<()> {
     let id = 5;
-    let state = "todo";
+    let state = note_states::TODO;
     let done = note::transfer_last(&db, id, state).await?;
 
     assert_eq!(2, done.len(), "Both notes in the state should be updated");
@@ -52,7 +53,7 @@ async fn test_transfer_last_from_first(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users", "notes_transfer"))]
 async fn test_transfer_last_from_middle(db: MySqlPool) -> sqlx::Result<()> {
     let id = 2;
-    let state = "todo";
+    let state = note_states::TODO;
     let done = note::transfer_last(&db, id, state).await?;
 
     assert_eq!(2, done.len(), "Both notes in the state should be updated");
@@ -184,7 +185,7 @@ async fn add_note(db: MySqlPool) -> sqlx::Result<()> {
 
     let note = NoteInsert {
         owner: 1,
-        state: "todo".into(),
+        state: note_states::TODO.into(),
         text: None,
     };
 
@@ -213,7 +214,7 @@ async fn add_note_with_text(db: MySqlPool) -> sqlx::Result<()> {
 
     let note = NoteInsert {
         owner: 1,
-        state: "todo".into(),
+        state: note_states::TODO.into(),
         text: Some("Text".to_string()),
     };
 
@@ -334,7 +335,7 @@ async fn test_chain_integrity_after_add(db: MySqlPool) -> sqlx::Result<()> {
     // Initial chain in 'todo': 1->2->3->4
     let note = NoteInsert {
         owner: 1,
-        state: "todo".into(),
+        state: note_states::TODO.into(),
         text: Some("New note".to_string()),
     };
 
@@ -468,7 +469,7 @@ async fn test_chain_integrity_mixed_operations(db: MySqlPool) -> sqlx::Result<()
     // Add a note
     let new_note = NoteInsert {
         owner: 1,
-        state: "todo".into(),
+        state: note_states::TODO.into(),
         text: Some("New note".to_string()),
     };
     let added = note::add(&db, &new_note).await?;

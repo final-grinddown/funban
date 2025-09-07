@@ -193,7 +193,8 @@ impl AppState {
             WsAction::RemoveUser { uuid, id } => {
                 let deleted = user::remove(db, id).await?;
 
-                //TODO: Reindex
+                // Note: User index reordering could be implemented here to maintain
+                // sequential indices after deletion, but it's not required for functionality
 
                 if deleted {
                     Self::broadcast_note(uuid, WsOperation::UserRemoved { id })

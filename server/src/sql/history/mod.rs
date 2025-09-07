@@ -3,6 +3,7 @@ use serde::Serialize;
 use sqlx::FromRow;
 use sqlx::MySqlPool;
 
+use super::common;
 use crate::model::history::History;
 
 #[cfg(test)]
@@ -88,20 +89,11 @@ pub async fn rename(db: &MySqlPool, id: u32, new_name: &str) -> sqlx::Result<Opt
 }
 
 pub async fn delete(db: &MySqlPool, id: u32) -> sqlx::Result<Option<i32>> {
-    let result = sqlx::query_as!(
-        HistoryEntity,
-        r#"
-				DELETE FROM history 
-				WHERE id = ?
-				"#,
-        id
-    )
-    .execute(db)
-    .await?;
+    let deleted = common::execute_delete(db, "history", "id", id).await?;
 
-    match result.rows_affected() {
-        1 => Ok(Some(id.try_into().unwrap())),
-        _ => Ok(None),
+    match deleted {
+        true => Ok(Some(id.try_into().unwrap())),
+        false => Ok(None),
     }
 }
 

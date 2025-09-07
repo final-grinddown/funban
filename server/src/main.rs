@@ -19,6 +19,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use ws::{ws_router, WsContext};
 
 mod config;
+mod constants;
 
 mod http;
 mod sql;
