@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	output: 'standalone'
+	output: 'standalone',
+	outputFileTracingRoot: '/home/josef/source/funban-monorepo/web'
 }
 
 export default nextConfig

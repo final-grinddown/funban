@@ -19,7 +19,7 @@ interface Props {
   currentColor: string
   availableColors: { name: string; value: string }[]
   onClose: () => void
-  onSave: (newColor: string) => void
+  onSave: (_newColor: string) => void
   isSubmitting: boolean
 }
 
@@ -63,7 +63,7 @@ export function ColorEditModal({ isOpen, currentColor, availableColors, onClose,
         <RadioGroup value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
           <Grid container spacing={2}>
             {availableColors.map(({ name, value }) => (
-              <Grid item xs={6} sm={4} md={3} lg={3} key={name}>
+              <Grid size={{ xs: 6, sm: 4, md: 3, lg: 3 }} key={name}>
                 <Box
                   component="div"
                   width="100%"

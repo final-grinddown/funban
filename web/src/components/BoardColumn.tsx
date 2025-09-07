@@ -1,4 +1,4 @@
-import { DragEvent, useRef, useState, useEffect } from "react"
+import { DragEvent, useRef, useState } from "react"
 import AddIcon from "@mui/icons-material/Add"
 import MoreVertIcon from "@mui/icons-material/MoreVert"
 import { Box, IconButton, List, Typography, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material"
@@ -178,7 +178,7 @@ export function BoardColumn({
     setHoveredColumn(null)
   }
 
-  const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = () => {
     setIsDraggingOver(true)
   }
 

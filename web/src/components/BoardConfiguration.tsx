@@ -129,7 +129,7 @@ export function BoardConfiguration() {
         {columns
           .sort((a, b) => a.orderKey - b.orderKey)
           .map((column, index) => (
-            <Grid item xs={12} key={column.title}>
+            <Grid size={{ xs: 12 }} key={column.title}>
               <Card
                 draggable
                 onDragStart={(event) => handleDragStart(event, index)}
@@ -147,10 +147,10 @@ export function BoardConfiguration() {
                 }}
               >
                 <Grid container alignItems="center">
-                  <Grid item xs={10}>
+                  <Grid size={{ xs: 10 }}>
                     <Typography variant="body1">{column.title}</Typography>
                   </Grid>
-                  <Grid item xs={2} display={{ lg: "none" }}>
+                  <Grid size={{ xs: 2 }} display={{ lg: "none" }}>
                     <Box display="flex" flexDirection="column" alignItems="end">
                       <IconButton
                         color="secondary"

@@ -28,8 +28,10 @@ jobs:
               - 'web/.yarnrc.yml'
               - 'web/tsconfig.json'
               - 'web/next.config.mjs'
+              - 'web/jest.config.js'
+              - 'web/jest.setup.js'
 
-  lint-and-build:
+  lint-test-and-build:
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -57,6 +59,9 @@ jobs:
 
       - name: Lint
         run: yarn check:lint
+
+      - name: Test
+        run: yarn test
 
       - name: Build
         run: yarn build

@@ -132,13 +132,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    socketRef.current.onclose = (event) => {
+    socketRef.current.onclose = () => {
       setTimeout(() => {
         connectWebSocket() // Attempt to reconnect
       }, 1000)
     }
 
-    socketRef.current.onerror = (error) => {
+    socketRef.current.onerror = () => {
       clearApp()
     }
   }, [socketUrl, handlePatchMessage])

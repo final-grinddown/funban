@@ -21,7 +21,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import getConfig from "next/config"
 import Link from "next/link"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { ERoutes } from "@/utils/enums"

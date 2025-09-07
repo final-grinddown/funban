@@ -8,9 +8,9 @@ interface Props {
   id: number
   name: string
   color: string
-  onEditName: (id: number) => void
-  onEditColor: (id: number) => void
-  onDelete: (id: number) => void
+  onEditName: (_id: number) => void
+  onEditColor: (_id: number) => void
+  onDelete: (_id: number) => void
   availableColors: { name: string; value: string }[]
 }
 
@@ -18,7 +18,7 @@ export function TeamMemberCard({ id, name, color, onEditName, onEditColor, onDel
   const theme = useTheme()
 
   return (
-    <Grid item xs={12} sm={6} md={4} xl={3}>
+    <Grid size={{ xs: 12, sm: 6, md: 4, xl: 3 }}>
       <Card variant="elevation" sx={{ padding: 2 }}>
         <Box>
           <Typography variant="h6" component="p" color={theme.palette.text.primary} gutterBottom={false}>

@@ -1,9 +1,7 @@
-import { forwardRef } from "react"
 import { TextField } from "@mui/material"
 import { Controller, Control, FieldErrors, FieldPath } from "react-hook-form"
 import { textValidationRules } from "@/hooks/useFormValidation"
 import { MaxTextLength } from "@/utils/constants"
-import { handleKeyDownSubmit } from "@/utils/helpers"
 import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props<TFormData extends Record<string, any>> {
@@ -17,7 +15,7 @@ interface Props<TFormData extends Record<string, any>> {
   showLengthCounter?: boolean
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
   sx?: any
-  inputRef?: React.RefObject<HTMLInputElement>
+  inputRef?: React.RefObject<HTMLInputElement | null>
   required?: boolean
   maxLength?: number
 }
