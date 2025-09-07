@@ -38,6 +38,7 @@ export function isThemeMode(value: unknown): value is TThemeMode {
  * @returns The color value (e.g., a hex code) if a match is found, otherwise undefined.
  */
 export function matchColorName(color: string, availableColors: readonly { name: string; value: string }[]) {
+	if (!color) return undefined
 	const normalizedColor = color.toLowerCase().replace(/ /g, "_")
 
 	const matchedColor = availableColors.find((c) => {

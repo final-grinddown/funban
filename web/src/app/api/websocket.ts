@@ -1,7 +1,6 @@
 import {
 	IAddNote,
 	IAddUser,
-	ICloneNote,
 	IRemoveNote,
 	IRemoveNoteBulk,
 	IRemoveUser,
@@ -160,14 +159,6 @@ export function createDeleteNoteBulk(status: string): string {
 	return JSON.stringify(action)
 }
 
-export function createCloneNote(id: string): string {
-	const action: ICloneNote = {
-		type: "CloneNote",
-		id: parseInt(id),
-	}
-
-	return JSON.stringify(action)
-}
 
 export function createSplitNote(
 	originalId: string,

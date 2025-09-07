@@ -4,7 +4,6 @@ import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EditNoteIcon from "@mui/icons-material/EditNote"
-import FileCopyIcon from "@mui/icons-material/FileCopy"
 import {
   Card,
   CardContent,
@@ -21,7 +20,7 @@ import {
   Typography,
 } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
-import { createCloneNote, createUpdateNoteTag } from "@/app/api/websocket"
+import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useSimpleModal } from "@/hooks/useSimpleModal"
 import { availableColors } from "@/utils/constants"
@@ -69,7 +68,8 @@ export function BoardItemCard({
   const { sendMessage, sendMessageAsync, isLoading, users } = useWebSocketContext()
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
-  const matchedColor = matchColorName(color, availableColors) || "#000000"
+  // After migration, color should be a hex value, but fallback to color name matching for safety
+  const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
@@ -154,11 +154,6 @@ export function BoardItemCard({
     splitModal.closeModal()
   }
 
-  const handleCloneNote = () => {
-    const message = createCloneNote(id.toString())
-    sendMessage(message)
-    setIsSubmitting(true)
-  }
 
   const handleDrag = (event: DragEvent<HTMLDivElement>, isStarting: boolean) => {
     if (isStarting) {
@@ -318,18 +313,6 @@ export function BoardItemCard({
               <CallSplitIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Split note</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleCloneNote}>
-            {isSubmitting ? (
-              <CircularProgress size={24} sx={{ mx: "auto" }} />
-            ) : (
-              <>
-                <ListItemIcon>
-                  <FileCopyIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Clone note</ListItemText>
-              </>
-            )}
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleDeleteOpenModal}>

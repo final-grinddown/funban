@@ -132,10 +132,6 @@ export interface IRemoveNoteBulk {
 	status: string
 }
 
-export interface ICloneNote {
-	type: "CloneNote"
-	id: number
-}
 
 export interface ISplitNote {
 	type: "SplitNote"
