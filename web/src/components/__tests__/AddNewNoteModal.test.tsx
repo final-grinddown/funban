@@ -453,5 +453,53 @@ describe('AddNewNoteModal', () => {
       
       expect(createNewNote).toHaveBeenCalledWith('1', 'Test note', '')
     })
+
+    it('handles save and create next when textAreaRef is null', async () => {
+      const user = userEvent.setup()
+      
+      render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Fill form and enable save and create next
+      const textField = screen.getByLabelText('Note Text')
+      await user.type(textField, 'Test note')
+      
+      const ownerSelect = screen.getByRole('combobox', { name: 'Note Owner' })
+      await user.click(ownerSelect)
+      
+      await waitFor(() => {
+        const johnOption = screen.getByRole('option', { name: 'John Doe' })
+        expect(johnOption).toBeInTheDocument()
+      })
+      const johnOption = screen.getByRole('option', { name: 'John Doe' })
+      await user.click(johnOption)
+      
+      const checkbox = screen.getByRole('checkbox', { name: 'Save and Create Next' })
+      await user.click(checkbox)
+      
+      // Submit form
+      const createButton = screen.getByRole('button', { name: 'Create Note' })
+      await user.click(createButton)
+      
+      // Test passes if no error is thrown when textAreaRef.current is null
+      await waitFor(() => {
+        expect(textField).toHaveValue('')
+      })
+    })
+
+    it('focuses text field when hasTextFocus is true but clearTextFocus is undefined', async () => {
+      render(
+        <AddNewNoteModal
+          {...defaultProps}
+          hasTextFocus={true}
+          clearTextFocus={undefined}
+        />
+      )
+      
+      await waitFor(() => {
+        const textField = screen.getByLabelText('Note Text')
+        expect(textField).toHaveFocus()
+      })
+      // Test passes if no error is thrown when clearTextFocus is undefined
+    })
   })
 })

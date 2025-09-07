@@ -261,6 +261,23 @@ describe('BoardScreen', () => {
 
       expect(mockUseFocusStateStore.setCurrentUser).toHaveBeenCalledWith('Jane Smith')
     })
+
+    it('handles empty users array without calling setCurrentUser', () => {
+      // Test the useEffect branch when users.length === 0
+      mockUseUserSelection.user = '1'
+      render(<BoardScreen users={[]} notes={mockNotes} />)
+
+      expect(mockUseFocusStateStore.setCurrentUser).not.toHaveBeenCalled()
+    })
+
+    it('handles selected user not found in users array', () => {
+      // Test the useEffect branch when selectedUser is undefined
+      mockUseUserSelection.user = '999' // ID not in mockUsers
+      renderBoardScreen()
+
+      // Should not call setCurrentUser when user is not found
+      expect(mockUseFocusStateStore.setCurrentUser).not.toHaveBeenCalled()
+    })
   })
 
   describe('Modal Management', () => {
