@@ -36,12 +36,14 @@ insert into
         predecessor_id,
         owner,
         state,
-        text
+        text,
+        tag
     )
 values (
         3,
         NULL,
         1,
         'in_progress',
-        'Alice in_progress note 3'
+        'Alice in_progress note 3',
+        'IMPORTANT'
     );

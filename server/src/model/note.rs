@@ -77,11 +77,11 @@ pub enum NoteTag {
 
 impl From<String> for NoteTag {
     fn from(s: String) -> Self {
-        match s.as_str() {
-            "Important" => NoteTag::Important,
-            "Deadline" => NoteTag::Deadline,
-            "Waiting" => NoteTag::Waiting,
-            "Quick" => NoteTag::Quick,
+        match s.to_uppercase().as_str() {
+            "IMPORTANT" => NoteTag::Important,
+            "DEADLINE" => NoteTag::Deadline,
+            "WAITING" => NoteTag::Waiting,
+            "QUICK" => NoteTag::Quick,
             _ => {
                 tracing::warn!("Unknown tag value '{}', defaulting to Error", s);
                 NoteTag::Error
