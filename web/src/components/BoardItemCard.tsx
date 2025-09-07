@@ -4,7 +4,6 @@ import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import EditNoteIcon from "@mui/icons-material/EditNote"
-import FileCopyIcon from "@mui/icons-material/FileCopy"
 import {
   Card,
   CardContent,
@@ -21,7 +20,7 @@ import {
   Typography,
 } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
-import { createCloneNote, createUpdateNoteTag } from "@/app/api/websocket"
+import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
@@ -153,11 +152,6 @@ export function BoardItemCard({
     setIsSplitModalOpen(false)
   }
 
-  const handleCloneNote = () => {
-    const message = createCloneNote(id.toString())
-    sendMessage(message)
-    setIsSubmitting(true)
-  }
 
   const handleDrag = (event: DragEvent<HTMLDivElement>, isStarting: boolean) => {
     if (isStarting) {
@@ -317,18 +311,6 @@ export function BoardItemCard({
               <CallSplitIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Split note</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleCloneNote}>
-            {isSubmitting ? (
-              <CircularProgress size={24} sx={{ mx: "auto" }} />
-            ) : (
-              <>
-                <ListItemIcon>
-                  <FileCopyIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Clone note</ListItemText>
-              </>
-            )}
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleDeleteOpenModal}>
