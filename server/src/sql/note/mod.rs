@@ -90,7 +90,10 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<NoteDto>> {
     Ok(users)
 }
 
-pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<NoteDto> {
+pub async fn read_by_id<'c, E>(executor: E, id: u32) -> sqlx::Result<NoteDto>
+where
+    E: sqlx::Executor<'c, Database = MySql>,
+{
     let users = sqlx::query_as!(
         NoteDto,
         r#"
@@ -101,30 +104,32 @@ pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<NoteDto> {
 		"#,
         id
     )
-    .fetch_one(db)
+    .fetch_one(executor)
     .await?;
 
     Ok(users)
 }
 
 pub async fn add(db: &MySqlPool, note: &NoteInsert) -> sqlx::Result<NoteDto> {
+    let mut transaction = db.begin().await?;
+
     // Insert the new note with the computed index
-    let users = sqlx::query!(
+    let result = sqlx::query!(
         r#"
 INSERT INTO notes (text, owner, state, predecessor_id)
 VALUES (
-    COALESCE(?, ""), 
-    ?, 
-    ?, 
+    COALESCE(?, ""),
+    ?,
+    ?,
     (SELECT id FROM (
         SELECT id, state FROM notes
     ) AS n1
-    WHERE state = ? 
+    WHERE state = ?
     AND NOT EXISTS (
         SELECT 1 FROM (
             SELECT predecessor_id, state FROM notes
         ) AS n2
-        WHERE n2.predecessor_id = n1.id 
+        WHERE n2.predecessor_id = n1.id
         AND n2.state = n1.state
     ))
 )
@@ -134,11 +139,13 @@ VALUES (
         note.state,
         note.state
     )
-    .execute(db)
+    .execute(&mut *transaction)
     .await?;
 
-    // Retrieve the inserted note
-    let note = read_by_id(db, users.last_insert_id() as u32).await?;
+    // Retrieve the inserted note within the same transaction
+    let note = read_by_id(&mut *transaction, result.last_insert_id() as u32).await?;
+
+    transaction.commit().await?;
 
     Ok(note)
 }
@@ -185,7 +192,10 @@ pub async fn clear_tag(db: &MySqlPool, id: u32) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn get_last_id(db: &MySqlPool, state: &str) -> sqlx::Result<Option<u32>> {
+pub async fn get_last_id<'c, E>(executor: E, state: &str) -> sqlx::Result<Option<u32>>
+where
+    E: sqlx::Executor<'c, Database = MySql>,
+{
     let id = sqlx::query!(
         r#"
 					SELECT n1.id as id FROM notes as n1
@@ -194,7 +204,7 @@ pub async fn get_last_id(db: &MySqlPool, state: &str) -> sqlx::Result<Option<u32
 					"#,
         state
     )
-    .fetch_optional(db)
+    .fetch_optional(executor)
     .await?;
 
     Ok(id.map(|i| i.id as u32))
@@ -238,7 +248,7 @@ pub async fn transfer_last(
     let mut transaction = db.begin().await?;
     let change_set = uuid::Uuid::new_v4().to_string();
 
-    let last_id = get_last_id(db, target_state).await?;
+    let last_id = get_last_id(&mut *transaction, target_state).await?;
 
     if let Some(last_id) = last_id {
         if last_id == moved_item_id {
@@ -309,6 +319,52 @@ async fn remove_from_chain(
     )
     .execute(&mut **transaction)
     .await?;
+
+    Ok(())
+}
+
+async fn remove_from_chain_bulk(
+    transaction: &mut Transaction<'_, MySql>,
+    removed_ids: &[i32],
+    change_set: &str,
+) -> sqlx::Result<()> {
+    if removed_ids.is_empty() {
+        return Ok(());
+    }
+
+    // Create placeholders for the removed IDs
+    let placeholders = std::iter::repeat_n("?", removed_ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    // Use CASE statement to handle multiple removed notes in one query
+    // This is more direct translation of the original logic
+    let query = format!(
+        r#"
+        UPDATE notes n1
+        INNER JOIN (
+            SELECT n2.id, n2.predecessor_id
+            FROM notes n2
+            WHERE n2.id IN ({})
+        ) AS removed_notes ON n1.predecessor_id = removed_notes.id
+        SET n1.predecessor_id = removed_notes.predecessor_id,
+            n1.change_set = ?
+        "#,
+        placeholders
+    );
+
+    // Build and execute the query with dynamic parameters
+    let mut query_builder = sqlx::query(&query);
+
+    // Bind the change_set first
+    query_builder = query_builder.bind(change_set);
+
+    // Bind all removed_ids for the IN clause
+    for id in removed_ids {
+        query_builder = query_builder.bind(id);
+    }
+
+    query_builder.execute(&mut **transaction).await?;
 
     Ok(())
 }
@@ -393,7 +449,7 @@ pub async fn delete_by(
         (None, None) => read_all_notes_ids(&mut transaction).await,
     }?;
 
-    // Fix chains for each deleted note
+    // Fix chains for each deleted note (revert to working implementation)
     for &id in &note_ids {
         remove_from_chain(&mut transaction, id as u32, &change_set).await?;
     }
@@ -568,12 +624,12 @@ pub async fn split_note(
     .execute(&mut *transaction)
     .await?;
 
+    // Read back both notes within the same transaction
+    let updated_original = read_by_id(&mut *transaction, original_id).await?;
+    let new_note = read_by_id(&mut *transaction, new_note_result.last_insert_id() as u32).await?;
+
     // Commit the transaction
     transaction.commit().await?;
-
-    // Read back both notes to return complete data
-    let updated_original = read_by_id(db, original_id).await?;
-    let new_note = read_by_id(db, new_note_result.last_insert_id() as u32).await?;
 
     Ok((updated_original, new_note))
 }

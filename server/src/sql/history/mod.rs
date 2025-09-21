@@ -117,8 +117,9 @@ pub async fn create(
     label: Option<String>,
     snapshot: &str,
 ) -> sqlx::Result<HistoryEntity> {
-    let insert = sqlx::query_as!(
-        HistoryDto,
+    let mut transaction = db.begin().await?;
+
+    let insert = sqlx::query!(
         r#"
 					INSERT INTO history (label, snapshot)
 					VALUES (?, ?)
@@ -126,7 +127,7 @@ pub async fn create(
         label,
         snapshot
     )
-    .execute(db)
+    .execute(&mut *transaction)
     .await?
     .last_insert_id() as i64;
 
@@ -139,8 +140,10 @@ pub async fn create(
 				"#,
         insert
     )
-    .fetch_one(db)
+    .fetch_one(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     Ok(history)
 }
@@ -158,6 +161,8 @@ pub struct BrowserInfoEntity {
 }
 
 pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<BrowserInfoEntity> {
+    let mut transaction = db.begin().await?;
+
     let result = if let Some(current_id) = id {
         let row = sqlx::query!(
             r#"
@@ -167,7 +172,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
 						"#,
             current_id
         )
-        .fetch_one(db)
+        .fetch_one(&mut *transaction)
         .await?;
 
         (row.snapshot, row.label, row.created_at, row.id)
@@ -180,7 +185,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
     					WHERE created_at = (SELECT MAX(created_at) FROM history);
 				"#,
         )
-        .fetch_optional(db)
+        .fetch_optional(&mut *transaction)
         .await?;
 
         if let Some(row) = row {
@@ -191,7 +196,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
     };
 
     let previous = sqlx::query!(
-        r#"    
+        r#"
 						SELECT id, label
 						FROM history
 						WHERE created_at < ?
@@ -200,11 +205,11 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
 						"#,
         result.2
     )
-    .fetch_optional(db)
+    .fetch_optional(&mut *transaction)
     .await?;
 
     let next = sqlx::query!(
-        r#" 
+        r#"
 					SELECT id, label
 					FROM history
 					WHERE created_at > ?
@@ -213,8 +218,10 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
 					"#,
         result.2
     )
-    .fetch_optional(db)
+    .fetch_optional(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     Ok(BrowserInfoEntity {
         id: result.3.to_string(),
