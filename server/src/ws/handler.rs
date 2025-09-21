@@ -18,6 +18,130 @@ use crate::{
 
 use super::{OperationResult, WsContext};
 
+/// Enhanced error handling for WebSocket operations
+#[derive(Debug)]
+enum WsErrorType {
+    ParseError { raw_message: String },
+    ConnectionError { reason: String },
+    ApplicationError { action: String, error: String },
+    SendError { target: SendTarget, error: String },
+    SyncLoss { operation: String },
+}
+
+#[derive(Debug)]
+enum SendTarget {
+    Broadcast,
+    Client,
+    BroadcastMixed,
+    ClientMixed,
+}
+
+impl WsErrorType {
+    fn log_level(&self) -> &'static str {
+        match self {
+            WsErrorType::ParseError { .. } => "warn",
+            WsErrorType::ConnectionError { .. } => "error",
+            WsErrorType::ApplicationError { .. } => "error",
+            WsErrorType::SendError { .. } => "warn",
+            WsErrorType::SyncLoss { .. } => "error",
+        }
+    }
+
+    fn client_message(&self) -> String {
+        match self {
+            WsErrorType::ParseError { .. } => {
+                "Invalid message format. Please check your request structure.".to_string()
+            }
+            WsErrorType::ConnectionError { reason } => {
+                format!("Connection failed: {}", reason)
+            }
+            WsErrorType::ApplicationError { error, .. } => {
+                format!("Operation failed: {}", error)
+            }
+            WsErrorType::SendError { .. } => {
+                "Failed to deliver message. Please try again.".to_string()
+            }
+            WsErrorType::SyncLoss { operation } => {
+                format!("Sync issue detected after {}. Please refresh to see latest changes.", operation)
+            }
+        }
+    }
+}
+
+/// Handle sync loss by broadcasting error to all clients
+async fn handle_sync_loss_broadcast(
+    context: &WsContext,
+    error_type: &WsErrorType,
+    uuid: &Option<String>,
+) {
+    error!(
+        error_type = ?error_type,
+        uuid = ?uuid,
+        "Sync loss detected - broadcasting to all clients"
+    );
+
+    let sync_error = vec![WsOperation::Error {
+        uuid: uuid.clone(),
+        message: error_type.client_message(),
+    }];
+
+    if let Err(e) = context.broadcast(sync_error).await {
+        error!(
+            error = %e,
+            "Failed to broadcast sync loss error - critical sync failure"
+        );
+    }
+}
+
+/// Send structured error response to client with proper logging
+async fn handle_ws_error(
+    context: &WsContext,
+    client_id: &str,
+    error_type: WsErrorType,
+    uuid: &Option<String>,
+) {
+    // Special case: SyncLoss affects everyone, so broadcast it
+    if matches!(error_type, WsErrorType::SyncLoss { .. }) {
+        handle_sync_loss_broadcast(context, &error_type, uuid).await;
+        return;
+    }
+    // Log with appropriate level and structured data
+    match error_type.log_level() {
+        "error" => error!(
+            client_id = %client_id,
+            error_type = ?error_type,
+            uuid = ?uuid,
+            "WebSocket error occurred"
+        ),
+        "warn" => warn!(
+            client_id = %client_id,
+            error_type = ?error_type,
+            uuid = ?uuid,
+            "WebSocket warning"
+        ),
+        _ => info!(
+            client_id = %client_id,
+            error_type = ?error_type,
+            uuid = ?uuid,
+            "WebSocket info"
+        ),
+    }
+
+    // Send user-friendly error to client
+    let error_response = vec![WsOperation::Error {
+        uuid: uuid.clone(),
+        message: error_type.client_message(),
+    }];
+
+    if let Err(e) = context.send_to_client(client_id.to_string(), error_response).await {
+        error!(
+            client_id = %client_id,
+            error = %e,
+            "Failed to send error response to client - connection may be broken"
+        );
+    }
+}
+
 #[instrument(skip(ws, state, claims))]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
@@ -36,7 +160,14 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
     let (tx, mut rx) = socket.split();
 
     if let Err(e) = context.add_session(client_id.clone(), tx).await {
-        error!(error = %e, "Failed to add session");
+        handle_ws_error(
+            &context,
+            &client_id,
+            WsErrorType::ConnectionError {
+                reason: format!("Session creation failed: {}", e),
+            },
+            &None,
+        ).await;
         return;
     }
 
@@ -44,6 +175,7 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
         if let Message::Text(text) = msg {
             if let Ok(action) = serde_json::from_str::<WsAction>(&text) {
                 let uuid = extract_uuid(&action);
+                let action_debug = format!("{:?}", action); // Capture debug string before move
                 info!(action = ?action, "Received action");
                 let mut app_state = context.notes.lock().await;
                 match app_state.apply(&context.db, action).await {
@@ -51,14 +183,30 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                         drop(app_state);
                         info!(op_count = ops.len(), "Broadcasting operations");
                         if let Err(e) = context.broadcast(ops).await {
-                            error!(error = %e, "Broadcast failed");
+                            // Operation succeeded but broadcast failed = sync loss
+                            handle_ws_error(
+                                &context,
+                                &client_id,
+                                WsErrorType::SyncLoss {
+                                    operation: action_debug.clone(),
+                                },
+                                &uuid,
+                            ).await;
                         }
                     }
                     Ok(OperationResult::ClientOnly(ops)) => {
                         drop(app_state);
                         info!(op_count = ops.len(), "Sending client-only operations");
                         if let Err(e) = context.send_to_client(client_id.clone(), ops).await {
-                            warn!(error = %e, "Client send failed");
+                            handle_ws_error(
+                                &context,
+                                &client_id,
+                                WsErrorType::SendError {
+                                    target: SendTarget::Client,
+                                    error: e.to_string(),
+                                },
+                                &uuid,
+                            ).await;
                         }
                     }
                     Ok(OperationResult::Mixed(bops, cops)) => {
@@ -70,31 +218,50 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                         );
 
                         if let Err(e) = context.broadcast(bops).await {
-                            error!(error = %e, "Broadcast portion failed");
+                            // Operation succeeded but broadcast failed = sync loss
+                            handle_ws_error(
+                                &context,
+                                &client_id,
+                                WsErrorType::SyncLoss {
+                                    operation: action_debug.clone(),
+                                },
+                                &uuid,
+                            ).await;
                         }
                         if let Err(e) = context.send_to_client(client_id.clone(), cops).await {
-                            warn!(error = %e, "Client-only portion failed");
+                            handle_ws_error(
+                                &context,
+                                &client_id,
+                                WsErrorType::SendError {
+                                    target: SendTarget::ClientMixed,
+                                    error: e.to_string(),
+                                },
+                                &uuid,
+                            ).await;
                         }
                     }
                     Err(err) => {
                         drop(app_state);
-
-                        if let Err(e) = context
-                            .send_to_client(
-                                client_id.clone(),
-                                vec![WsOperation::Error {
-                                    uuid,
-                                    message: format!("Error applying action: {}", err),
-                                }],
-                            )
-                            .await
-                        {
-                            error!(error = %e, "Failed to send error to client");
-                        }
+                        handle_ws_error(
+                            &context,
+                            &client_id,
+                            WsErrorType::ApplicationError {
+                                action: action_debug,
+                                error: err.to_string(),
+                            },
+                            &uuid,
+                        ).await;
                     }
                 }
             } else {
-                warn!(message = %text, "Failed to parse WebSocket message");
+                handle_ws_error(
+                    &context,
+                    &client_id,
+                    WsErrorType::ParseError {
+                        raw_message: text.to_string(),
+                    },
+                    &None,
+                ).await;
             }
         }
     }
