@@ -46,12 +46,7 @@ impl From<String> for NoteState {
 
 impl From<NoteState> for String {
     fn from(state: NoteState) -> Self {
-        match state {
-            NoteState::Notes => "notes".to_string(),
-            NoteState::Todo => "todo".to_string(),
-            NoteState::InProgress => "in_progress".to_string(),
-            NoteState::Done => "done".to_string(),
-        }
+        state.as_ref().to_string()
     }
 }
 
@@ -92,13 +87,7 @@ impl From<String> for NoteTag {
 
 impl From<NoteTag> for String {
     fn from(tag: NoteTag) -> Self {
-        match tag {
-            NoteTag::Important => "Important".to_string(),
-            NoteTag::Deadline => "Deadline".to_string(),
-            NoteTag::Waiting => "Waiting".to_string(),
-            NoteTag::Quick => "Quick".to_string(),
-            NoteTag::Error => "Error".to_string(),
-        }
+        tag.as_ref().to_string()
     }
 }
 
