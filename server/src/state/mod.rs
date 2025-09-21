@@ -75,6 +75,13 @@ impl AppState {
         )))
     }
 
+    pub fn respond_error(uuid: Option<String>, message: String) -> Result<OperationResult> {
+        Ok(OperationResult::ClientOnly(vec![WsOperation::Error {
+            uuid,
+            message,
+        }]))
+    }
+
     pub async fn apply(&mut self, db: &MySqlPool, action: WsAction) -> Result<OperationResult> {
         match action {
             WsAction::AddNote {
@@ -98,14 +105,17 @@ impl AppState {
                     error!("{:?}", e);
                 }
 
-                let created = created.unwrap();
+                //let created = created.unwrap();
 
-                Self::broadcast_note(
-                    uuid,
-                    WsOperation::NoteAdded {
-                        note: created.into(),
-                    },
-                )
+                match created {
+                    Result::Ok(success) => Self::broadcast_note(
+                        uuid,
+                        WsOperation::NoteAdded {
+                            note: success.into(),
+                        },
+                    ),
+                    Err(e) => Self::respond_error(uuid, e.to_string()),
+                }
             }
             WsAction::UpdateNoteText { uuid, id, text } => {
                 note::update_text(db, id, &text).await?;
@@ -438,7 +448,7 @@ pub enum WsOperation {
     },
     SnapshotCreated {},
     Error {
-        uuid: String,
+        uuid: Option<String>,
         message: String,
     },
 }
