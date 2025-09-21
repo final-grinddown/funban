@@ -105,8 +105,6 @@ impl AppState {
                     error!("{:?}", e);
                 }
 
-                //let created = created.unwrap();
-
                 match created {
                     Result::Ok(success) => Self::broadcast_note(
                         uuid,

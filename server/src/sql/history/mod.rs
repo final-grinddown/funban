@@ -83,7 +83,7 @@ pub async fn rename(db: &MySqlPool, id: u32, new_name: &str) -> sqlx::Result<Opt
     .await?;
 
     match result.rows_affected() {
-        1 => Ok(Some(id.try_into().unwrap())),
+        1 => Ok(Some(id.try_into().map_err(|_| sqlx::Error::Protocol("ID conversion failed".into()))?)),
         _ => Ok(None),
     }
 }
@@ -92,7 +92,7 @@ pub async fn delete(db: &MySqlPool, id: u32) -> sqlx::Result<Option<i32>> {
     let deleted = common::execute_delete(db, "history", "id", id).await?;
 
     match deleted {
-        true => Ok(Some(id.try_into().unwrap())),
+        true => Ok(Some(id.try_into().map_err(|_| sqlx::Error::Protocol("ID conversion failed".into()))?)),
         false => Ok(None),
     }
 }
