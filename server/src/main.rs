@@ -2,7 +2,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
 use axum::{
-    http::{header, HeaderValue, Method},
+    http::{header, Method},
     Router,
 };
 use config::Configuration;
@@ -18,6 +18,8 @@ use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use ws::{ws_router, WsContext};
 
+use helpers::parse_origins;
+
 mod config;
 mod constants;
 
@@ -27,6 +29,8 @@ mod state;
 mod ws;
 
 mod openapi;
+
+mod helpers;
 
 mod model;
 
@@ -122,38 +126,4 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
     )
     .await
     .context("Failed to serve the application")
-}
-
-fn parse_origins(config: &str) -> anyhow::Result<Vec<HeaderValue>> {
-    Ok(config
-        .split(';')
-        .filter(|origin| !origin.is_empty())
-        .map(|origin| origin.parse::<HeaderValue>().unwrap())
-        .collect())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_origins_single() {
-        let origins = parse_origins("http://localhost:3000").unwrap();
-
-        assert_eq!(origins.len(), 1);
-    }
-
-    #[test]
-    fn test_parse_origins_extra_amper() {
-        let origins = parse_origins("http://localhost:3000;;").unwrap();
-
-        assert_eq!(origins.len(), 1);
-    }
-
-    #[test]
-    fn test_parse_origins_multiple() {
-        let origins = parse_origins("http://localhost:3000;http://localhost:3001").unwrap();
-
-        assert_eq!(origins.len(), 2);
-    }
 }
