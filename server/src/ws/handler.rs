@@ -79,22 +79,17 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                     Err(err) => {
                         drop(app_state);
 
-                        if let Some(uuid) = uuid {
-                            error!(uuid = %uuid, error = %err, "Action failed");
-                            if let Err(e) = context
-                                .send_to_client(
-                                    client_id.clone(),
-                                    vec![WsOperation::Error {
-                                        uuid,
-                                        message: format!("Error applying action: {}", err),
-                                    }],
-                                )
-                                .await
-                            {
-                                error!(error = %e, "Failed to send error to client");
-                            }
-                        } else {
-                            error!(error = %err, "Action failed (no UUID)");
+                        if let Err(e) = context
+                            .send_to_client(
+                                client_id.clone(),
+                                vec![WsOperation::Error {
+                                    uuid,
+                                    message: format!("Error applying action: {}", err),
+                                }],
+                            )
+                            .await
+                        {
+                            error!(error = %e, "Failed to send error to client");
                         }
                     }
                 }

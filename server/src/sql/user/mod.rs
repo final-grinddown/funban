@@ -159,7 +159,7 @@ pub async fn update_password(
         new_password_hashed,
         email
     )
-    .fetch_optional(db)
+    .execute(db)
     .await?;
 
     Ok(())
@@ -172,7 +172,7 @@ UPDATE users SET email = ? WHERE email = ?"#,
         new_email,
         email
     )
-    .fetch_optional(db)
+    .execute(db)
     .await?;
 
     Ok(())
