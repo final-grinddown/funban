@@ -21,17 +21,31 @@ use super::{OperationResult, WsContext};
 /// Enhanced error handling for WebSocket operations
 #[derive(Debug)]
 enum WsErrorType {
-    ParseError { raw_message: String },
+    ParseError {
+        #[allow(dead_code)]
+        raw_message: String
+    },
     ConnectionError { reason: String },
-    ApplicationError { action: String, error: String },
-    SendError { target: SendTarget, error: String },
+    ApplicationError {
+        #[allow(dead_code)]
+        action: String,
+        error: String
+    },
+    SendError {
+        #[allow(dead_code)]
+        target: SendTarget,
+        #[allow(dead_code)]
+        error: String
+    },
     SyncLoss { operation: String },
 }
 
 #[derive(Debug)]
 enum SendTarget {
+    #[allow(dead_code)]
     Broadcast,
     Client,
+    #[allow(dead_code)]
     BroadcastMixed,
     ClientMixed,
 }
@@ -182,7 +196,7 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                     Ok(OperationResult::Broadcast(ops)) => {
                         drop(app_state);
                         info!(op_count = ops.len(), "Broadcasting operations");
-                        if let Err(e) = context.broadcast(ops).await {
+                        if let Err(_e) = context.broadcast(ops).await {
                             // Operation succeeded but broadcast failed = sync loss
                             handle_ws_error(
                                 &context,
@@ -217,7 +231,7 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                             "Sending mixed operations"
                         );
 
-                        if let Err(e) = context.broadcast(bops).await {
+                        if let Err(_e) = context.broadcast(bops).await {
                             // Operation succeeded but broadcast failed = sync loss
                             handle_ws_error(
                                 &context,

@@ -28,11 +28,11 @@ fn test_auth_utils_neg() {
 async fn test_check_password(db: MySqlPool) -> sqlx::Result<()> {
     let email = "alice@email.com";
     let password = "pass";
-    let result = check_password(&db, &email, &password).await;
+    let result = check_password(&db, email, password).await;
 
     assert!(result.is_ok());
 
-    assert_eq!(result.unwrap(), true);
+    assert!(result.unwrap());
 
     Ok(())
 }
@@ -41,11 +41,11 @@ async fn test_check_password(db: MySqlPool) -> sqlx::Result<()> {
 async fn test_check_password_neg(db: MySqlPool) -> sqlx::Result<()> {
     let email = "alice@email.com";
     let password = "wrong_password";
-    let result = check_password(&db, &email, &password).await;
+    let result = check_password(&db, email, password).await;
 
     assert!(result.is_ok());
 
-    assert_eq!(result.unwrap(), false);
+    assert!(!result.unwrap());
 
     Ok(())
 }

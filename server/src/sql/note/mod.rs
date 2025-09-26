@@ -323,51 +323,6 @@ async fn remove_from_chain(
     Ok(())
 }
 
-async fn remove_from_chain_bulk(
-    transaction: &mut Transaction<'_, MySql>,
-    removed_ids: &[i32],
-    change_set: &str,
-) -> sqlx::Result<()> {
-    if removed_ids.is_empty() {
-        return Ok(());
-    }
-
-    // Create placeholders for the removed IDs
-    let placeholders = std::iter::repeat_n("?", removed_ids.len())
-        .collect::<Vec<_>>()
-        .join(",");
-
-    // Use CASE statement to handle multiple removed notes in one query
-    // This is more direct translation of the original logic
-    let query = format!(
-        r#"
-        UPDATE notes n1
-        INNER JOIN (
-            SELECT n2.id, n2.predecessor_id
-            FROM notes n2
-            WHERE n2.id IN ({})
-        ) AS removed_notes ON n1.predecessor_id = removed_notes.id
-        SET n1.predecessor_id = removed_notes.predecessor_id,
-            n1.change_set = ?
-        "#,
-        placeholders
-    );
-
-    // Build and execute the query with dynamic parameters
-    let mut query_builder = sqlx::query(&query);
-
-    // Bind the change_set first
-    query_builder = query_builder.bind(change_set);
-
-    // Bind all removed_ids for the IN clause
-    for id in removed_ids {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder.execute(&mut **transaction).await?;
-
-    Ok(())
-}
 
 pub async fn transfer_before(
     db: &MySqlPool,
