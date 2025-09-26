@@ -3,10 +3,48 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde::{Deserialize, Serialize};
-use validator::{Validate, ValidationErrors};
+use serde::Serialize;
+#[cfg(test)]
+use serde::Deserialize;
 
-/// Common validation error response
+/// Custom validation error types
+#[derive(Debug, Clone)]
+pub enum ValidationError {
+    TooLong { field: &'static str, max_len: usize, actual_len: usize },
+    TooShort { field: &'static str, min_len: usize, actual_len: usize },
+    Empty { field: &'static str },
+    InvalidFormat { field: &'static str, expected: &'static str },
+}
+
+impl ValidationError {
+    pub fn message(&self) -> String {
+        match self {
+            ValidationError::TooLong { field, max_len, actual_len } => {
+                format!("{} is too long: {} characters (max {})", field, actual_len, max_len)
+            }
+            ValidationError::TooShort { field, min_len, actual_len } => {
+                format!("{} is too short: {} characters (min {})", field, actual_len, min_len)
+            }
+            ValidationError::Empty { field } => {
+                format!("{} cannot be empty", field)
+            }
+            ValidationError::InvalidFormat { field, expected } => {
+                format!("{} has invalid format (expected: {})", field, expected)
+            }
+        }
+    }
+
+    pub fn field(&self) -> &'static str {
+        match self {
+            ValidationError::TooLong { field, .. } => field,
+            ValidationError::TooShort { field, .. } => field,
+            ValidationError::Empty { field } => field,
+            ValidationError::InvalidFormat { field, .. } => field,
+        }
+    }
+}
+
+/// Common validation error response for HTTP endpoints
 #[derive(Debug, Serialize)]
 pub struct ValidationErrorResponse {
     pub message: String,
@@ -19,27 +57,29 @@ pub struct FieldError {
     pub message: String,
 }
 
-/// Convert validator::ValidationErrors into our custom error response
-impl From<ValidationErrors> for ValidationErrorResponse {
-    fn from(errors: ValidationErrors) -> Self {
-        let field_errors: Vec<FieldError> = errors
-            .field_errors()
-            .into_iter()
-            .flat_map(|(field, field_errors)| {
-                field_errors.iter().map(move |error| FieldError {
-                    field: field.to_string(),
-                    message: error
-                        .message
-                        .as_ref()
-                        .map(|msg| msg.to_string())
-                        .unwrap_or_else(|| format!("Invalid {}", field)),
-                })
-            })
-            .collect();
-
+impl From<ValidationError> for ValidationErrorResponse {
+    fn from(error: ValidationError) -> Self {
         ValidationErrorResponse {
             message: "Validation failed".to_string(),
-            errors: field_errors,
+            errors: vec![FieldError {
+                field: error.field().to_string(),
+                message: error.message(),
+            }],
+        }
+    }
+}
+
+impl From<Vec<ValidationError>> for ValidationErrorResponse {
+    fn from(errors: Vec<ValidationError>) -> Self {
+        ValidationErrorResponse {
+            message: "Validation failed".to_string(),
+            errors: errors
+                .into_iter()
+                .map(|error| FieldError {
+                    field: error.field().to_string(),
+                    message: error.message(),
+                })
+                .collect(),
         }
     }
 }
@@ -50,45 +90,52 @@ impl IntoResponse for ValidationErrorResponse {
     }
 }
 
-/// Validate a struct that implements the Validate trait
-pub fn validate_input<T: Validate>(input: &T) -> Result<(), ValidationErrorResponse> {
-    input.validate().map_err(ValidationErrorResponse::from)
+/// Validate input and return appropriate error response
+pub fn validate_input(errors: Vec<ValidationError>) -> Result<(), ValidationErrorResponse> {
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(ValidationErrorResponse::from(errors))
+    }
 }
 
-/// Database-backed validation constants
-/// These match the actual database field limits to prevent DB constraint violations
-/// Note text field: VARCHAR(1000) in database
-pub const MAX_NOTE_TEXT_LENGTH: usize = 1000;
+/// Validation field limits - centralized configuration matching database schema
+pub struct ValidationLimits;
 
-/// User name field: VARCHAR(255) in database
-pub const MAX_USER_NAME_LENGTH: usize = 255;
+impl ValidationLimits {
+    /// Note text field: VARCHAR(1000) in database
+    pub const NOTE_TEXT_MAX_LEN: usize = 1000;
 
-/// User email field: VARCHAR(255) in database - used in HTTP auth, not WS
-#[allow(dead_code)]
-pub const MAX_USER_EMAIL_LENGTH: usize = 255;
+    /// User name field: VARCHAR(255) in database
+    pub const USER_NAME_MAX_LEN: usize = 255;
+    pub const USER_NAME_MIN_LEN: usize = 1;
 
-/// User color field: VARCHAR(31) in database (hex colors like #ff5722)
-pub const MAX_USER_COLOR_LENGTH: usize = 31;
+    /// User email field: VARCHAR(255) in database - used in HTTP auth, not WS
+    pub const USER_EMAIL_MAX_LEN: usize = 255;
 
-/// Note state field: VARCHAR(31) in database
-pub const MAX_NOTE_STATE_LENGTH: usize = 31;
+    /// User color field: VARCHAR(31) in database (hex colors like #ff5722)
+    pub const USER_COLOR_MAX_LEN: usize = 31;
+    pub const USER_COLOR_EXPECTED_LEN: usize = 7; // #rrggbb format
 
-/// Password field: VARCHAR(255) in database (hashed) - used in HTTP auth, not WS
-#[allow(dead_code)]
-pub const MAX_PASSWORD_LENGTH: usize = 255;
+    /// Note state field: VARCHAR(31) in database
+    pub const NOTE_STATE_MAX_LEN: usize = 31;
+    pub const NOTE_STATE_MIN_LEN: usize = 1;
 
-/// Note change_set field: VARCHAR(64) in database - internal field, not user input
-#[allow(dead_code)]
-pub const MAX_CHANGE_SET_LENGTH: usize = 64;
+}
 
-/// Custom validation functions
+
+/// Custom validation functions using structured limits
 pub mod validators {
-    use validator::ValidationError;
+    use super::{ValidationError, ValidationLimits};
 
     /// Validate text length for notes (allows empty for optional fields)
     pub fn validate_note_text(text: &str) -> Result<(), ValidationError> {
-        if text.len() > super::MAX_NOTE_TEXT_LENGTH {
-            return Err(ValidationError::new("text_too_long"));
+        if text.len() > ValidationLimits::NOTE_TEXT_MAX_LEN {
+            return Err(ValidationError::TooLong {
+                field: "note text",
+                max_len: ValidationLimits::NOTE_TEXT_MAX_LEN,
+                actual_len: text.len(),
+            });
         }
         Ok(())
     }
@@ -96,11 +143,23 @@ pub mod validators {
 
     /// Validate user name (VARCHAR(255) in database)
     pub fn validate_user_name(name: &str) -> Result<(), ValidationError> {
-        if name.trim().is_empty() {
-            return Err(ValidationError::new("empty_name"));
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Err(ValidationError::Empty { field: "user name" });
         }
-        if name.len() > super::MAX_USER_NAME_LENGTH {
-            return Err(ValidationError::new("name_too_long"));
+        if trimmed.len() < ValidationLimits::USER_NAME_MIN_LEN {
+            return Err(ValidationError::TooShort {
+                field: "user name",
+                min_len: ValidationLimits::USER_NAME_MIN_LEN,
+                actual_len: trimmed.len(),
+            });
+        }
+        if name.len() > ValidationLimits::USER_NAME_MAX_LEN {
+            return Err(ValidationError::TooLong {
+                field: "user name",
+                max_len: ValidationLimits::USER_NAME_MAX_LEN,
+                actual_len: name.len(),
+            });
         }
         Ok(())
     }
@@ -108,15 +167,23 @@ pub mod validators {
     /// Validate user email (VARCHAR(255) in database) - for future HTTP auth
     #[allow(dead_code)]
     pub fn validate_user_email(email: &str) -> Result<(), ValidationError> {
-        if email.trim().is_empty() {
-            return Err(ValidationError::new("empty_email"));
+        let trimmed = email.trim();
+        if trimmed.is_empty() {
+            return Err(ValidationError::Empty { field: "email" });
         }
-        if email.len() > super::MAX_USER_EMAIL_LENGTH {
-            return Err(ValidationError::new("email_too_long"));
+        if email.len() > ValidationLimits::USER_EMAIL_MAX_LEN {
+            return Err(ValidationError::TooLong {
+                field: "email",
+                max_len: ValidationLimits::USER_EMAIL_MAX_LEN,
+                actual_len: email.len(),
+            });
         }
         // Basic email format validation (just check for @)
         if !email.contains('@') {
-            return Err(ValidationError::new("invalid_email_format"));
+            return Err(ValidationError::InvalidFormat {
+                field: "email",
+                expected: "user@domain.com",
+            });
         }
         Ok(())
     }
@@ -124,28 +191,50 @@ pub mod validators {
     /// Validate user color (VARCHAR(31) in database - should be hex color)
     pub fn validate_user_color(color: &str) -> Result<(), ValidationError> {
         if color.is_empty() {
-            return Err(ValidationError::new("empty_color"));
+            return Err(ValidationError::Empty { field: "color" });
         }
-        if color.len() > super::MAX_USER_COLOR_LENGTH {
-            return Err(ValidationError::new("color_too_long"));
+        if color.len() > ValidationLimits::USER_COLOR_MAX_LEN {
+            return Err(ValidationError::TooLong {
+                field: "color",
+                max_len: ValidationLimits::USER_COLOR_MAX_LEN,
+                actual_len: color.len(),
+            });
         }
         // Validate hex color format (#rrggbb)
-        if !color.starts_with('#') || color.len() != 7 {
-            return Err(ValidationError::new("invalid_color_format"));
+        if !color.starts_with('#') || color.len() != ValidationLimits::USER_COLOR_EXPECTED_LEN {
+            return Err(ValidationError::InvalidFormat {
+                field: "color",
+                expected: "#rrggbb (e.g., #ff5722)",
+            });
         }
         if !color[1..].chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(ValidationError::new("invalid_color_format"));
+            return Err(ValidationError::InvalidFormat {
+                field: "color",
+                expected: "#rrggbb (e.g., #ff5722)",
+            });
         }
         Ok(())
     }
 
     /// Validate note state (VARCHAR(31) in database)
     pub fn validate_note_state(state: &str) -> Result<(), ValidationError> {
-        if state.trim().is_empty() {
-            return Err(ValidationError::new("empty_state"));
+        let trimmed = state.trim();
+        if trimmed.is_empty() {
+            return Err(ValidationError::Empty { field: "state" });
         }
-        if state.len() > super::MAX_NOTE_STATE_LENGTH {
-            return Err(ValidationError::new("state_too_long"));
+        if trimmed.len() < ValidationLimits::NOTE_STATE_MIN_LEN {
+            return Err(ValidationError::TooShort {
+                field: "state",
+                min_len: ValidationLimits::NOTE_STATE_MIN_LEN,
+                actual_len: trimmed.len(),
+            });
+        }
+        if state.len() > ValidationLimits::NOTE_STATE_MAX_LEN {
+            return Err(ValidationError::TooLong {
+                field: "state",
+                max_len: ValidationLimits::NOTE_STATE_MAX_LEN,
+                actual_len: state.len(),
+            });
         }
         Ok(())
     }
@@ -182,53 +271,59 @@ pub mod validators {
     }
 }
 
-/// Common validation structs for API inputs
+/// Common validation structs for API inputs - now using custom validation
 #[cfg(test)]
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct AddNoteInput {
     #[allow(dead_code)]
     pub owner: u32,
-    #[validate(length(
-        min = 1,
-        max = 20,
-        message = "State must be between 1 and 20 characters"
-    ))]
     pub state: String,
-    #[validate(length(max = 5000, message = "Text cannot exceed 5000 characters"))]
     pub text: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct UpdateNoteTextInput {
-    #[validate(length(
-        min = 1,
-        max = 5000,
-        message = "Text must be between 1 and 5000 characters"
-    ))]
-    pub text: String,
+#[cfg(test)]
+impl AddNoteInput {
+    pub fn validate(&self) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        if let Err(e) = validators::validate_note_state(&self.state) {
+            errors.push(e);
+        }
+
+        if let Some(text) = &self.text {
+            if let Err(e) = validators::validate_note_text(text) {
+                errors.push(e);
+            }
+        }
+
+        errors
+    }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[cfg(test)]
+#[derive(Debug, Deserialize)]
 pub struct AddUserInput {
-    #[validate(length(
-        min = 1,
-        max = 100,
-        message = "Name must be between 1 and 100 characters"
-    ))]
     pub name: String,
-    #[validate(length(min = 3, max = 7, message = "Color must be a valid color name"))]
     pub color: String,
 }
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct UpdateUserNameInput {
-    #[validate(length(
-        min = 1,
-        max = 100,
-        message = "Name must be between 1 and 100 characters"
-    ))]
-    pub name: String,
+#[cfg(test)]
+impl AddUserInput {
+    pub fn validate(&self) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        if let Err(e) = validators::validate_user_name(&self.name) {
+            errors.push(e);
+        }
+
+        if let Err(e) = validators::validate_user_color(&self.color) {
+            errors.push(e);
+        }
+
+        errors
+    }
 }
+
 
 
 #[cfg(test)]
@@ -245,11 +340,11 @@ mod tests {
         assert!(validate_note_text("").is_ok());
 
         // Too long text should fail (DATABASE LIMIT: 1000 chars)
-        let long_text = "a".repeat(MAX_NOTE_TEXT_LENGTH + 1);
+        let long_text = "a".repeat(ValidationLimits::NOTE_TEXT_MAX_LEN + 1);
         assert!(validate_note_text(&long_text).is_err());
 
         // Text at exact limit should pass
-        let max_text = "a".repeat(MAX_NOTE_TEXT_LENGTH);
+        let max_text = "a".repeat(ValidationLimits::NOTE_TEXT_MAX_LEN);
         assert!(validate_note_text(&max_text).is_ok());
 
     }
@@ -264,11 +359,11 @@ mod tests {
         assert!(validate_user_name("   ").is_err());
 
         // Too long name should fail (DATABASE LIMIT: 255 chars)
-        let long_name = "a".repeat(MAX_USER_NAME_LENGTH + 1);
+        let long_name = "a".repeat(ValidationLimits::USER_NAME_MAX_LEN + 1);
         assert!(validate_user_name(&long_name).is_err());
 
         // Name at exact limit should pass
-        let max_name = "a".repeat(MAX_USER_NAME_LENGTH);
+        let max_name = "a".repeat(ValidationLimits::USER_NAME_MAX_LEN);
         assert!(validate_user_name(&max_name).is_ok());
     }
 
@@ -288,7 +383,7 @@ mod tests {
         assert!(validate_user_color("#gg5722").is_err()); // Invalid hex
 
         // Too long for database (DATABASE LIMIT: 31 chars)
-        let long_color = "#".repeat(32);
+        let long_color = "#".repeat(ValidationLimits::USER_COLOR_MAX_LEN + 1);
         assert!(validate_user_color(&long_color).is_err());
     }
 
@@ -304,11 +399,11 @@ mod tests {
         assert!(validate_note_state("   ").is_err());
 
         // Too long for database (DATABASE LIMIT: 31 chars)
-        let long_state = "a".repeat(MAX_NOTE_STATE_LENGTH + 1);
+        let long_state = "a".repeat(ValidationLimits::NOTE_STATE_MAX_LEN + 1);
         assert!(validate_note_state(&long_state).is_err());
 
         // State at exact limit should pass
-        let max_state = "a".repeat(MAX_NOTE_STATE_LENGTH);
+        let max_state = "a".repeat(ValidationLimits::NOTE_STATE_MAX_LEN);
         assert!(validate_note_state(&max_state).is_ok());
     }
 
@@ -324,7 +419,7 @@ mod tests {
         assert!(validate_user_email("notanemail").is_err());
 
         // Too long for database (DATABASE LIMIT: 255 chars)
-        let long_email = format!("{}@example.com", "a".repeat(250));
+        let long_email = format!("{}@example.com", "a".repeat(ValidationLimits::USER_EMAIL_MAX_LEN));
         assert!(validate_user_email(&long_email).is_err());
     }
 
@@ -336,26 +431,33 @@ mod tests {
             state: crate::constants::note_states::TODO.to_string(),
             text: Some("Valid note text".to_string()),
         };
-        assert!(valid_note.validate().is_ok());
+        assert!(valid_note.validate().is_empty());
 
         let invalid_note = AddNoteInput {
             owner: 1,
             state: "".to_string(), // Empty state should fail
             text: Some("Valid text".to_string()),
         };
-        assert!(invalid_note.validate().is_err());
+        assert!(!invalid_note.validate().is_empty());
 
-        // Test AddUserInput validation
+        // Test AddUserInput validation with proper hex color
         let valid_user = AddUserInput {
             name: "John Doe".to_string(),
-            color: "blue".to_string(),
+            color: "#ff5722".to_string(), // Valid hex color
         };
-        assert!(valid_user.validate().is_ok());
+        assert!(valid_user.validate().is_empty());
 
         let invalid_user = AddUserInput {
             name: "".to_string(), // Empty name should fail
-            color: "blue".to_string(),
+            color: "#ff5722".to_string(),
         };
-        assert!(invalid_user.validate().is_err());
+        assert!(!invalid_user.validate().is_empty());
+
+        // Test invalid color format
+        let invalid_color_user = AddUserInput {
+            name: "John Doe".to_string(),
+            color: "blue".to_string(), // Invalid color format
+        };
+        assert!(!invalid_color_user.validate().is_empty());
     }
 }

@@ -189,7 +189,7 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
 
                 // Validate action content before processing
                 if let Err(validation_error) = crate::http::validation::validators::validate_ws_action_content(&action) {
-                    let error_message = format!("Validation failed: {}", validation_error.code);
+                    let error_message = validation_error.message();
                     let validation_response = vec![crate::state::WsOperation::Error {
                         uuid: uuid.clone(),
                         message: error_message,
