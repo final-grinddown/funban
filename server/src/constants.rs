@@ -1,8 +1,9 @@
 /// Common constants for the application
+#[cfg(test)]
 use crate::model::note::{NoteState, NoteTag};
 
 /// Note state constants for easy access
-#[allow(dead_code)]
+#[cfg(test)]
 pub mod note_states {
     use super::NoteState;
 
@@ -18,7 +19,7 @@ pub mod note_states {
 }
 
 /// Note tag constants for easy access
-#[allow(dead_code)]
+#[cfg(test)]
 pub mod note_tags {
     use super::NoteTag;
 

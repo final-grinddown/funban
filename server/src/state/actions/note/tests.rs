@@ -7,11 +7,6 @@ fn extract_operations(result: OperationResult) -> Vec<WsOperation> {
     match result {
         OperationResult::Broadcast(ops) => ops,
         OperationResult::ClientOnly(ops) => ops,
-        OperationResult::Mixed(broadcast_ops, client_ops) => {
-            let mut all_ops = broadcast_ops;
-            all_ops.extend(client_ops);
-            all_ops
-        }
     }
 }
 

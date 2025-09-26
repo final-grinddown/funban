@@ -26,8 +26,6 @@ use crate::{
 pub enum OperationResult {
     Broadcast(Vec<WsOperation>),
     ClientOnly(Vec<WsOperation>),
-    #[allow(dead_code)]
-    Mixed(Vec<WsOperation>, Vec<WsOperation>), // (broadcast, client_only)
 }
 
 #[derive(Debug, Clone)]

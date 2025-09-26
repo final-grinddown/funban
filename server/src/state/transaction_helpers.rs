@@ -3,28 +3,39 @@ use super::{WsOperation, BusinessResponse};
 use crate::ws::OperationResult;
 use sqlx::Error as SqlxError;
 
-/// Helper trait for standardizing common database transaction patterns
-pub trait TransactionResult<T> {
-    /// Execute a database operation and handle the result with standardized broadcasting
-    fn into_broadcast_operation<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+/// Unified trait for business transactions with completion tracking
+///
+/// This trait handles database operations and automatically manages:
+/// - Success/failure responses
+/// - Client completion notifications (ActionFinished)
+/// - Broadcast vs client-only operations
+pub trait BusinessTransaction<T> {
+    /// Execute operation and broadcast result with completion tracking
+    fn execute_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
     where
         F: FnOnce(T) -> WsOperation;
 
+    /// Execute operation and send to client only with completion tracking
+    #[allow(dead_code)]
+    fn execute_and_respond<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+    where
+        F: FnOnce(T) -> WsOperation;
 
-    /// Execute a database operation that might fail, providing fallback behavior
-    fn into_broadcast_with_fallback<F, FB>(
-        self,
-        uuid: Option<String>,
-        op_fn: F,
-        fallback_fn: FB,
-    ) -> Result<OperationResult>
+    /// Execute operation that produces multiple operations and broadcasts them
+    #[allow(dead_code)]
+    fn execute_and_broadcast_many<F>(self, uuid: Option<String>, ops_fn: F) -> Result<OperationResult>
+    where
+        F: FnOnce(T) -> Vec<WsOperation>;
+
+    /// Execute with fallback behavior on error (useful for non-critical operations)
+    fn execute_with_fallback<F, FB>(self, uuid: Option<String>, op_fn: F, fallback: FB) -> Result<OperationResult>
     where
         F: FnOnce(T) -> Vec<WsOperation>,
         FB: FnOnce() -> OperationResult;
 }
 
-impl<T> TransactionResult<T> for Result<T, SqlxError> {
-    fn into_broadcast_operation<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+impl<T> BusinessTransaction<T> for Result<T, SqlxError> {
+    fn execute_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
     where
         F: FnOnce(T) -> WsOperation,
     {
@@ -34,52 +45,35 @@ impl<T> TransactionResult<T> for Result<T, SqlxError> {
         }
     }
 
+    fn execute_and_respond<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+    where
+        F: FnOnce(T) -> WsOperation,
+    {
+        match self {
+            Ok(result) => op_fn(result).respond_with_completion(uuid),
+            Err(e) => super::respond_error(uuid, e.to_string()),
+        }
+    }
 
-    fn into_broadcast_with_fallback<F, FB>(
-        self,
-        uuid: Option<String>,
-        op_fn: F,
-        fallback_fn: FB,
-    ) -> Result<OperationResult>
+    fn execute_and_broadcast_many<F>(self, uuid: Option<String>, ops_fn: F) -> Result<OperationResult>
+    where
+        F: FnOnce(T) -> Vec<WsOperation>,
+    {
+        match self {
+            Ok(result) => ops_fn(result).broadcast_with_completion(uuid),
+            Err(e) => super::respond_error(uuid, e.to_string()),
+        }
+    }
+
+    fn execute_with_fallback<F, FB>(self, uuid: Option<String>, op_fn: F, fallback: FB) -> Result<OperationResult>
     where
         F: FnOnce(T) -> Vec<WsOperation>,
         FB: FnOnce() -> OperationResult,
     {
         match self {
             Ok(result) => op_fn(result).broadcast_with_completion(uuid),
-            Err(_) => Ok(fallback_fn()),
+            Err(_) => Ok(fallback()),
         }
     }
-}
-
-/// Extension trait for common database operation patterns
-pub trait DatabaseOperation<T> {
-    /// Execute and broadcast a single create operation
-    fn create_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation;
-
-    /// Execute and broadcast an update operation
-    fn update_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation;
-
-}
-
-impl<T> DatabaseOperation<T> for Result<T, SqlxError> {
-    fn create_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation,
-    {
-        self.into_broadcast_operation(uuid, op_fn)
-    }
-
-    fn update_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation,
-    {
-        self.into_broadcast_operation(uuid, op_fn)
-    }
-
 }
 

@@ -13,6 +13,7 @@ mod response_helpers;
 mod transaction_helpers;
 
 pub use response_helpers::{BusinessResponse, respond_empty_with_completion, respond_error};
+pub use transaction_helpers::BusinessTransaction;
 
 // Re-export domain models for external use
 pub use actions::note::NoteUpdate;

@@ -3,8 +3,7 @@ use sqlx::MySqlPool;
 
 use crate::model::note::{NoteInsert, NoteTag};
 use crate::sql::note;
-use crate::state::{AppState, WsOperation, BusinessResponse, respond_empty_with_completion};
-use crate::state::transaction_helpers::{DatabaseOperation, TransactionResult};
+use crate::state::{AppState, WsOperation, BusinessResponse, BusinessTransaction, respond_empty_with_completion};
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -34,7 +33,7 @@ impl AppState {
         };
 
         note::add(db, &note).await
-            .create_and_broadcast(uuid, |success| WsOperation::NoteAdded {
+            .execute_and_broadcast(uuid, |success| WsOperation::NoteAdded {
                 note: success.into(),
             })
     }
@@ -47,7 +46,7 @@ impl AppState {
         text: String,
     ) -> Result<OperationResult> {
         note::update_text(db, id, &text).await
-            .update_and_broadcast(uuid, |_| WsOperation::NoteTextUpdated { id, text })
+            .execute_and_broadcast(uuid, |_| WsOperation::NoteTextUpdated { id, text })
     }
 
     pub(crate) async fn handle_update_note_tag(
@@ -79,7 +78,7 @@ impl AppState {
         id: u32,
     ) -> Result<OperationResult> {
         note::remove(db, id).await
-            .into_broadcast_with_fallback(
+            .execute_with_fallback(
                 uuid,
                 |changes| {
                     let mut ops: Vec<WsOperation> = changes

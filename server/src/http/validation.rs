@@ -1,7 +1,5 @@
 use axum::{
-    extract::Request,
     http::StatusCode,
-    middleware::Next,
     response::{IntoResponse, Response},
     Json,
 };
@@ -57,16 +55,33 @@ pub fn validate_input<T: Validate>(input: &T) -> Result<(), ValidationErrorRespo
     input.validate().map_err(ValidationErrorResponse::from)
 }
 
-/// Text validation constants
+/// Database-backed validation constants
+/// These match the actual database field limits to prevent DB constraint violations
+/// Note text field: VARCHAR(1000) in database
+pub const MAX_NOTE_TEXT_LENGTH: usize = 1000;
+
+/// User name field: VARCHAR(255) in database
+pub const MAX_USER_NAME_LENGTH: usize = 255;
+
+/// User email field: VARCHAR(255) in database - used in HTTP auth, not WS
 #[allow(dead_code)]
-pub const MAX_NOTE_TEXT_LENGTH: usize = 5000;
+pub const MAX_USER_EMAIL_LENGTH: usize = 255;
+
+/// User color field: VARCHAR(31) in database (hex colors like #ff5722)
+pub const MAX_USER_COLOR_LENGTH: usize = 31;
+
+/// Note state field: VARCHAR(31) in database
+pub const MAX_NOTE_STATE_LENGTH: usize = 31;
+
+/// Password field: VARCHAR(255) in database (hashed) - used in HTTP auth, not WS
 #[allow(dead_code)]
-pub const MAX_USER_NAME_LENGTH: usize = 100;
+pub const MAX_PASSWORD_LENGTH: usize = 255;
+
+/// Note change_set field: VARCHAR(64) in database - internal field, not user input
 #[allow(dead_code)]
-pub const MIN_PASSWORD_LENGTH: usize = 8;
+pub const MAX_CHANGE_SET_LENGTH: usize = 64;
 
 /// Custom validation functions
-#[allow(dead_code)]
 pub mod validators {
     use validator::ValidationError;
 
@@ -78,18 +93,8 @@ pub mod validators {
         Ok(())
     }
 
-    /// Validate required text length for notes
-    pub fn validate_required_note_text(text: &str) -> Result<(), ValidationError> {
-        if text.is_empty() {
-            return Err(ValidationError::new("empty_text"));
-        }
-        if text.len() > super::MAX_NOTE_TEXT_LENGTH {
-            return Err(ValidationError::new("text_too_long"));
-        }
-        Ok(())
-    }
 
-    /// Validate user name
+    /// Validate user name (VARCHAR(255) in database)
     pub fn validate_user_name(name: &str) -> Result<(), ValidationError> {
         if name.trim().is_empty() {
             return Err(ValidationError::new("empty_name"));
@@ -100,27 +105,88 @@ pub mod validators {
         Ok(())
     }
 
-    /// Validate password strength
-    pub fn validate_password_strength(password: &str) -> Result<(), ValidationError> {
-        if password.len() < super::MIN_PASSWORD_LENGTH {
-            return Err(ValidationError::new("password_too_short"));
+    /// Validate user email (VARCHAR(255) in database) - for future HTTP auth
+    #[allow(dead_code)]
+    pub fn validate_user_email(email: &str) -> Result<(), ValidationError> {
+        if email.trim().is_empty() {
+            return Err(ValidationError::new("empty_email"));
         }
-
-        let has_letter = password.chars().any(|c| c.is_alphabetic());
-        let has_number = password.chars().any(|c| c.is_numeric());
-
-        if !has_letter || !has_number {
-            return Err(ValidationError::new("password_weak"));
+        if email.len() > super::MAX_USER_EMAIL_LENGTH {
+            return Err(ValidationError::new("email_too_long"));
         }
+        // Basic email format validation (just check for @)
+        if !email.contains('@') {
+            return Err(ValidationError::new("invalid_email_format"));
+        }
+        Ok(())
+    }
 
+    /// Validate user color (VARCHAR(31) in database - should be hex color)
+    pub fn validate_user_color(color: &str) -> Result<(), ValidationError> {
+        if color.is_empty() {
+            return Err(ValidationError::new("empty_color"));
+        }
+        if color.len() > super::MAX_USER_COLOR_LENGTH {
+            return Err(ValidationError::new("color_too_long"));
+        }
+        // Validate hex color format (#rrggbb)
+        if !color.starts_with('#') || color.len() != 7 {
+            return Err(ValidationError::new("invalid_color_format"));
+        }
+        if !color[1..].chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(ValidationError::new("invalid_color_format"));
+        }
+        Ok(())
+    }
+
+    /// Validate note state (VARCHAR(31) in database)
+    pub fn validate_note_state(state: &str) -> Result<(), ValidationError> {
+        if state.trim().is_empty() {
+            return Err(ValidationError::new("empty_state"));
+        }
+        if state.len() > super::MAX_NOTE_STATE_LENGTH {
+            return Err(ValidationError::new("state_too_long"));
+        }
+        Ok(())
+    }
+
+
+    /// Validate WebSocket action content against database constraints
+    pub fn validate_ws_action_content(action: &crate::state::WsAction) -> Result<(), ValidationError> {
+        use crate::state::WsAction;
+
+        match action {
+            WsAction::AddNote { text: Some(text), state, .. } => {
+                validate_note_text(text)?;
+                validate_note_state(state)?;
+            }
+            WsAction::AddNote { text: None, state, .. } => {
+                validate_note_state(state)?;
+            }
+            WsAction::UpdateNoteText { text, .. } => {
+                validate_note_text(text)?;
+            }
+            WsAction::AddUser { name, color, .. } => {
+                validate_user_name(name)?;
+                validate_user_color(color)?;
+            }
+            WsAction::UpdateUserName { name, .. } => {
+                validate_user_name(name)?;
+            }
+            WsAction::UpdateUserColor { color, .. } => {
+                validate_user_color(color)?;
+            }
+            _ => {} // Other actions don't need content validation
+        }
         Ok(())
     }
 }
 
 /// Common validation structs for API inputs
-#[allow(dead_code)]
+#[cfg(test)]
 #[derive(Debug, Deserialize, Validate)]
 pub struct AddNoteInput {
+    #[allow(dead_code)]
     pub owner: u32,
     #[validate(length(
         min = 1,
@@ -164,13 +230,6 @@ pub struct UpdateUserNameInput {
     pub name: String,
 }
 
-/// Middleware to validate request bodies
-#[allow(dead_code)]
-pub async fn validation_middleware(request: Request, next: Next) -> Response {
-    // For now, this is a placeholder for request-level validation
-    // Individual endpoints handle their own validation
-    next.run(request).await
-}
 
 #[cfg(test)]
 mod tests {
@@ -185,13 +244,14 @@ mod tests {
         // Empty text is now allowed (for optional fields)
         assert!(validate_note_text("").is_ok());
 
-        // Too long text should fail
+        // Too long text should fail (DATABASE LIMIT: 1000 chars)
         let long_text = "a".repeat(MAX_NOTE_TEXT_LENGTH + 1);
         assert!(validate_note_text(&long_text).is_err());
 
-        // Test required text validation
-        assert!(validate_required_note_text("Valid text").is_ok());
-        assert!(validate_required_note_text("").is_err());
+        // Text at exact limit should pass
+        let max_text = "a".repeat(MAX_NOTE_TEXT_LENGTH);
+        assert!(validate_note_text(&max_text).is_ok());
+
     }
 
     #[test]
@@ -203,25 +263,69 @@ mod tests {
         assert!(validate_user_name("").is_err());
         assert!(validate_user_name("   ").is_err());
 
-        // Too long name should fail
+        // Too long name should fail (DATABASE LIMIT: 255 chars)
         let long_name = "a".repeat(MAX_USER_NAME_LENGTH + 1);
         assert!(validate_user_name(&long_name).is_err());
+
+        // Name at exact limit should pass
+        let max_name = "a".repeat(MAX_USER_NAME_LENGTH);
+        assert!(validate_user_name(&max_name).is_ok());
+    }
+
+
+    #[test]
+    fn test_user_color_validation() {
+        // Valid hex colors
+        assert!(validate_user_color("#ff5722").is_ok());
+        assert!(validate_user_color("#000000").is_ok());
+        assert!(validate_user_color("#FFFFFF").is_ok());
+
+        // Invalid formats
+        assert!(validate_user_color("").is_err());
+        assert!(validate_user_color("ff5722").is_err()); // Missing #
+        assert!(validate_user_color("#ff572").is_err()); // Too short
+        assert!(validate_user_color("#ff57222").is_err()); // Too long
+        assert!(validate_user_color("#gg5722").is_err()); // Invalid hex
+
+        // Too long for database (DATABASE LIMIT: 31 chars)
+        let long_color = "#".repeat(32);
+        assert!(validate_user_color(&long_color).is_err());
     }
 
     #[test]
-    fn test_password_validation() {
-        // Valid passwords
-        assert!(validate_password_strength("password123").is_ok());
-        assert!(validate_password_strength("MySecure1Pass").is_ok());
+    fn test_note_state_validation() {
+        // Valid states
+        assert!(validate_note_state("todo").is_ok());
+        assert!(validate_note_state("in_progress").is_ok());
+        assert!(validate_note_state("done").is_ok());
 
-        // Too short
-        assert!(validate_password_strength("short1").is_err());
+        // Invalid states
+        assert!(validate_note_state("").is_err());
+        assert!(validate_note_state("   ").is_err());
 
-        // No numbers
-        assert!(validate_password_strength("onlyletters").is_err());
+        // Too long for database (DATABASE LIMIT: 31 chars)
+        let long_state = "a".repeat(MAX_NOTE_STATE_LENGTH + 1);
+        assert!(validate_note_state(&long_state).is_err());
 
-        // No letters
-        assert!(validate_password_strength("12345678").is_err());
+        // State at exact limit should pass
+        let max_state = "a".repeat(MAX_NOTE_STATE_LENGTH);
+        assert!(validate_note_state(&max_state).is_ok());
+    }
+
+    #[test]
+    fn test_user_email_validation() {
+        // Valid emails
+        assert!(validate_user_email("user@example.com").is_ok());
+        assert!(validate_user_email("test@test.org").is_ok());
+
+        // Invalid emails
+        assert!(validate_user_email("").is_err());
+        assert!(validate_user_email("   ").is_err());
+        assert!(validate_user_email("notanemail").is_err());
+
+        // Too long for database (DATABASE LIMIT: 255 chars)
+        let long_email = format!("{}@example.com", "a".repeat(250));
+        assert!(validate_user_email(&long_email).is_err());
     }
 
     #[test]

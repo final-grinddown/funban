@@ -42,12 +42,7 @@ enum WsErrorType {
 
 #[derive(Debug)]
 enum SendTarget {
-    #[allow(dead_code)]
-    Broadcast,
     Client,
-    #[allow(dead_code)]
-    BroadcastMixed,
-    ClientMixed,
 }
 
 impl WsErrorType {
@@ -191,6 +186,28 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                 let uuid = extract_uuid(&action);
                 let action_debug = format!("{:?}", action); // Capture debug string before move
                 info!(action = ?action, "Received action");
+
+                // Validate action content before processing
+                if let Err(validation_error) = crate::http::validation::validators::validate_ws_action_content(&action) {
+                    let error_message = format!("Validation failed: {}", validation_error.code);
+                    let validation_response = vec![crate::state::WsOperation::Error {
+                        uuid: uuid.clone(),
+                        message: error_message,
+                    }];
+                    if let Err(e) = context.send_to_client(client_id.clone(), validation_response).await {
+                        handle_ws_error(
+                            &context,
+                            &client_id,
+                            WsErrorType::SendError {
+                                target: SendTarget::Client,
+                                error: e.to_string(),
+                            },
+                            &uuid,
+                        ).await;
+                    }
+                    continue;
+                }
+
                 let mut app_state = context.notes.lock().await;
                 match app_state.apply(&context.db, action).await {
                     Ok(OperationResult::Broadcast(ops)) => {
@@ -217,37 +234,6 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                                 &client_id,
                                 WsErrorType::SendError {
                                     target: SendTarget::Client,
-                                    error: e.to_string(),
-                                },
-                                &uuid,
-                            ).await;
-                        }
-                    }
-                    Ok(OperationResult::Mixed(bops, cops)) => {
-                        drop(app_state);
-                        info!(
-                            broadcast_ops = bops.len(),
-                            client_ops = cops.len(),
-                            "Sending mixed operations"
-                        );
-
-                        if let Err(_e) = context.broadcast(bops).await {
-                            // Operation succeeded but broadcast failed = sync loss
-                            handle_ws_error(
-                                &context,
-                                &client_id,
-                                WsErrorType::SyncLoss {
-                                    operation: action_debug.clone(),
-                                },
-                                &uuid,
-                            ).await;
-                        }
-                        if let Err(e) = context.send_to_client(client_id.clone(), cops).await {
-                            handle_ws_error(
-                                &context,
-                                &client_id,
-                                WsErrorType::SendError {
-                                    target: SendTarget::ClientMixed,
                                     error: e.to_string(),
                                 },
                                 &uuid,

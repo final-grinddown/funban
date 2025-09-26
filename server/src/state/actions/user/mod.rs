@@ -2,8 +2,7 @@ use anyhow::Result;
 use sqlx::MySqlPool;
 
 use crate::sql::user;
-use crate::state::{AppState, WsOperation, BusinessResponse, respond_empty_with_completion};
-use crate::state::transaction_helpers::DatabaseOperation;
+use crate::state::{AppState, WsOperation, BusinessResponse, BusinessTransaction, respond_empty_with_completion};
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -27,7 +26,7 @@ impl AppState {
                 email: "empty@email.com".into(),
             },
         ).await
-            .create_and_broadcast(uuid, |user| WsOperation::UserAdded { user: user.into() })
+            .execute_and_broadcast(uuid, |user| WsOperation::UserAdded { user: user.into() })
     }
 
     pub(crate) async fn handle_update_user_name(
@@ -38,7 +37,7 @@ impl AppState {
         name: String,
     ) -> Result<OperationResult> {
         user::update_name(db, id, &name).await
-            .update_and_broadcast(uuid, |_| WsOperation::UserNameUpdated { id, name })
+            .execute_and_broadcast(uuid, |_| WsOperation::UserNameUpdated { id, name })
     }
 
     pub(crate) async fn handle_update_user_color(
@@ -49,7 +48,7 @@ impl AppState {
         color: String,
     ) -> Result<OperationResult> {
         user::update_color(db, id, &color).await
-            .update_and_broadcast(uuid, |_| WsOperation::UserColorUpdated { id, color })
+            .execute_and_broadcast(uuid, |_| WsOperation::UserColorUpdated { id, color })
     }
 
     pub(crate) async fn handle_remove_user(
