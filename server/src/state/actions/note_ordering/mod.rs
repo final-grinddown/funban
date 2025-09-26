@@ -2,7 +2,7 @@ use anyhow::Result;
 use sqlx::MySqlPool;
 
 use crate::sql::note::{self, MoveTarget};
-use crate::state::{AppState, WsOperation, BusinessResponse};
+use crate::state::{AppState, WsOperation, BusinessOperation};
 use crate::ws::OperationResult;
 
 impl AppState {
@@ -24,7 +24,7 @@ impl AppState {
             })
             .collect();
 
-        changes.broadcast_with_completion(uuid)
+        changes.broadcast(uuid)
     }
 
     pub(crate) async fn handle_delete_notes(
@@ -51,7 +51,7 @@ impl AppState {
                 .map(|id| WsOperation::NoteRemoved { id: *id as u32 }),
         );
 
-        operations.broadcast_with_completion(uuid)
+        operations.broadcast(uuid)
     }
 }
 

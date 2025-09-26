@@ -3,7 +3,8 @@ use sqlx::MySqlPool;
 
 use crate::model::note::{NoteInsert, NoteTag};
 use crate::sql::note;
-use crate::state::{AppState, WsOperation, BusinessResponse, BusinessTransaction, respond_empty_with_completion};
+use crate::state::{AppState, WsOperation, BusinessOperation};
+use crate::state::transaction_helpers::DatabaseOperation;
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -33,7 +34,7 @@ impl AppState {
         };
 
         note::add(db, &note).await
-            .execute_and_broadcast(uuid, |success| WsOperation::NoteAdded {
+            .broadcast_with(uuid, |success| WsOperation::NoteAdded {
                 note: success.into(),
             })
     }
@@ -46,7 +47,7 @@ impl AppState {
         text: String,
     ) -> Result<OperationResult> {
         note::update_text(db, id, &text).await
-            .execute_and_broadcast(uuid, |_| WsOperation::NoteTextUpdated { id, text })
+            .broadcast_with(uuid, |_| WsOperation::NoteTextUpdated { id, text })
     }
 
     pub(crate) async fn handle_update_note_tag(
@@ -68,7 +69,7 @@ impl AppState {
             }
         }
 
-        WsOperation::NoteTagChanged { id, tag }.broadcast_with_completion(uuid)
+        WsOperation::NoteTagChanged { id, tag }.broadcast(uuid)
     }
 
     pub(crate) async fn handle_remove_note(
@@ -77,23 +78,17 @@ impl AppState {
         uuid: Option<String>,
         id: u32,
     ) -> Result<OperationResult> {
-        note::remove(db, id).await
-            .execute_with_fallback(
-                uuid,
-                |changes| {
-                    let mut ops: Vec<WsOperation> = changes
-                        .into_iter()
-                        .map(|change| WsOperation::NoteOrderChanged {
-                            id: change.id as u32,
-                            state: change.state,
-                            predecessor_id: change.predecessor_id.map(|id| id as u32),
-                        })
-                        .collect();
-                    ops.push(WsOperation::NoteRemoved { id });
-                    ops
-                },
-                || respond_empty_with_completion(None).unwrap()
-            )
+        let changes = note::remove(db, id).await?;
+        let mut ops: Vec<WsOperation> = changes
+            .into_iter()
+            .map(|change| WsOperation::NoteOrderChanged {
+                id: change.id as u32,
+                state: change.state,
+                predecessor_id: change.predecessor_id.map(|id| id as u32),
+            })
+            .collect();
+        ops.push(WsOperation::NoteRemoved { id });
+        ops.broadcast(uuid)
     }
 
     pub(crate) async fn handle_note_update(
@@ -128,7 +123,7 @@ impl AppState {
             }
         }
 
-        operations.broadcast_with_completion(uuid)
+        operations.broadcast(uuid)
     }
 
     pub(crate) async fn handle_split_note(
@@ -157,7 +152,7 @@ impl AppState {
             },
         ];
 
-        operations.broadcast_with_completion(uuid)
+        operations.broadcast(uuid)
     }
 }
 

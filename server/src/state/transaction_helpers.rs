@@ -1,79 +1,95 @@
 use anyhow::Result;
-use super::{WsOperation, BusinessResponse};
 use crate::ws::OperationResult;
+use super::WsOperation;
 use sqlx::Error as SqlxError;
 
-/// Unified trait for business transactions with completion tracking
+/// Unified trait for all business operations with completion tracking
 ///
-/// This trait handles database operations and automatically manages:
+/// This trait provides a single, consistent interface for:
+/// - Database operations (Result<T, SqlxError>)
+/// - Direct operations (WsOperation)
+/// - Multiple operations (Vec<WsOperation>)
+///
+/// All operations automatically handle:
 /// - Success/failure responses
 /// - Client completion notifications (ActionFinished)
-/// - Broadcast vs client-only operations
-pub trait BusinessTransaction<T> {
-    /// Execute operation and broadcast result with completion tracking
-    fn execute_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation;
+/// - Error conversion to client responses
+pub trait BusinessOperation {
+    /// Broadcast to all clients with completion tracking
+    fn broadcast(self, uuid: Option<String>) -> Result<OperationResult>;
 
-    /// Execute operation and send to client only with completion tracking
-    #[allow(dead_code)]
-    fn execute_and_respond<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation;
-
-    /// Execute operation that produces multiple operations and broadcasts them
-    #[allow(dead_code)]
-    fn execute_and_broadcast_many<F>(self, uuid: Option<String>, ops_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> Vec<WsOperation>;
-
-    /// Execute with fallback behavior on error (useful for non-critical operations)
-    fn execute_with_fallback<F, FB>(self, uuid: Option<String>, op_fn: F, fallback: FB) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> Vec<WsOperation>,
-        FB: FnOnce() -> OperationResult;
+    /// Send to requesting client only with completion tracking
+    fn respond(self, uuid: Option<String>) -> Result<OperationResult>;
 }
 
-impl<T> BusinessTransaction<T> for Result<T, SqlxError> {
-    fn execute_and_broadcast<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+/// Extension trait for database results that need transformation
+pub trait DatabaseOperation<T> {
+    /// Transform database result and broadcast with completion tracking
+    fn broadcast_with<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
+    where
+        F: FnOnce(T) -> WsOperation;
+
+}
+
+/// Implementation for database results with transformation
+impl<T> DatabaseOperation<T> for Result<T, SqlxError> {
+    fn broadcast_with<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
     where
         F: FnOnce(T) -> WsOperation,
     {
         match self {
-            Ok(result) => op_fn(result).broadcast_with_completion(uuid),
+            Ok(data) => op_fn(data).broadcast(uuid),
             Err(e) => super::respond_error(uuid, e.to_string()),
         }
     }
 
-    fn execute_and_respond<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> WsOperation,
-    {
-        match self {
-            Ok(result) => op_fn(result).respond_with_completion(uuid),
-            Err(e) => super::respond_error(uuid, e.to_string()),
+}
+
+/// Implementation for single operations
+impl BusinessOperation for WsOperation {
+    fn broadcast(self, uuid: Option<String>) -> Result<OperationResult> {
+        let mut operations = vec![self];
+        if let Some(uuid) = uuid {
+            operations.push(WsOperation::ActionFinished { uuid });
         }
+        Ok(OperationResult::Broadcast(operations))
     }
 
-    fn execute_and_broadcast_many<F>(self, uuid: Option<String>, ops_fn: F) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> Vec<WsOperation>,
-    {
-        match self {
-            Ok(result) => ops_fn(result).broadcast_with_completion(uuid),
-            Err(e) => super::respond_error(uuid, e.to_string()),
+    fn respond(self, uuid: Option<String>) -> Result<OperationResult> {
+        let mut operations = vec![self];
+        if let Some(uuid) = uuid {
+            operations.push(WsOperation::ActionFinished { uuid });
         }
-    }
-
-    fn execute_with_fallback<F, FB>(self, uuid: Option<String>, op_fn: F, fallback: FB) -> Result<OperationResult>
-    where
-        F: FnOnce(T) -> Vec<WsOperation>,
-        FB: FnOnce() -> OperationResult,
-    {
-        match self {
-            Ok(result) => op_fn(result).broadcast_with_completion(uuid),
-            Err(_) => Ok(fallback()),
-        }
+        Ok(OperationResult::ClientOnly(operations))
     }
 }
 
+/// Implementation for multiple operations
+impl BusinessOperation for Vec<WsOperation> {
+    fn broadcast(self, uuid: Option<String>) -> Result<OperationResult> {
+        let mut operations = self;
+        if let Some(uuid) = uuid {
+            operations.push(WsOperation::ActionFinished { uuid });
+        }
+        Ok(OperationResult::Broadcast(operations))
+    }
+
+    fn respond(self, uuid: Option<String>) -> Result<OperationResult> {
+        let mut operations = self;
+        if let Some(uuid) = uuid {
+            operations.push(WsOperation::ActionFinished { uuid });
+        }
+        Ok(OperationResult::ClientOnly(operations))
+    }
+}
+
+/// Convenience functions for common patterns
+pub mod helpers {
+    use super::*;
+
+    /// Create an empty response with completion (useful for operations that don't return data)
+    pub fn empty_response(uuid: Option<String>) -> Result<OperationResult> {
+        vec![].respond(uuid)
+    }
+
+}

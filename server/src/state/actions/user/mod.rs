@@ -2,7 +2,8 @@ use anyhow::Result;
 use sqlx::MySqlPool;
 
 use crate::sql::user;
-use crate::state::{AppState, WsOperation, BusinessResponse, BusinessTransaction, respond_empty_with_completion};
+use crate::state::{AppState, WsOperation, BusinessOperation};
+use crate::state::transaction_helpers::DatabaseOperation;
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -26,7 +27,7 @@ impl AppState {
                 email: "empty@email.com".into(),
             },
         ).await
-            .execute_and_broadcast(uuid, |user| WsOperation::UserAdded { user: user.into() })
+            .broadcast_with(uuid, |user| WsOperation::UserAdded { user: user.into() })
     }
 
     pub(crate) async fn handle_update_user_name(
@@ -37,7 +38,7 @@ impl AppState {
         name: String,
     ) -> Result<OperationResult> {
         user::update_name(db, id, &name).await
-            .execute_and_broadcast(uuid, |_| WsOperation::UserNameUpdated { id, name })
+            .broadcast_with(uuid, |_| WsOperation::UserNameUpdated { id, name })
     }
 
     pub(crate) async fn handle_update_user_color(
@@ -48,7 +49,7 @@ impl AppState {
         color: String,
     ) -> Result<OperationResult> {
         user::update_color(db, id, &color).await
-            .execute_and_broadcast(uuid, |_| WsOperation::UserColorUpdated { id, color })
+            .broadcast_with(uuid, |_| WsOperation::UserColorUpdated { id, color })
     }
 
     pub(crate) async fn handle_remove_user(
@@ -60,9 +61,10 @@ impl AppState {
         let deleted = user::remove(db, id).await?;
 
         if deleted {
-            WsOperation::UserRemoved { id }.broadcast_with_completion(uuid)
+            WsOperation::UserRemoved { id }.broadcast(uuid)
         } else {
-            respond_empty_with_completion(uuid)
+            use crate::state::transaction_helpers::helpers;
+            helpers::empty_response(uuid)
         }
     }
 
@@ -88,7 +90,7 @@ impl AppState {
             }
         }
 
-        operations.broadcast_with_completion(uuid)
+        operations.broadcast(uuid)
     }
 }
 
