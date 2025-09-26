@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO notes (text, owner, state, predecessor_id)\nVALUES (\n    COALESCE(?, \"\"),\n    ?,\n    ?,\n    (SELECT id FROM (\n        SELECT id, state FROM notes\n    ) AS n1\n    WHERE state = ?\n    AND NOT EXISTS (\n        SELECT 1 FROM (\n            SELECT predecessor_id, state FROM notes\n        ) AS n2\n        WHERE n2.predecessor_id = n1.id\n        AND n2.state = n1.state\n    ))\n)\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "a2c4d3d083bd86608ead216efe4efa42564961ed5e7eaa4138e522226d1d1e53"
+}
