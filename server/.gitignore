@@ -3,3 +3,6 @@
 .env.forpsi
 .env.prod
 .vercel
+
+# generated contracts
+../contracts/generated/

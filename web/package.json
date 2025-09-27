@@ -3,6 +3,11 @@
 	"version": "1.0.1",
 	"private": true,
 	"scripts": {
+		"contracts:sync": "test -d ../contracts/generated || (echo '❌ Contracts not found! Run: cd ../server && cargo build' && exit 1) && mkdir -p ./src/contracts && cp ../contracts/generated/* ./src/contracts/ && echo '✅ Contracts synced successfully'",
+		"contracts:test": "jest src/__tests__/contracts/",
+		"predev": "yarn contracts:sync",
+		"prebuild": "yarn contracts:sync",
+		"pretest": "yarn contracts:sync",
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
@@ -29,6 +34,7 @@
 		"react-dom": "19.1.1",
 		"react-hook-form": "^7.52.2",
 		"react-hotkeys-hook": "^5.0.1",
+		"zod": "^4.1.11",
 		"zustand": "^4.5.5"
 	},
 	"devDependencies": {
