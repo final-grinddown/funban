@@ -14,7 +14,7 @@ pub mod note_states {
 
     /// Helper function to convert string to NoteState
     pub fn from_str(s: &str) -> NoteState {
-        s.to_string().into()
+        NoteState::from(s.to_owned())
     }
 }
 
@@ -30,7 +30,7 @@ pub mod note_tags {
 
     /// Helper function to convert string to NoteTag
     pub fn from_str(s: &str) -> NoteTag {
-        s.to_string().into()
+        NoteTag::from(s.to_owned())
     }
 }
 

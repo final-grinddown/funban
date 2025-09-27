@@ -46,7 +46,7 @@ impl From<String> for NoteState {
 
 impl From<NoteState> for String {
     fn from(state: NoteState) -> Self {
-        state.as_ref().to_string()
+        state.as_ref().to_owned()
     }
 }
 
@@ -87,7 +87,7 @@ impl From<String> for NoteTag {
 
 impl From<NoteTag> for String {
     fn from(tag: NoteTag) -> Self {
-        tag.as_ref().to_string()
+        tag.as_ref().to_owned()
     }
 }
 

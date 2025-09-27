@@ -40,6 +40,10 @@ enum WsErrorType {
     SyncLoss { operation: String },
 }
 
+// Error message constants to avoid repeated allocations
+const PARSE_ERROR_MSG: &str = "Invalid message format. Please check your request structure.";
+const SEND_ERROR_MSG: &str = "Failed to deliver message. Please try again.";
+
 #[derive(Debug)]
 enum SendTarget {
     Client,
@@ -58,18 +62,14 @@ impl WsErrorType {
 
     fn client_message(&self) -> String {
         match self {
-            WsErrorType::ParseError { .. } => {
-                "Invalid message format. Please check your request structure.".to_string()
-            }
+            WsErrorType::ParseError { .. } => PARSE_ERROR_MSG.to_owned(),
             WsErrorType::ConnectionError { reason } => {
                 format!("Connection failed: {}", reason)
             }
             WsErrorType::ApplicationError { error, .. } => {
                 format!("Operation failed: {}", error)
             }
-            WsErrorType::SendError { .. } => {
-                "Failed to deliver message. Please try again.".to_string()
-            }
+            WsErrorType::SendError { .. } => SEND_ERROR_MSG.to_owned(),
             WsErrorType::SyncLoss { operation } => {
                 format!("Sync issue detected after {}. Please refresh to see latest changes.", operation)
             }
