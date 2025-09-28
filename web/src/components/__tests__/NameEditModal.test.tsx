@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NameEditModal } from '../NameEditModal'
 
@@ -18,24 +18,33 @@ describe('NameEditModal', () => {
 
   // Basic Rendering (4 tests)
   describe('Basic rendering', () => {
-    it('renders modal when open', () => {
+    it('renders modal when open', async () => {
       render(<NameEditModal {...defaultProps} />)
-
+      
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+      
       expect(screen.getByText('Edit Name')).toBeInTheDocument()
       expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
     })
 
-    it('does not render modal when closed', () => {
+    it('does not render modal when closed', async () => {
       render(<NameEditModal {...defaultProps} isOpen={false} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       expect(screen.queryByText('Edit Name')).not.toBeInTheDocument()
     })
 
-    it('pre-populates the name field with initial value', () => {
+    it('pre-populates the name field with initial value', async () => {
       render(<NameEditModal {...defaultProps} />)
-
+      
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+      
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       expect(nameField).toHaveValue('John Doe')
     })
@@ -43,8 +52,14 @@ describe('NameEditModal', () => {
     it('resets form when modal reopens with different initial name', async () => {
       const { rerender } = render(<NameEditModal {...defaultProps} isOpen={false} />)
       
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+      
       // Reopen with different initial name
       rerender(<NameEditModal {...defaultProps} initialName="New Name" />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       await waitFor(() => {
         const nameField = screen.getByRole('textbox', { name: 'Name' })
@@ -59,6 +74,9 @@ describe('NameEditModal', () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
 
@@ -72,6 +90,9 @@ describe('NameEditModal', () => {
       const onSave = jest.fn()
       render(<NameEditModal {...defaultProps} onSave={onSave} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
 
@@ -80,11 +101,11 @@ describe('NameEditModal', () => {
         expect(screen.getByText('Name is required.')).toBeInTheDocument()
       })
 
-      // Try to save - form should not submit
+      // Save button should be disabled due to validation error
       const saveButton = screen.getByRole('button', { name: 'Save' })
-      await user.click(saveButton)
+      expect(saveButton).toBeDisabled()
 
-      // onSave should not be called because validation prevents it
+      // onSave should not be called because button is disabled
       expect(onSave).not.toHaveBeenCalled()
     })
   })
@@ -94,6 +115,9 @@ describe('NameEditModal', () => {
     it('shows error when name exceeds 20 characters', async () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
@@ -107,6 +131,9 @@ describe('NameEditModal', () => {
     it('allows exactly 20 characters', async () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
@@ -126,6 +153,9 @@ describe('NameEditModal', () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
       await user.type(nameField, ' Invalid Name')
@@ -138,6 +168,9 @@ describe('NameEditModal', () => {
     it('allows names that do not start with space', async () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
@@ -157,6 +190,9 @@ describe('NameEditModal', () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
       await user.type(nameField, 'Jane Smith') // Exists in existingNames
@@ -170,6 +206,9 @@ describe('NameEditModal', () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
       await user.type(nameField, 'Unique Name')
@@ -181,8 +220,11 @@ describe('NameEditModal', () => {
       })
     })
 
-    it('allows keeping the same initial name', () => {
+    it('allows keeping the same initial name', async () => {
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       // Initial name 'John Doe' exists in existingNames but should be allowed
       const nameField = screen.getByRole('textbox', { name: 'Name' })
@@ -202,6 +244,9 @@ describe('NameEditModal', () => {
 
       render(<NameEditModal {...defaultProps} onClose={onClose} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const closeButton = screen.getByTestId('CloseIcon').closest('button')
       expect(closeButton).toBeInTheDocument()
 
@@ -216,6 +261,9 @@ describe('NameEditModal', () => {
 
       render(<NameEditModal {...defaultProps} onClose={onClose} />)
 
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
+
       const cancelButton = screen.getByRole('button', { name: 'Cancel' })
       await user.click(cancelButton)
 
@@ -227,6 +275,9 @@ describe('NameEditModal', () => {
       const onSave = jest.fn()
 
       render(<NameEditModal {...defaultProps} onSave={onSave} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
@@ -246,8 +297,11 @@ describe('NameEditModal', () => {
 
   // Form State Management (3 tests)
   describe('Form state management', () => {
-    it('disables save button when no changes are made', () => {
+    it('disables save button when no changes are made', async () => {
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const saveButton = screen.getByRole('button', { name: 'Save' })
       expect(saveButton).toBeDisabled() // Should be disabled due to !isDirty
@@ -256,6 +310,9 @@ describe('NameEditModal', () => {
     it('enables save button when valid changes are made', async () => {
       const user = userEvent.setup()
       render(<NameEditModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       await user.clear(nameField)
@@ -271,6 +328,9 @@ describe('NameEditModal', () => {
       const user = userEvent.setup()
       const onSave = jest.fn()
       render(<NameEditModal {...defaultProps} onSave={onSave} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       const nameField = screen.getByRole('textbox', { name: 'Name' })
       const saveButton = screen.getByRole('button', { name: 'Save' })
@@ -299,8 +359,11 @@ describe('NameEditModal', () => {
 
   // Loading State (2 tests)
   describe('Loading state', () => {
-    it('shows loading spinner when submitting', () => {
+    it('shows loading spinner when submitting', async () => {
       render(<NameEditModal {...defaultProps} isSubmitting={true} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       expect(screen.getByRole('progressbar')).toBeInTheDocument()
       
@@ -310,8 +373,11 @@ describe('NameEditModal', () => {
       expect(disabledButton).toBeInTheDocument()
     })
 
-    it('shows save text when not submitting', () => {
+    it('shows save text when not submitting', async () => {
       render(<NameEditModal {...defaultProps} isSubmitting={false} />)
+
+      // Wait for React Hook Form initialization  
+      await act(async () => {})
 
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()

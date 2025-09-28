@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EditNoteModal } from '../EditNoteModal'
 
@@ -47,8 +47,11 @@ describe('EditNoteModal', () => {
 
   // Basic Rendering & Modal Behavior (4 tests)
   describe('Basic rendering and modal behavior', () => {
-    it('renders modal when open', () => {
+    it('renders modal when open', async () => {
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       expect(screen.getByText('Edit Note')).toBeInTheDocument()
       expect(screen.getByLabelText('State')).toBeInTheDocument()
@@ -56,8 +59,11 @@ describe('EditNoteModal', () => {
       expect(screen.getByDisplayValue('Original note text')).toBeInTheDocument()
     })
 
-    it('does not render modal when closed', () => {
+    it('does not render modal when closed', async () => {
       render(<EditNoteModal {...defaultProps} isOpen={false} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       expect(screen.queryByText('Edit Note')).not.toBeInTheDocument()
     })
@@ -67,6 +73,9 @@ describe('EditNoteModal', () => {
       const onClose = jest.fn()
       
       render(<EditNoteModal {...defaultProps} onClose={onClose} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const closeButton = screen.getByTestId('CloseIcon').closest('button')
       expect(closeButton).toBeInTheDocument()
@@ -81,6 +90,9 @@ describe('EditNoteModal', () => {
       const onClose = jest.fn()
       
       render(<EditNoteModal {...defaultProps} onClose={onClose} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
       await user.click(cancelButton)
@@ -91,8 +103,11 @@ describe('EditNoteModal', () => {
 
   // Form Pre-population & Reset (3 tests)
   describe('Form pre-population and reset', () => {
-    it('pre-populates form with current note values', () => {
+    it('pre-populates form with current note values', async () => {
       render(<EditNoteModal {...defaultProps} noteState="in_progress" noteText="Test content" />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       expect(screen.getByRole('combobox', { name: 'State' })).toHaveTextContent('In Progress')
       expect(screen.getByDisplayValue('Test content')).toBeInTheDocument()
@@ -100,9 +115,15 @@ describe('EditNoteModal', () => {
 
     it('resets form when modal reopens with new values', async () => {
       const { rerender } = render(<EditNoteModal {...defaultProps} isOpen={false} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Reopen with different values
       rerender(<EditNoteModal {...defaultProps} noteState="done" noteText="New content" />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       await waitFor(() => {
         expect(screen.getByRole('combobox', { name: 'State' })).toHaveTextContent('Done')
@@ -110,8 +131,11 @@ describe('EditNoteModal', () => {
       })
     })
 
-    it('shows text length counter when text is present', () => {
+    it('shows text length counter when text is present', async () => {
       render(<EditNoteModal {...defaultProps} noteText="Test content" />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       expect(screen.getByTestId('text-length-counter')).toBeInTheDocument()
       expect(screen.getByText('12/1000')).toBeInTheDocument()
@@ -123,6 +147,9 @@ describe('EditNoteModal', () => {
     it('allows editing note text', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.clear(textField)
@@ -134,6 +161,9 @@ describe('EditNoteModal', () => {
     it('allows changing note state', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const stateSelect = screen.getByRole('combobox', { name: 'State' })
       await user.click(stateSelect)
@@ -154,6 +184,9 @@ describe('EditNoteModal', () => {
     it('updates text length counter as user types', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} noteText="" />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Hello')
@@ -165,6 +198,9 @@ describe('EditNoteModal', () => {
     it('disables save button when text exceeds max length', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const longText = 'a'.repeat(1001)
       const textField = screen.getByLabelText('Note Text')
@@ -180,8 +216,11 @@ describe('EditNoteModal', () => {
 
   // Form Validation & Save State (3 tests)
   describe('Form validation and save state', () => {
-    it('disables save button when no changes are made', () => {
+    it('disables save button when no changes are made', async () => {
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const saveButton = screen.getByRole('button', { name: 'Save' })
       expect(saveButton).toBeDisabled()
@@ -190,6 +229,9 @@ describe('EditNoteModal', () => {
     it('enables save button when text is changed', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, ' additional text')
@@ -203,6 +245,9 @@ describe('EditNoteModal', () => {
     it('enables save button when state is changed', async () => {
       const user = userEvent.setup()
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const stateSelect = screen.getByRole('combobox', { name: 'State' })
       await user.click(stateSelect)
@@ -229,6 +274,9 @@ describe('EditNoteModal', () => {
       const { createUpdateNoteText } = require('@/app/api/websocket')
       
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.clear(textField)
@@ -249,6 +297,9 @@ describe('EditNoteModal', () => {
       const { createUpdateNoteReorderLast } = require('@/app/api/websocket')
       
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const stateSelect = screen.getByRole('combobox', { name: 'State' })
       await user.click(stateSelect)
@@ -275,6 +326,9 @@ describe('EditNoteModal', () => {
       const { createUpdateNote } = require('@/app/api/websocket')
       
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Change both text and state
       const textField = screen.getByLabelText('Note Text')
@@ -305,6 +359,9 @@ describe('EditNoteModal', () => {
       const user = userEvent.setup()
       
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, ' updated')
@@ -333,6 +390,9 @@ describe('EditNoteModal', () => {
           clearTextFocus={clearTextFocus}
         />
       )
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       await waitFor(() => {
         const textField = screen.getByLabelText('Note Text')
@@ -346,6 +406,9 @@ describe('EditNoteModal', () => {
       const { createUpdateNoteText } = require('@/app/api/websocket')
       
       render(<EditNoteModal {...defaultProps} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.clear(textField)
@@ -362,6 +425,9 @@ describe('EditNoteModal', () => {
       const onClose = jest.fn()
       
       render(<EditNoteModal {...defaultProps} onClose={onClose} />)
+
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, ' updated')
