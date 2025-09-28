@@ -140,6 +140,7 @@ impl WsContext {
         Ok(())
     }
 
+    #[allow(dead_code)]
     /// Remove a WebSocket session
     pub async fn remove_session(&self, client_id: &str) {
         let mut txs = self.txs.lock().await;
@@ -148,12 +149,14 @@ impl WsContext {
         }
     }
 
+    #[allow(dead_code)]
     /// Get count of active WebSocket connections
     pub async fn connection_count(&self) -> usize {
         let txs = self.txs.lock().await;
         txs.len()
     }
 
+    #[allow(dead_code)]
     /// Gracefully close all WebSocket connections
     pub async fn shutdown_all_connections(&self) {
         let mut txs = self.txs.lock().await;
