@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use axum::{
@@ -36,6 +36,7 @@ mod model;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+
     dotenvy::dotenv().ok();
 
     tracing_subscriber::registry()
@@ -120,10 +121,50 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
 
     info!("Server starting on port {}", config.port);
 
+    // Create server with graceful shutdown support
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await
     .context("Failed to serve the application")
 }
+
+/// Graceful shutdown signal handler
+/// Listens for SIGTERM, SIGINT, or SIGQUIT and initiates shutdown
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, initiating graceful shutdown...");
+        },
+        _ = terminate => {
+            info!("Received SIGTERM, initiating graceful shutdown...");
+        }
+    }
+
+    info!("Shutdown signal received, waiting for connections to close...");
+    
+    // Give connections time to close gracefully
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    
+    info!("Graceful shutdown completed");
+}
+

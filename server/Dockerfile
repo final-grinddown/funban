@@ -16,4 +16,5 @@ RUN mv ./target/release/funban-server ./app && chmod +x ./app
 
 FROM gcr.io/distroless/cc-debian12 AS runtime
 COPY --from=builder /app/app /app
+EXPOSE 3001
 CMD ["/app"]

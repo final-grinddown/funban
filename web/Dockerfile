@@ -30,6 +30,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+
 # Copy necessary files from builder
 COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/.next/standalone/ ./

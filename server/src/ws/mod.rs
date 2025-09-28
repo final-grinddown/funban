@@ -3,7 +3,7 @@ use serde::Serialize;
 use sqlx::MySqlPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use tracing::warn;
+use tracing::{info, warn};
 
 use axum::{
     extract::ws::{Message, Utf8Bytes, WebSocket},
@@ -138,6 +138,39 @@ impl WsContext {
         }
 
         Ok(())
+    }
+
+    /// Remove a WebSocket session
+    pub async fn remove_session(&self, client_id: &str) {
+        let mut txs = self.txs.lock().await;
+        if txs.remove(client_id).is_some() {
+            info!("Removed WebSocket session: {}", client_id);
+        }
+    }
+
+    /// Get count of active WebSocket connections
+    pub async fn connection_count(&self) -> usize {
+        let txs = self.txs.lock().await;
+        txs.len()
+    }
+
+    /// Gracefully close all WebSocket connections
+    pub async fn shutdown_all_connections(&self) {
+        let mut txs = self.txs.lock().await;
+        let connection_count = txs.len();
+        
+        if connection_count > 0 {
+            info!("Closing {} WebSocket connection(s)...", connection_count);
+            
+            for (client_id, tx) in txs.iter_mut() {
+                if let Err(err) = tx.send(Message::Close(None)).await {
+                    warn!("Failed to close connection for client {}: {}", client_id, err);
+                }
+            }
+        }
+        
+        txs.clear();
+        info!("All WebSocket connections closed");
     }
 }
 
