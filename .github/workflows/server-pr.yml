@@ -143,7 +143,12 @@ jobs:
 
       - name: Install sqlx-cli
         run: |
-          cargo install sqlx-cli --no-default-features --features mysql
+          if ! command -v sqlx &> /dev/null; then
+            echo "Installing sqlx-cli..."
+            cargo install sqlx-cli --no-default-features --features mysql
+          else
+            echo "sqlx-cli already installed"
+          fi
 
       - name: Debug cargo and sqlx version
         run: |
