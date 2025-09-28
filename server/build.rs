@@ -14,7 +14,7 @@ fn generate_ws_contracts() {
     // For now, we'll generate example JSON manually based on the types
     // Later we can make this more sophisticated
 
-    let contracts_dir = "../contracts/generated";
+    let contracts_dir = "../contracts";
     let absolute_path = std::path::Path::new(&contracts_dir).canonicalize()
         .unwrap_or_else(|_| std::path::PathBuf::from(&contracts_dir));
     println!("cargo:warning=Generating contracts to: {} (abs: {:?})", contracts_dir, absolute_path);
