@@ -9,6 +9,9 @@
  * 2. The backend broke compatibility and needs to be fixed
  */
 
+// Import generated contracts
+import wsActionsContract from '../../contracts/ws_actions.json'
+import wsOperationsContract from '../../contracts/ws_operations.json'
 import {
   AddNoteSchema,
   UpdateNoteTextSchema,
@@ -16,21 +19,13 @@ import {
   ReorderSchema,
   RemoveNoteSchema,
   AddUserSchema,
-  UpdateUserNameSchema,
-  UpdateUserColorSchema,
-  RemoveUserSchema,
   DeleteNotesSchema,
   NoteUpdateMessageSchema,
-  UserUpdateMessageSchema,
   NotifySnapshotSchema,
   SplitNoteSchema,
   WsActionSchema,
   WsOperationSchema,
 } from '../../schemas/websocket'
-
-// Import generated contracts
-import wsActionsContract from '../../contracts/ws_actions.json'
-import wsOperationsContract from '../../contracts/ws_operations.json'
 
 describe('WebSocket Action Schema Validation', () => {
   describe('AddNote variants', () => {

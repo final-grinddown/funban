@@ -23,7 +23,6 @@ import {
   createDeleteNoteBulk,
   createSplitNote,
 } from '@/app/api/websocket'
-
 // Import generated contracts
 import wsActionsContract from '../../contracts/ws_actions.json'
 

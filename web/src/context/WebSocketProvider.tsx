@@ -20,10 +20,10 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { useSession } from "next-auth/react"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
+import { WsOperation, WebSocketMessageSchema, WebSocketMessage, PatchMessage } from "@/schemas/websocket"
 import { IExtendedSession, INote, IUser } from "@/utils/interfaces"
-import { TNoteState } from "@/utils/types"
 import { useActionStateStore } from "@/utils/store"
-import { WsOperation, WsOperationSchema, WebSocketMessageSchema, WebSocketMessage, PatchMessage } from "@/schemas/websocket"
+import { TNoteState } from "@/utils/types"
 
 interface WebSocketContextType {
   users: IUser[]
