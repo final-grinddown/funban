@@ -158,17 +158,20 @@ impl WsContext {
     pub async fn shutdown_all_connections(&self) {
         let mut txs = self.txs.lock().await;
         let connection_count = txs.len();
-        
+
         if connection_count > 0 {
             info!("Closing {} WebSocket connection(s)...", connection_count);
-            
+
             for (client_id, tx) in txs.iter_mut() {
                 if let Err(err) = tx.send(Message::Close(None)).await {
-                    warn!("Failed to close connection for client {}: {}", client_id, err);
+                    warn!(
+                        "Failed to close connection for client {}: {}",
+                        client_id, err
+                    );
                 }
             }
         }
-        
+
         txs.clear();
         info!("All WebSocket connections closed");
     }

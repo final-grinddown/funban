@@ -1,7 +1,6 @@
-use anyhow::Result;
-use crate::ws::OperationResult;
 use super::WsOperation;
-
+use crate::ws::OperationResult;
+use anyhow::Result;
 
 /// Helper for creating error responses (no completion needed)
 pub fn respond_error(uuid: Option<String>, message: String) -> Result<OperationResult> {

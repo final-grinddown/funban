@@ -90,7 +90,8 @@ pub async fn add(db: &MySqlPool, user: &UserDto) -> sqlx::Result<UserDto> {
     .await?;
 
     // Read back the inserted user within the same transaction
-    let inserted_user = read_by_email(&mut *transaction, &user.email).await?
+    let inserted_user = read_by_email(&mut *transaction, &user.email)
+        .await?
         .ok_or_else(|| sqlx::Error::RowNotFound)?;
 
     transaction.commit().await?;

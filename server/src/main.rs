@@ -36,7 +36,6 @@ mod model;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-
     dotenvy::dotenv().ok();
 
     tracing_subscriber::registry()
@@ -161,10 +160,9 @@ async fn shutdown_signal() {
     }
 
     info!("Shutdown signal received, waiting for connections to close...");
-    
+
     // Give connections time to close gracefully
     tokio::time::sleep(Duration::from_secs(5)).await;
-    
+
     info!("Graceful shutdown completed");
 }
-

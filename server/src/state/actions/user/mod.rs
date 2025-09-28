@@ -2,8 +2,8 @@ use anyhow::Result;
 use sqlx::MySqlPool;
 
 use crate::sql::user;
-use crate::state::{AppState, WsOperation, BusinessOperation};
 use crate::state::transaction_helpers::DatabaseOperation;
+use crate::state::{AppState, BusinessOperation, WsOperation};
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -26,8 +26,9 @@ impl AppState {
                 color,
                 email: "empty@email.com".into(),
             },
-        ).await
-            .broadcast_with(uuid, |user| WsOperation::UserAdded { user: user.into() })
+        )
+        .await
+        .broadcast_with(uuid, |user| WsOperation::UserAdded { user: user.into() })
     }
 
     pub(crate) async fn handle_update_user_name(
@@ -37,7 +38,8 @@ impl AppState {
         id: u32,
         name: String,
     ) -> Result<OperationResult> {
-        user::update_name(db, id, &name).await
+        user::update_name(db, id, &name)
+            .await
             .broadcast_with(uuid, |_| WsOperation::UserNameUpdated { id, name })
     }
 
@@ -48,7 +50,8 @@ impl AppState {
         id: u32,
         color: String,
     ) -> Result<OperationResult> {
-        user::update_color(db, id, &color).await
+        user::update_color(db, id, &color)
+            .await
             .broadcast_with(uuid, |_| WsOperation::UserColorUpdated { id, color })
     }
 

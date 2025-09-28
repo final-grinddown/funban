@@ -1,5 +1,5 @@
-use crate::state::WsAction;
 use super::models::UserUpdate;
+use crate::state::WsAction;
 
 #[test]
 fn action_add_user() {

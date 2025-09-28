@@ -2,7 +2,7 @@ use anyhow::Result;
 use sqlx::MySqlPool;
 
 use crate::sql::note::{self, MoveTarget};
-use crate::state::{AppState, WsOperation, BusinessOperation};
+use crate::state::{AppState, BusinessOperation, WsOperation};
 use crate::ws::OperationResult;
 
 impl AppState {

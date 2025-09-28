@@ -15,9 +15,13 @@ fn generate_ws_contracts() {
     // Later we can make this more sophisticated
 
     let contracts_dir = "../contracts";
-    let absolute_path = std::path::Path::new(&contracts_dir).canonicalize()
+    let absolute_path = std::path::Path::new(&contracts_dir)
+        .canonicalize()
         .unwrap_or_else(|_| std::path::PathBuf::from(&contracts_dir));
-    println!("cargo:warning=Generating contracts to: {} (abs: {:?})", contracts_dir, absolute_path);
+    println!(
+        "cargo:warning=Generating contracts to: {} (abs: {:?})",
+        contracts_dir, absolute_path
+    );
 
     // Create the directory if it doesn't exist
     if let Err(e) = fs::create_dir_all(contracts_dir) {
@@ -27,13 +31,14 @@ fn generate_ws_contracts() {
 
     // Generate WsAction examples
     let ws_actions = generate_ws_action_examples();
-    let ws_actions_json = serde_json::to_string_pretty(&ws_actions)
-        .expect("Failed to serialize WsAction examples");
+    let ws_actions_json =
+        serde_json::to_string_pretty(&ws_actions).expect("Failed to serialize WsAction examples");
 
     fs::write(
         format!("{}/ws_actions.json", contracts_dir),
-        ws_actions_json
-    ).expect("Failed to write ws_actions.json");
+        ws_actions_json,
+    )
+    .expect("Failed to write ws_actions.json");
 
     // Generate WsOperation examples
     let ws_operations = generate_ws_operation_examples();
@@ -42,8 +47,9 @@ fn generate_ws_contracts() {
 
     fs::write(
         format!("{}/ws_operations.json", contracts_dir),
-        ws_operations_json
-    ).expect("Failed to write ws_operations.json");
+        ws_operations_json,
+    )
+    .expect("Failed to write ws_operations.json");
 
     println!("Generated WebSocket contracts in {}", contracts_dir);
 }

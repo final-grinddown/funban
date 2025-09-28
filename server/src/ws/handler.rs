@@ -23,21 +23,25 @@ use super::{OperationResult, WsContext};
 enum WsErrorType {
     ParseError {
         #[allow(dead_code)]
-        raw_message: String
+        raw_message: String,
     },
-    ConnectionError { reason: String },
+    ConnectionError {
+        reason: String,
+    },
     ApplicationError {
         #[allow(dead_code)]
         action: String,
-        error: String
+        error: String,
     },
     SendError {
         #[allow(dead_code)]
         target: SendTarget,
         #[allow(dead_code)]
-        error: String
+        error: String,
     },
-    SyncLoss { operation: String },
+    SyncLoss {
+        operation: String,
+    },
 }
 
 // Error message constants to avoid repeated allocations
@@ -71,7 +75,10 @@ impl WsErrorType {
             }
             WsErrorType::SendError { .. } => SEND_ERROR_MSG.to_owned(),
             WsErrorType::SyncLoss { operation } => {
-                format!("Sync issue detected after {}. Please refresh to see latest changes.", operation)
+                format!(
+                    "Sync issue detected after {}. Please refresh to see latest changes.",
+                    operation
+                )
             }
         }
     }
@@ -142,7 +149,10 @@ async fn handle_ws_error(
         message: error_type.client_message(),
     }];
 
-    if let Err(e) = context.send_to_client(client_id.to_string(), error_response).await {
+    if let Err(e) = context
+        .send_to_client(client_id.to_string(), error_response)
+        .await
+    {
         error!(
             client_id = %client_id,
             error = %e,
@@ -176,7 +186,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                 reason: format!("Session creation failed: {}", e),
             },
             &None,
-        ).await;
+        )
+        .await;
         return;
     }
 
@@ -188,13 +199,18 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                 info!(action = ?action, "Received action");
 
                 // Validate action content before processing
-                if let Err(validation_error) = crate::http::validation::validators::validate_ws_action_content(&action) {
+                if let Err(validation_error) =
+                    crate::http::validation::validators::validate_ws_action_content(&action)
+                {
                     let error_message = validation_error.message();
                     let validation_response = vec![crate::state::WsOperation::Error {
                         uuid: uuid.clone(),
                         message: error_message,
                     }];
-                    if let Err(e) = context.send_to_client(client_id.clone(), validation_response).await {
+                    if let Err(e) = context
+                        .send_to_client(client_id.clone(), validation_response)
+                        .await
+                    {
                         handle_ws_error(
                             &context,
                             &client_id,
@@ -203,7 +219,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                                 error: e.to_string(),
                             },
                             &uuid,
-                        ).await;
+                        )
+                        .await;
                     }
                     continue;
                 }
@@ -222,7 +239,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                                     operation: action_debug.clone(),
                                 },
                                 &uuid,
-                            ).await;
+                            )
+                            .await;
                         }
                     }
                     Ok(OperationResult::ClientOnly(ops)) => {
@@ -237,7 +255,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                                     error: e.to_string(),
                                 },
                                 &uuid,
-                            ).await;
+                            )
+                            .await;
                         }
                     }
                     Err(err) => {
@@ -250,7 +269,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                                 error: err.to_string(),
                             },
                             &uuid,
-                        ).await;
+                        )
+                        .await;
                     }
                 }
             } else {
@@ -261,7 +281,8 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                         raw_message: text.to_string(),
                     },
                     &None,
-                ).await;
+                )
+                .await;
             }
         }
     }

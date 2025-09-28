@@ -3,27 +3,54 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde::Serialize;
 #[cfg(test)]
 use serde::Deserialize;
+use serde::Serialize;
 
 /// Custom validation error types
 #[derive(Debug, Clone)]
 pub enum ValidationError {
-    TooLong { field: &'static str, max_len: usize, actual_len: usize },
-    TooShort { field: &'static str, min_len: usize, actual_len: usize },
-    Empty { field: &'static str },
-    InvalidFormat { field: &'static str, expected: &'static str },
+    TooLong {
+        field: &'static str,
+        max_len: usize,
+        actual_len: usize,
+    },
+    TooShort {
+        field: &'static str,
+        min_len: usize,
+        actual_len: usize,
+    },
+    Empty {
+        field: &'static str,
+    },
+    InvalidFormat {
+        field: &'static str,
+        expected: &'static str,
+    },
 }
 
 impl ValidationError {
     pub fn message(&self) -> String {
         match self {
-            ValidationError::TooLong { field, max_len, actual_len } => {
-                format!("{} is too long: {} characters (max {})", field, actual_len, max_len)
+            ValidationError::TooLong {
+                field,
+                max_len,
+                actual_len,
+            } => {
+                format!(
+                    "{} is too long: {} characters (max {})",
+                    field, actual_len, max_len
+                )
             }
-            ValidationError::TooShort { field, min_len, actual_len } => {
-                format!("{} is too short: {} characters (min {})", field, actual_len, min_len)
+            ValidationError::TooShort {
+                field,
+                min_len,
+                actual_len,
+            } => {
+                format!(
+                    "{} is too short: {} characters (min {})",
+                    field, actual_len, min_len
+                )
             }
             ValidationError::Empty { field } => {
                 format!("{} cannot be empty", field)
@@ -120,9 +147,7 @@ impl ValidationLimits {
     /// Note state field: VARCHAR(31) in database
     pub const NOTE_STATE_MAX_LEN: usize = 31;
     pub const NOTE_STATE_MIN_LEN: usize = 1;
-
 }
-
 
 /// Custom validation functions using structured limits
 pub mod validators {
@@ -139,7 +164,6 @@ pub mod validators {
         }
         Ok(())
     }
-
 
     /// Validate user name (VARCHAR(255) in database)
     pub fn validate_user_name(name: &str) -> Result<(), ValidationError> {
@@ -239,17 +263,24 @@ pub mod validators {
         Ok(())
     }
 
-
     /// Validate WebSocket action content against database constraints
-    pub fn validate_ws_action_content(action: &crate::state::WsAction) -> Result<(), ValidationError> {
+    pub fn validate_ws_action_content(
+        action: &crate::state::WsAction,
+    ) -> Result<(), ValidationError> {
         use crate::state::WsAction;
 
         match action {
-            WsAction::AddNote { text: Some(text), state, .. } => {
+            WsAction::AddNote {
+                text: Some(text),
+                state,
+                ..
+            } => {
                 validate_note_text(text)?;
                 validate_note_state(state)?;
             }
-            WsAction::AddNote { text: None, state, .. } => {
+            WsAction::AddNote {
+                text: None, state, ..
+            } => {
                 validate_note_state(state)?;
             }
             WsAction::UpdateNoteText { text, .. } => {
@@ -324,8 +355,6 @@ impl AddUserInput {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::validators::*;
@@ -346,7 +375,6 @@ mod tests {
         // Text at exact limit should pass
         let max_text = "a".repeat(ValidationLimits::NOTE_TEXT_MAX_LEN);
         assert!(validate_note_text(&max_text).is_ok());
-
     }
 
     #[test]
@@ -366,7 +394,6 @@ mod tests {
         let max_name = "a".repeat(ValidationLimits::USER_NAME_MAX_LEN);
         assert!(validate_user_name(&max_name).is_ok());
     }
-
 
     #[test]
     fn test_user_color_validation() {
@@ -419,7 +446,10 @@ mod tests {
         assert!(validate_user_email("notanemail").is_err());
 
         // Too long for database (DATABASE LIMIT: 255 chars)
-        let long_email = format!("{}@example.com", "a".repeat(ValidationLimits::USER_EMAIL_MAX_LEN));
+        let long_email = format!(
+            "{}@example.com",
+            "a".repeat(ValidationLimits::USER_EMAIL_MAX_LEN)
+        );
         assert!(validate_user_email(&long_email).is_err());
     }
 

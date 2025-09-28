@@ -45,7 +45,9 @@ pub async fn version() -> (StatusCode, String) {
 		(status = 503, description = "Service is not ready")
 	),
 )]
-pub async fn readiness(Extension(ctx): Extension<ApiContext>) -> (StatusCode, axum::Json<serde_json::Value>) {
+pub async fn readiness(
+    Extension(ctx): Extension<ApiContext>,
+) -> (StatusCode, axum::Json<serde_json::Value>) {
     // Check database connectivity
     match sqlx::query("SELECT 1").fetch_one(&ctx.db).await {
         Ok(_) => (
@@ -55,7 +57,7 @@ pub async fn readiness(Extension(ctx): Extension<ApiContext>) -> (StatusCode, ax
                 "database": "connected",
                 "timestamp": chrono::Utc::now().to_rfc3339(),
                 "version": env!("CARGO_PKG_VERSION")
-            }))
+            })),
         ),
         Err(err) => (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -64,8 +66,8 @@ pub async fn readiness(Extension(ctx): Extension<ApiContext>) -> (StatusCode, ax
                 "database": "disconnected",
                 "error": err.to_string(),
                 "timestamp": chrono::Utc::now().to_rfc3339()
-            }))
-        )
+            })),
+        ),
     }
 }
 
@@ -85,6 +87,6 @@ pub async fn liveness() -> (StatusCode, axum::Json<serde_json::Value>) {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs()
-        }))
+        })),
     )
 }

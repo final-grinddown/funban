@@ -12,13 +12,12 @@ mod actions;
 mod response_helpers;
 mod transaction_helpers;
 
-pub use response_helpers::{respond_error};
+pub use response_helpers::respond_error;
 pub use transaction_helpers::BusinessOperation;
 
 // Re-export domain models for external use
 pub use actions::note::NoteUpdate;
 pub use actions::user::UserUpdate;
-
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct AppState {
@@ -46,24 +45,26 @@ impl AppState {
         Ok(notes.into_iter().map(|n| n.into()).collect())
     }
 
-
     pub async fn apply(&mut self, db: &MySqlPool, action: WsAction) -> Result<OperationResult> {
         match action {
-            WsAction::AddNote { uuid, owner, state, text } => {
-                self.handle_add_note(db, uuid, owner, state, text).await
-            }
+            WsAction::AddNote {
+                uuid,
+                owner,
+                state,
+                text,
+            } => self.handle_add_note(db, uuid, owner, state, text).await,
             WsAction::UpdateNoteText { uuid, id, text } => {
                 self.handle_update_note_text(db, uuid, id, text).await
             }
             WsAction::UpdateNoteTag { uuid, id, tag } => {
                 self.handle_update_note_tag(db, uuid, id, tag).await
             }
-            WsAction::Reorder { uuid, moved_item_id, over_id } => {
-                self.handle_reorder(db, uuid, moved_item_id, over_id).await
-            }
-            WsAction::RemoveNote { uuid, id } => {
-                self.handle_remove_note(db, uuid, id).await
-            }
+            WsAction::Reorder {
+                uuid,
+                moved_item_id,
+                over_id,
+            } => self.handle_reorder(db, uuid, moved_item_id, over_id).await,
+            WsAction::RemoveNote { uuid, id } => self.handle_remove_note(db, uuid, id).await,
             WsAction::AddUser { uuid, name, color } => {
                 self.handle_add_user(db, uuid, name, color).await
             }
@@ -73,22 +74,27 @@ impl AppState {
             WsAction::UpdateUserColor { uuid, id, color } => {
                 self.handle_update_user_color(db, uuid, id, color).await
             }
-            WsAction::RemoveUser { uuid, id } => {
-                self.handle_remove_user(db, uuid, id).await
-            }
-            WsAction::DeleteNotes { uuid, owner, status } => {
-                self.handle_delete_notes(db, uuid, owner, status).await
-            }
+            WsAction::RemoveUser { uuid, id } => self.handle_remove_user(db, uuid, id).await,
+            WsAction::DeleteNotes {
+                uuid,
+                owner,
+                status,
+            } => self.handle_delete_notes(db, uuid, owner, status).await,
             WsAction::NoteUpdate { uuid, id, updates } => {
                 self.handle_note_update(db, uuid, id, updates).await
             }
             WsAction::UserUpdate { uuid, id, updates } => {
                 self.handle_user_update(db, uuid, id, updates).await
             }
-            WsAction::NotifySnapshot {} => {
-                self.handle_notify_snapshot().await
-            }
-            WsAction::SplitNote { uuid, original_id, original_text, new_text, new_state, new_owner } => {
+            WsAction::NotifySnapshot {} => self.handle_notify_snapshot().await,
+            WsAction::SplitNote {
+                uuid,
+                original_id,
+                original_text,
+                new_text,
+                new_state,
+                new_owner,
+            } => {
                 let params = actions::note::SplitNoteParams {
                     original_id,
                     original_text,
@@ -100,7 +106,6 @@ impl AppState {
             }
         }
     }
-
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
@@ -175,7 +180,6 @@ pub enum WsAction {
         new_owner: Option<u32>,
     },
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]

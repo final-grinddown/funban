@@ -1,9 +1,5 @@
-use crate::{
-    model::note::NoteTag,
-    sql::note::MoveTarget,
-    state::WsAction,
-};
 use super::models::NoteUpdate;
+use crate::{model::note::NoteTag, sql::note::MoveTarget, state::WsAction};
 
 #[test]
 fn action_add_note() {

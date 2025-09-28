@@ -826,13 +826,49 @@ async fn test_split_note_different_state_and_owner(db: MySqlPool) -> sqlx::Resul
 #[sqlx::test(fixtures("users"))]
 async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
     // Setup: Create chain A -> B -> C, then delete B via delete_by
-    let note_a = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("A".to_string()) }).await?;
-    let note_b = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("B".to_string()) }).await?;
-    let note_c = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("C".to_string()) }).await?;
+    let note_a = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("A".to_string()),
+        },
+    )
+    .await?;
+    let note_b = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("B".to_string()),
+        },
+    )
+    .await?;
+    let note_c = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("C".to_string()),
+        },
+    )
+    .await?;
 
     // Manually create chain A -> B -> C
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_a.id, note_b.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_b.id, note_c.id).execute(&db).await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_a.id,
+        note_b.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_b.id,
+        note_c.id
+    )
+    .execute(&db)
+    .await?;
 
     // Verify initial chain
     let initial_notes = note::read_all(&db).await?;
@@ -850,7 +886,11 @@ async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
 
     let final_notes = note::read_all(&db).await?;
     let final_c = final_notes.iter().find(|n| n.id == note_c.id).unwrap();
-    assert_eq!(final_c.predecessor_id, Some(note_a.id), "C should now point to A after B removal");
+    assert_eq!(
+        final_c.predecessor_id,
+        Some(note_a.id),
+        "C should now point to A after B removal"
+    );
 
     Ok(())
 }
@@ -858,18 +898,70 @@ async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users"))]
 async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx::Result<()> {
     // Setup: Create notes where we'll delete multiple in one delete_by call
-    let keep_note = note::add(&db, &NoteInsert { owner: 1, state: "done".to_string(), text: Some("Keep this".to_string()) }).await?;
-    let delete1 = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("Delete A".to_string()) }).await?;
-    let delete2 = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("Delete B".to_string()) }).await?;
-    let middle = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("Middle".to_string()) }).await?;
+    let keep_note = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "done".to_string(),
+            text: Some("Keep this".to_string()),
+        },
+    )
+    .await?;
+    let delete1 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("Delete A".to_string()),
+        },
+    )
+    .await?;
+    let delete2 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("Delete B".to_string()),
+        },
+    )
+    .await?;
+    let middle = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("Middle".to_string()),
+        },
+    )
+    .await?;
 
     // Clear automatic chains and create manual chains
-    sqlx::query!("UPDATE notes SET predecessor_id = NULL").execute(&db).await?;
+    sqlx::query!("UPDATE notes SET predecessor_id = NULL")
+        .execute(&db)
+        .await?;
 
     // Create chain: delete1 -> middle -> delete2 -> keep_note
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", delete1.id, middle.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", middle.id, delete2.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", delete2.id, keep_note.id).execute(&db).await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        delete1.id,
+        middle.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        middle.id,
+        delete2.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        delete2.id,
+        keep_note.id
+    )
+    .execute(&db)
+    .await?;
 
     // Action: Delete all notes owned by user 2 (delete1 and delete2)
     let (deleted_ids, _changes) = note::delete_by(&db, Some(2), None).await?;
@@ -886,8 +978,15 @@ async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx:
 
     // middle was pointing to delete2, but delete2 was pointing to keep_note
     // So after delete2 is removed, middle should point to keep_note
-    assert_eq!(final_middle.predecessor_id, None, "Middle should point to null since delete1 was removed");
-    assert_eq!(final_keep.predecessor_id, Some(middle.id), "Keep note should now point to middle");
+    assert_eq!(
+        final_middle.predecessor_id, None,
+        "Middle should point to null since delete1 was removed"
+    );
+    assert_eq!(
+        final_keep.predecessor_id,
+        Some(middle.id),
+        "Keep note should now point to middle"
+    );
 
     Ok(())
 }
@@ -897,11 +996,33 @@ async fn test_delete_by_head_notes(db: MySqlPool) -> sqlx::Result<()> {
     // Setup: Create chains where we delete the head notes
     // Chain: null -> A -> B (delete A, B should point to null)
 
-    let note_a = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("HEAD".to_string()) }).await?;
-    let note_b = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("SECOND".to_string()) }).await?;
+    let note_a = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("HEAD".to_string()),
+        },
+    )
+    .await?;
+    let note_b = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("SECOND".to_string()),
+        },
+    )
+    .await?;
 
     // Create chain: A (no predecessor) -> B
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_a.id, note_b.id).execute(&db).await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_a.id,
+        note_b.id
+    )
+    .execute(&db)
+    .await?;
 
     // Verify initial state
     let initial_notes = note::read_all(&db).await?;
@@ -919,7 +1040,10 @@ async fn test_delete_by_head_notes(db: MySqlPool) -> sqlx::Result<()> {
 
     let final_notes = note::read_all(&db).await?;
     let final_b = final_notes.iter().find(|n| n.id == note_b.id).unwrap();
-    assert_eq!(final_b.predecessor_id, None, "B should have no predecessor after head deletion");
+    assert_eq!(
+        final_b.predecessor_id, None,
+        "B should have no predecessor after head deletion"
+    );
 
     Ok(())
 }
@@ -927,17 +1051,46 @@ async fn test_delete_by_head_notes(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users"))]
 async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
     // Setup: Create notes with no chain relationships
-    let note1 = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("Standalone1".to_string()) }).await?;
-    let note2 = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("Standalone2".to_string()) }).await?;
-    let keep_note = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("Keep".to_string()) }).await?;
+    let note1 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("Standalone1".to_string()),
+        },
+    )
+    .await?;
+    let note2 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("Standalone2".to_string()),
+        },
+    )
+    .await?;
+    let keep_note = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("Keep".to_string()),
+        },
+    )
+    .await?;
 
     // Clear any automatic chains that might have been created
-    sqlx::query!("UPDATE notes SET predecessor_id = NULL").execute(&db).await?;
+    sqlx::query!("UPDATE notes SET predecessor_id = NULL")
+        .execute(&db)
+        .await?;
 
     // Verify no chains exist
     let initial_notes = note::read_all(&db).await?;
     for note in &initial_notes {
-        assert_eq!(note.predecessor_id, None, "No chains should exist initially");
+        assert_eq!(
+            note.predecessor_id, None,
+            "No chains should exist initially"
+        );
     }
 
     // Action: Delete notes by owner 1
@@ -947,7 +1100,11 @@ async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
     assert_eq!(deleted_ids.len(), 2);
     assert!(deleted_ids.contains(&note1.id));
     assert!(deleted_ids.contains(&note2.id));
-    assert_eq!(changes.len(), 0, "No chain changes should occur for standalone notes");
+    assert_eq!(
+        changes.len(),
+        0,
+        "No chain changes should occur for standalone notes"
+    );
 
     // Verify: Keep note still exists
     let final_notes = note::read_all(&db).await?;
@@ -964,14 +1121,52 @@ async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
 #[sqlx::test(fixtures("users"))]
 async fn test_delete_by_single_note_bulk_operation(db: MySqlPool) -> sqlx::Result<()> {
     // Test bulk operation with exactly 1 note (edge case for placeholder generation)
-    let note_a = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("A".to_string()) }).await?;
-    let note_b = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("B".to_string()) }).await?;
-    let note_c = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("C".to_string()) }).await?;
+    let note_a = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("A".to_string()),
+        },
+    )
+    .await?;
+    let note_b = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("B".to_string()),
+        },
+    )
+    .await?;
+    let note_c = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("C".to_string()),
+        },
+    )
+    .await?;
 
     // Clear automatic chains and create A -> B -> C
-    sqlx::query!("UPDATE notes SET predecessor_id = NULL").execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_a.id, note_b.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_b.id, note_c.id).execute(&db).await?;
+    sqlx::query!("UPDATE notes SET predecessor_id = NULL")
+        .execute(&db)
+        .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_a.id,
+        note_b.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_b.id,
+        note_c.id
+    )
+    .execute(&db)
+    .await?;
 
     // Action: Delete exactly 1 note (B) - tests single placeholder generation
     let (deleted_ids, _changes) = note::delete_by(&db, Some(2), None).await?;
@@ -991,15 +1186,61 @@ async fn test_delete_by_single_note_bulk_operation(db: MySqlPool) -> sqlx::Resul
 #[sqlx::test(fixtures("users"))]
 async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Result<()> {
     // Test notes that have NULL predecessor_id (head nodes)
-    let head1 = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("Head1".to_string()) }).await?;
-    let head2 = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("Head2".to_string()) }).await?;
-    let child1 = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("Child1".to_string()) }).await?;
-    let child2 = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("Child2".to_string()) }).await?;
+    let head1 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("Head1".to_string()),
+        },
+    )
+    .await?;
+    let head2 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("Head2".to_string()),
+        },
+    )
+    .await?;
+    let child1 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("Child1".to_string()),
+        },
+    )
+    .await?;
+    let child2 = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("Child2".to_string()),
+        },
+    )
+    .await?;
 
     // Clear automatic chains and create: head1 -> child1, head2 -> child2
-    sqlx::query!("UPDATE notes SET predecessor_id = NULL").execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", head1.id, child1.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", head2.id, child2.id).execute(&db).await?;
+    sqlx::query!("UPDATE notes SET predecessor_id = NULL")
+        .execute(&db)
+        .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        head1.id,
+        child1.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        head2.id,
+        child2.id
+    )
+    .execute(&db)
+    .await?;
 
     // Action: Delete head nodes (both have NULL predecessors)
     let (deleted_ids, _changes) = note::delete_by(&db, Some(2), None).await?;
@@ -1023,18 +1264,84 @@ async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Res
 async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result<()> {
     // Create complex multi-level chain to stress test bulk operation
     // Chain: A -> B -> C -> D -> E (delete B and D simultaneously)
-    let note_a = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("A".to_string()) }).await?;
-    let note_b = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("B".to_string()) }).await?;
-    let note_c = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("C".to_string()) }).await?;
-    let note_d = note::add(&db, &NoteInsert { owner: 2, state: "todo".to_string(), text: Some("D".to_string()) }).await?;
-    let note_e = note::add(&db, &NoteInsert { owner: 1, state: "todo".to_string(), text: Some("E".to_string()) }).await?;
+    let note_a = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("A".to_string()),
+        },
+    )
+    .await?;
+    let note_b = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("B".to_string()),
+        },
+    )
+    .await?;
+    let note_c = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("C".to_string()),
+        },
+    )
+    .await?;
+    let note_d = note::add(
+        &db,
+        &NoteInsert {
+            owner: 2,
+            state: "todo".to_string(),
+            text: Some("D".to_string()),
+        },
+    )
+    .await?;
+    let note_e = note::add(
+        &db,
+        &NoteInsert {
+            owner: 1,
+            state: "todo".to_string(),
+            text: Some("E".to_string()),
+        },
+    )
+    .await?;
 
     // Clear automatic chains and create A -> B -> C -> D -> E
-    sqlx::query!("UPDATE notes SET predecessor_id = NULL").execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_a.id, note_b.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_b.id, note_c.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_c.id, note_d.id).execute(&db).await?;
-    sqlx::query!("UPDATE notes SET predecessor_id = ? WHERE id = ?", note_d.id, note_e.id).execute(&db).await?;
+    sqlx::query!("UPDATE notes SET predecessor_id = NULL")
+        .execute(&db)
+        .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_a.id,
+        note_b.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_b.id,
+        note_c.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_c.id,
+        note_d.id
+    )
+    .execute(&db)
+    .await?;
+    sqlx::query!(
+        "UPDATE notes SET predecessor_id = ? WHERE id = ?",
+        note_d.id,
+        note_e.id
+    )
+    .execute(&db)
+    .await?;
 
     // Action: Delete B and D (owner 2) - this should result in A -> C -> E
     let (deleted_ids, _changes) = note::delete_by(&db, Some(2), None).await?;
@@ -1049,8 +1356,16 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
     let final_c = final_notes.iter().find(|n| n.id == note_c.id).unwrap();
     let final_e = final_notes.iter().find(|n| n.id == note_e.id).unwrap();
 
-    assert_eq!(final_c.predecessor_id, Some(note_a.id), "C should point to A after B removal");
-    assert_eq!(final_e.predecessor_id, Some(note_c.id), "E should point to C after D removal");
+    assert_eq!(
+        final_c.predecessor_id,
+        Some(note_a.id),
+        "C should point to A after B removal"
+    );
+    assert_eq!(
+        final_e.predecessor_id,
+        Some(note_c.id),
+        "E should point to C after D removal"
+    );
 
     Ok(())
 }

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::sql::note::MoveTarget;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "target")]

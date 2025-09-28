@@ -1,6 +1,6 @@
-use anyhow::Result;
-use crate::ws::OperationResult;
 use super::WsOperation;
+use crate::ws::OperationResult;
+use anyhow::Result;
 use sqlx::Error as SqlxError;
 
 /// Unified trait for all business operations with completion tracking
@@ -28,7 +28,6 @@ pub trait DatabaseOperation<T> {
     fn broadcast_with<F>(self, uuid: Option<String>, op_fn: F) -> Result<OperationResult>
     where
         F: FnOnce(T) -> WsOperation;
-
 }
 
 /// Implementation for database results with transformation
@@ -42,7 +41,6 @@ impl<T> DatabaseOperation<T> for Result<T, SqlxError> {
             Err(e) => super::respond_error(uuid, e.to_string()),
         }
     }
-
 }
 
 /// Implementation for single operations
@@ -91,5 +89,4 @@ pub mod helpers {
     pub fn empty_response(uuid: Option<String>) -> Result<OperationResult> {
         vec![].respond(uuid)
     }
-
 }

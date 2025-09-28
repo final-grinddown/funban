@@ -3,8 +3,8 @@ use sqlx::MySqlPool;
 
 use crate::model::note::{NoteInsert, NoteTag};
 use crate::sql::note;
-use crate::state::{AppState, WsOperation, BusinessOperation};
 use crate::state::transaction_helpers::DatabaseOperation;
+use crate::state::{AppState, BusinessOperation, WsOperation};
 use crate::ws::OperationResult;
 
 pub mod models;
@@ -33,7 +33,8 @@ impl AppState {
             state,
         };
 
-        note::add(db, &note).await
+        note::add(db, &note)
+            .await
             .broadcast_with(uuid, |success| WsOperation::NoteAdded {
                 note: success.into(),
             })
@@ -46,7 +47,8 @@ impl AppState {
         id: u32,
         text: String,
     ) -> Result<OperationResult> {
-        note::update_text(db, id, &text).await
+        note::update_text(db, id, &text)
+            .await
             .broadcast_with(uuid, |_| WsOperation::NoteTextUpdated { id, text })
     }
 

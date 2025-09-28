@@ -323,7 +323,6 @@ async fn remove_from_chain(
     Ok(())
 }
 
-
 pub async fn transfer_before(
     db: &MySqlPool,
     moved_item_id: u32,

@@ -1,7 +1,4 @@
-use crate::{
-    sql::note::MoveTarget,
-    state::WsAction,
-};
+use crate::{sql::note::MoveTarget, state::WsAction};
 
 #[test]
 fn action_reorder_note() {
