@@ -92,6 +92,9 @@ jobs:
         working-directory: ./server
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -119,10 +122,6 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install libmysqlclient-dev -y
 
       - name: Configure Git
         run: |
@@ -136,27 +135,10 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             server/target
-            ~/.cargo/bin/sqlx
           key: ${{ runner.os }}-cargo-server-${{ hashFiles('server/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-server-
 
-      - name: Install sqlx-cli
-        run: |
-          if ! command -v sqlx &> /dev/null; then
-            echo "Installing sqlx-cli..."
-            cargo install sqlx-cli --no-default-features --features mysql
-          else
-            echo "sqlx-cli already installed"
-          fi
-
-      - name: Debug cargo and sqlx version
-        run: |
-          cargo --version
-          sqlx --version
-
-      - name: Run migrations
-        run: sqlx migrate run --database-url "${{ env.DATABASE_URL }}"
 
       - name: Build
         run: cargo build --verbose
@@ -164,38 +146,4 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
-      - name: Generate SQLx data
-        run: |
-          # Temporarily disable offline mode to generate the data
-          unset SQLX_OFFLINE
 
-          echo "Running SQLx prepare..."
-          cargo sqlx prepare -- --bins --tests
-
-          # Check if any changes were made to the sqlx directory
-          if git diff --name-only | grep -q '.sqlx/'; then
-            echo "SQLx data has been updated. Committing changes..."
-            git add .sqlx/
-            git commit -m "chore: update SQLx offline data [skip ci]"
-            git push
-            echo "::notice::Updated SQLx offline data and pushed changes"
-          else
-            echo "No changes to SQLx data"
-          fi
-
-    services:
-      mysql:
-        image: mysql:5.7.44
-        env:
-          MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
-          MYSQL_USER: mysql
-          MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
-          MYSQL_DATABASE: funban
-          MYSQL_SSL_MODE: DISABLED
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
