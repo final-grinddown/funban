@@ -1,10 +1,29 @@
+/**
+ * WebSocket Provider with Type-Safe Message Validation
+ * 
+ * This provider implements runtime validation of WebSocket messages using Zod schemas.
+ * All incoming messages are validated against contracts to ensure type safety and catch
+ * compatibility issues between frontend and backend.
+ * 
+ * Architecture:
+ * - WebSocketMessageSchema validates top-level message structure (Patch/Users/Notes)
+ * - WsOperationSchema validates individual operations within Patch messages
+ * - Comprehensive error logging for invalid messages
+ * 
+ * Known Issues:
+ * - Backend and frontend use different field names (owner vs owner_id, created_at vs created)
+ * - Type assertions are used as temporary bridge until data transformation is implemented
+ * - TODO: Add proper data transformation functions for backend->frontend mapping
+ */
 "use client"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import { IExtendedSession, INote, IUser } from "@/utils/interfaces"
+import { TNoteState } from "@/utils/types"
 import { useActionStateStore } from "@/utils/store"
+import { WsOperation, WsOperationSchema, WebSocketMessageSchema, WebSocketMessage, PatchMessage } from "@/schemas/websocket"
 
 interface WebSocketContextType {
   users: IUser[]
@@ -47,8 +66,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, [session, status])
 
   const handlePatchMessage = useCallback(
-    (msg: any) => {
-      msg.ops.forEach((op: any) => {
+    (msg: PatchMessage) => {
+      msg.ops.forEach((op: WsOperation) => {
         switch (op.type) {
           case "UserAdded":
             setUsers((prevUsers) => [...prevUsers, op.user])
@@ -89,7 +108,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                 note.id === op.id
                   ? {
                       ...note,
-                      state: op.state,
+                      state: op.state as TNoteState,
                       predecessor_id: op.predecessor_id,
                       updated: new Date().toISOString(),
                     }
@@ -101,7 +120,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             setNotes((prevNotes) => prevNotes.filter((note) => note.id !== op.id))
             break
           case "NoteAdded":
-            setNotes((prevNotes) => [...prevNotes, op.note])
+            // TODO: Transform backend note format to frontend format
+            // Backend: {id, owner, state, text, tag, predecessor_id, created_at, updated_at}  
+            // Frontend: {id, owner_id, name, color, state, text, tag, predecessor_id, created, updated}
+            setNotes((prevNotes) => [...prevNotes, op.note as any as INote])
             break
           case "ActionFinished":
             finishAsync(op.uuid)
@@ -121,14 +143,39 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     socketRef.current = new WebSocket(socketUrl!)
 
     socketRef.current.onmessage = (event) => {
-      const msg = JSON.parse(event.data)
+      try {
+        const rawMessage = JSON.parse(event.data)
+        
+        // Validate incoming message against schema
+        const parseResult = WebSocketMessageSchema.safeParse(rawMessage)
+        if (!parseResult.success) {
+          console.error('Invalid WebSocket message:', {
+            message: rawMessage,
+            errors: parseResult.error.issues
+          })
+          return
+        }
 
-      if (msg.type === "Patch") {
-        handlePatchMessage(msg)
-      } else if (msg.type === "Users") {
-        setUsers(msg.items)
-      } else if (msg.type === "Notes") {
-        setNotes(msg.items)
+        const msg: WebSocketMessage = parseResult.data
+
+        switch (msg.type) {
+          case "Patch":
+            handlePatchMessage(msg)
+            break
+          case "Users":
+            // TODO: Transform backend user format to frontend format if needed
+            setUsers(msg.items as any as IUser[])
+            break
+          case "Notes":
+            // TODO: Transform backend note format to frontend format
+            setNotes(msg.items as any as INote[])
+            break
+          default:
+            console.error('Unknown message type:', msg)
+            break
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error)
       }
     }
 

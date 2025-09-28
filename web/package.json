@@ -3,7 +3,7 @@
 	"version": "1.0.1",
 	"private": true,
 	"scripts": {
-		"contracts:sync": "test -d ../contracts/generated || (echo '❌ Contracts not found! Run: cd ../server && cargo build' && exit 1) && mkdir -p ./src/contracts && cp ../contracts/generated/* ./src/contracts/ && echo '✅ Contracts synced successfully'",
+		"contracts:sync": "test -f ../contracts/ws_actions.json || (echo '❌ Contracts not found! Run: cd ../server && cargo build' && exit 1) && mkdir -p ./src/contracts && cp ../contracts/*.json ./src/contracts/ && echo '✅ Contracts synced successfully'",
 		"contracts:test": "jest src/__tests__/contracts/",
 		"predev": "yarn contracts:sync",
 		"prebuild": "yarn contracts:sync",

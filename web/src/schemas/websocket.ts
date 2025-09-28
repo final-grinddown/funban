@@ -280,6 +280,28 @@ export const WsOperationSchema = z.union([
   ErrorSchema,
 ])
 
+// Top-level WebSocket message schemas
+export const PatchMessageSchema = z.object({
+  type: z.literal('Patch'),
+  ops: z.array(WsOperationSchema),
+})
+
+export const UsersMessageSchema = z.object({
+  type: z.literal('Users'),
+  items: z.array(UserSchema),
+})
+
+export const NotesMessageSchema = z.object({
+  type: z.literal('Notes'),
+  items: z.array(NoteSchema),
+})
+
+export const WebSocketMessageSchema = z.union([
+  PatchMessageSchema,
+  UsersMessageSchema,
+  NotesMessageSchema,
+])
+
 // Type exports for use in application code
 export type WsAction = z.infer<typeof WsActionSchema>
 export type WsOperation = z.infer<typeof WsOperationSchema>
@@ -297,3 +319,7 @@ export type NoteUpdate = z.infer<typeof NoteUpdateMessageSchema>
 export type UserUpdate = z.infer<typeof UserUpdateMessageSchema>
 export type NotifySnapshot = z.infer<typeof NotifySnapshotSchema>
 export type SplitNote = z.infer<typeof SplitNoteSchema>
+export type PatchMessage = z.infer<typeof PatchMessageSchema>
+export type UsersMessage = z.infer<typeof UsersMessageSchema>
+export type NotesMessage = z.infer<typeof NotesMessageSchema>
+export type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>

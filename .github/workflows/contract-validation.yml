@@ -1,0 +1,179 @@
+name: Contract Validation
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'server/**/*.rs'
+      - 'server/src/**'
+      - 'server/Cargo.toml'
+      - 'server/Cargo.lock'
+      - 'web/src/schemas/**'
+      - 'contracts/**'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
+  DATABASE_URL: mysql://root:8861a78310f7c1d1a3f01849350b36f1@localhost:3306/funban?ssl-mode=DISABLED
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      contracts: ${{ steps.filter.outputs.contracts }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            contracts:
+              - 'server/**/*.rs'
+              - 'server/src/**'
+              - 'server/Cargo.toml'
+              - 'server/Cargo.lock'
+              - 'web/src/schemas/**'
+              - 'contracts/**'
+
+  validate-contracts:
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup Rust for server build
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libmysqlclient-dev -y
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-contracts-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-contracts-
+
+      # Setup Node.js for web testing
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install web dependencies
+        working-directory: ./web
+        run: yarn install --immutable
+
+      # Build server to generate contracts
+      - name: Build server and generate contracts
+        working-directory: ./server
+        run: |
+          echo "🔨 Building server to generate contracts..."
+          cargo build --verbose
+          
+          echo "📋 Checking generated contracts..."
+          ls -la ../contracts/*.json || echo "❌ No contracts generated!"
+          
+          if [ ! -f "../contracts/ws_actions.json" ] || [ ! -f "../contracts/ws_operations.json" ]; then
+            echo "❌ Contract generation failed - missing required files"
+            exit 1
+          fi
+          
+          echo "✅ Contract generation successful"
+
+      # Sync contracts to web
+      - name: Sync contracts to web
+        working-directory: ./web
+        run: |
+          echo "🔄 Syncing contracts..."
+          yarn contracts:sync
+          
+          echo "📋 Verifying synced contracts..."
+          ls -la src/contracts/ || echo "❌ No contracts synced!"
+          
+          if [ ! -f "src/contracts/ws_actions.json" ] || [ ! -f "src/contracts/ws_operations.json" ]; then
+            echo "❌ Contract sync failed - missing required files"
+            exit 1
+          fi
+          
+          echo "✅ Contract sync successful"
+
+      # Run contract validation tests
+      - name: Validate WebSocket contracts
+        working-directory: ./web
+        run: |
+          echo "🧪 Running contract validation tests..."
+          yarn test src/__tests__/contracts/ --verbose
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ All contract validation tests passed!"
+          else
+            echo "❌ Contract validation failed!"
+            echo ""
+            echo "This means there's a mismatch between:"
+            echo "  - Backend WebSocket message structure (server/)"
+            echo "  - Frontend schema definitions (web/src/schemas/)"
+            echo ""
+            echo "Please check:"
+            echo "  1. Are new fields properly defined in schemas?"
+            echo "  2. Do enum values match between backend and frontend?"
+            echo "  3. Are required vs optional fields correctly specified?"
+            echo ""
+            exit 1
+          fi
+
+      # Run TypeScript check to ensure schema types work
+      - name: TypeScript check with new contracts
+        working-directory: ./web
+        run: |
+          echo "🔍 Running TypeScript check with new contracts..."
+          yarn check:ts
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ TypeScript validation passed!"
+          else
+            echo "❌ TypeScript validation failed with new contracts!"
+            echo ""
+            echo "This usually means:"
+            echo "  - Schema type definitions don't match usage"
+            echo "  - New contract fields need type updates"
+            echo "  - WebSocket message handling needs updates"
+            echo ""
+            exit 1
+          fi
+
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
+          MYSQL_DATABASE: funban
+          MYSQL_SSL_MODE: DISABLED
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5

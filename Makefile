@@ -39,6 +39,12 @@ precommit-web:
 precommit-server:
 	@echo "🔍 Running server precommit checks..."
 	cd server && cargo build && cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo sqlx prepare --check -- --bins --tests
+	@echo "📋 Checking if contracts need to be committed..."
+	@if ! git diff --quiet contracts/; then \
+		echo "⚠️  Contract files have uncommitted changes - please review and commit them"; \
+		git status contracts/; \
+		exit 1; \
+	fi
 
 check-web:
 	cd web && yarn check:ts && yarn check:lint
