@@ -1,7 +1,9 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, TS)]
+#[ts(export, export_to = "../contracts/")]
 pub struct Note {
     pub id: i32,
     pub text: String,
@@ -61,7 +63,8 @@ impl AsRef<str> for NoteState {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
+#[ts(export, export_to = "../contracts/")]
 pub enum NoteTag {
     Important,
     Deadline,

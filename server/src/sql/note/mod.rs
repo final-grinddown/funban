@@ -4,6 +4,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, MySqlPool, Transaction};
 use tracing::warn;
+use ts_rs::TS;
 
 use crate::model::note::{Note, NoteInsert, NoteTag};
 
@@ -68,7 +69,8 @@ pub struct MoveTargetDto {
     pub state: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, TS)]
+#[ts(export, export_to = "../contracts/")]
 #[serde(tag = "type")]
 pub enum MoveTarget {
     Before { id: i64 },

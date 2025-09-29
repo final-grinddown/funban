@@ -1,6 +1,7 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
+use ts_rs::TS;
 
 use crate::model::note::{Note, NoteTag};
 use crate::model::user::User;
@@ -108,7 +109,8 @@ impl AppState {
     }
 }
 
-#[derive(Deserialize, PartialEq, Debug, Clone)]
+#[derive(Deserialize, PartialEq, Debug, Clone, TS)]
+#[ts(export, export_to = "../contracts/")]
 #[serde(tag = "type")]
 pub enum WsAction {
     AddNote {
@@ -181,7 +183,8 @@ pub enum WsAction {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[ts(export, export_to = "../contracts/")]
 #[serde(tag = "type")]
 pub enum WsOperation {
     NoteAdded {
