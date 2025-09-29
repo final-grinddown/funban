@@ -182,13 +182,15 @@ export const WsActionSchema = z.union([
 // WebSocket Operation schemas (backend → frontend)
 export const NoteSchema = z.object({
   id: z.number(),
-  owner: z.number(),
-  state: z.string(),
   text: z.string(),
-  tag: NoteTagSchema,
+  name: z.string(),
+  color: z.string(),
+  owner_id: z.number(),
+  state: z.string(),
   predecessor_id: z.number().nullable(),
-  created_at: z.string(),
-  updated_at: z.string(),
+  updated: z.string(),
+  created: z.string(),
+  tag: NoteTagSchema,
 })
 
 export const UserSchema = z.object({

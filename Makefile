@@ -28,8 +28,8 @@ test-server:
 # Check/Lint
 check: check-web check-server
 
-# Precommit checks - run before committing
-precommit: precommit-web precommit-server
+# Precommit checks - run before committing, server first because it generates contracts
+precommit: precommit-server precommit-web
 	@echo "✅ All precommit checks passed!"
 
 precommit-web:

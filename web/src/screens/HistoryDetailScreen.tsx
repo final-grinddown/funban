@@ -23,16 +23,17 @@ import {
 } from "@mui/material"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
+import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { fetchHistoryItem, fetchHistoryItemLast } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { Board } from "@/components/Board"
 import { ERoutes } from "@/utils/enums"
 import { base64DecodeUnicode, normalizeNotes } from "@/utils/helpers"
-import { IExtendedSession, IHistoryItem } from "@/utils/interfaces"
+import { IHistoryItem } from "@/utils/interfaces"
 
 export function HistoryDetailScreen({ id }: { id?: string }) {
-  const { data: session } = useSession() as { data: IExtendedSession }
+  const { data: session } = useSession() as { data: Session }
   const queryClient = useQueryClient()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const openMenu = Boolean(anchorEl)

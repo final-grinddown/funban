@@ -17,11 +17,12 @@
  */
 "use client"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import { WsOperation, WebSocketMessageSchema, WebSocketMessage, PatchMessage } from "@/schemas/websocket"
-import { IExtendedSession, INote, IUser } from "@/utils/interfaces"
+import { INote, IUser } from "@/utils/interfaces"
 import { useActionStateStore } from "@/utils/store"
 import { TNoteState } from "@/utils/types"
 
@@ -50,7 +51,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (status === "authenticated" && session) {
-      const extendedSession = session as IExtendedSession
+      const extendedSession = session as Session
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
       }
