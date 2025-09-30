@@ -114,6 +114,22 @@ jobs:
     defaults:
       run:
         working-directory: ./server
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
+          MYSQL_DATABASE: funban
+          MYSQL_SSL_MODE: DISABLED
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - uses: actions/checkout@v4
         with:

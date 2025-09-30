@@ -34,6 +34,9 @@ mod helpers;
 
 mod model;
 
+#[cfg(test)]
+mod contracts_test;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();

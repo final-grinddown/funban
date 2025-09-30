@@ -83,38 +83,41 @@ jobs:
         working-directory: ./web
         run: yarn install --immutable
 
-      # Build server to generate contracts
+      # Build server and run contract generation test
       - name: Build server and generate contracts
         working-directory: ./server
         run: |
-          echo "🔨 Building server to generate contracts..."
+          echo "🔨 Building server and running contract generation test..."
           cargo build --verbose
-          
+
+          echo "📝 Running contract generation test..."
+          cargo test contracts_test::tests::generate_typescript_contracts --verbose
+
           echo "📋 Checking generated contracts..."
-          ls -la ../contracts/*.json || echo "❌ No contracts generated!"
-          
-          if [ ! -f "../contracts/ws_actions.json" ] || [ ! -f "../contracts/ws_operations.json" ]; then
+          ls -la ../contracts/*.ts || echo "❌ No contracts generated!"
+
+          if [ ! -f "../contracts/WsAction.ts" ] || [ ! -f "../contracts/WsOperation.ts" ]; then
             echo "❌ Contract generation failed - missing required files"
             exit 1
           fi
-          
+
           echo "✅ Contract generation successful"
 
       # Sync contracts to web
       - name: Sync contracts to web
-        working-directory: ./web
         run: |
           echo "🔄 Syncing contracts..."
-          yarn contracts:sync
-          
+          mkdir -p web/src/contracts
+          cp contracts/*.ts web/src/contracts/
+
           echo "📋 Verifying synced contracts..."
-          ls -la src/contracts/ || echo "❌ No contracts synced!"
-          
-          if [ ! -f "src/contracts/ws_actions.json" ] || [ ! -f "src/contracts/ws_operations.json" ]; then
+          ls -la web/src/contracts/ || echo "❌ No contracts synced!"
+
+          if [ ! -f "web/src/contracts/WsAction.ts" ] || [ ! -f "web/src/contracts/WsOperation.ts" ]; then
             echo "❌ Contract sync failed - missing required files"
             exit 1
           fi
-          
+
           echo "✅ Contract sync successful"
 
       # Run contract validation tests
