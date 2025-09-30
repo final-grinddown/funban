@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { IUser } from '@/utils/interfaces'
 import { AddNewNoteModal } from '../AddNewNoteModal'
@@ -50,8 +50,11 @@ describe('AddNewNoteModal', () => {
 
   // Basic Rendering & Modal Behavior (4 tests)
   describe('Basic rendering and modal behavior', () => {
-    it('renders modal when open', () => {
+    it('renders modal when open', async () => {
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       expect(screen.getByText('Add New Note')).toBeInTheDocument()
       expect(screen.getByLabelText('State')).toBeInTheDocument()
@@ -59,8 +62,11 @@ describe('AddNewNoteModal', () => {
       expect(screen.getByLabelText('Note Text')).toBeInTheDocument()
     })
 
-    it('does not render modal when closed', () => {
+    it('does not render modal when closed', async () => {
       render(<AddNewNoteModal {...defaultProps} isOpen={false} />)
+      
+      // Wait for React Hook Form initialization even when closed
+      await act(async () => {})
       
       expect(screen.queryByText('Add New Note')).not.toBeInTheDocument()
     })
@@ -70,6 +76,9 @@ describe('AddNewNoteModal', () => {
       const onClose = jest.fn()
       
       render(<AddNewNoteModal {...defaultProps} onClose={onClose} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Look for the close icon button (it has CloseIcon but no accessible name)
       const closeButton = screen.getByTestId('CloseIcon').closest('button')
@@ -86,6 +95,9 @@ describe('AddNewNoteModal', () => {
       
       render(<AddNewNoteModal {...defaultProps} onClose={onClose} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       const cancelButton = screen.getByRole('button', { name: /cancel/i })
       await user.click(cancelButton)
       
@@ -99,15 +111,13 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       const stateSelect = screen.getByRole('combobox', { name: 'State' })
       await user.click(stateSelect)
       
-      await waitFor(() => {
-        const todoOption = screen.getByRole('option', { name: 'To Do' })
-        expect(todoOption).toBeInTheDocument()
-      })
-      
-      const todoOption = screen.getByRole('option', { name: 'To Do' })
+      const todoOption = await screen.findByRole('option', { name: 'To Do' })
       await user.click(todoOption)
       
       await waitFor(() => {
@@ -119,15 +129,13 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       const ownerSelect = screen.getByRole('combobox', { name: 'Note Owner' })
       await user.click(ownerSelect)
       
-      await waitFor(() => {
-        const johnOption = screen.getByRole('option', { name: 'John Doe' })
-        expect(johnOption).toBeInTheDocument()
-      })
-      
-      const johnOption = screen.getByRole('option', { name: 'John Doe' })
+      const johnOption = await screen.findByRole('option', { name: 'John Doe' })
       await user.click(johnOption)
       
       await waitFor(() => {
@@ -139,6 +147,9 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Test note content')
       
@@ -148,6 +159,9 @@ describe('AddNewNoteModal', () => {
     it('shows text length counter when text is entered', async () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Test')
@@ -160,6 +174,9 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       const checkbox = screen.getByRole('checkbox', { name: 'Save and Create Next' })
       
       expect(checkbox).not.toBeChecked()
@@ -170,8 +187,11 @@ describe('AddNewNoteModal', () => {
 
   // Form Validation (4 tests)
   describe('Form validation', () => {
-    it('disables create button when form is invalid', () => {
+    it('disables create button when form is invalid', async () => {
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       const createButton = screen.getByRole('button', { name: 'Create Note' })
       expect(createButton).toBeDisabled()
@@ -180,6 +200,9 @@ describe('AddNewNoteModal', () => {
     it('enables create button when form is valid', async () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill required fields
       const textField = screen.getByLabelText('Note Text')
@@ -205,6 +228,9 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       // Fill text but not owner
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Test note')
@@ -217,6 +243,9 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       // Create text longer than MaxTextLength (1000) - use paste for speed
       const longText = 'a'.repeat(1001)
       
@@ -228,12 +257,7 @@ describe('AddNewNoteModal', () => {
       const ownerSelect = screen.getByRole('combobox', { name: 'Note Owner' })
       await user.click(ownerSelect)
       
-      await waitFor(() => {
-        const johnOption = screen.getByRole('option', { name: 'John Doe' })
-        expect(johnOption).toBeInTheDocument()
-      })
-      
-      const johnOption = screen.getByRole('option', { name: 'John Doe' })
+      const johnOption = await screen.findByRole('option', { name: 'John Doe' })
       await user.click(johnOption)
       
       await waitFor(() => {
@@ -250,6 +274,9 @@ describe('AddNewNoteModal', () => {
       const { createNewNote } = require('@/app/api/websocket')
       
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill form
       const textField = screen.getByLabelText('Note Text')
@@ -292,6 +319,9 @@ describe('AddNewNoteModal', () => {
       
       render(<AddNewNoteModal {...defaultProps} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       // Fill form
       const textField = screen.getByLabelText('Note Text')
       await user.type(textField, 'Test note')
@@ -318,6 +348,9 @@ describe('AddNewNoteModal', () => {
       const onClose = jest.fn()
       
       render(<AddNewNoteModal {...defaultProps} onClose={onClose} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill form
       const textField = screen.getByLabelText('Note Text')
@@ -348,6 +381,9 @@ describe('AddNewNoteModal', () => {
       const onClose = jest.fn()
       
       render(<AddNewNoteModal {...defaultProps} onClose={onClose} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill form and check save and create next
       const textField = screen.getByLabelText('Note Text')
@@ -403,6 +439,9 @@ describe('AddNewNoteModal', () => {
       
       render(<AddNewNoteModal {...defaultProps} defaultValues={defaultValues} />)
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       await waitFor(() => {
         expect(screen.getByRole('combobox', { name: 'State' })).toHaveTextContent('To Do')
         expect(screen.getByRole('combobox', { name: 'Note Owner' })).toHaveTextContent('Jane Smith')
@@ -420,6 +459,9 @@ describe('AddNewNoteModal', () => {
         />
       )
       
+      // Wait for React Hook Form initialization
+      await act(async () => {})
+      
       await waitFor(() => {
         const textField = screen.getByLabelText('Note Text')
         expect(textField).toHaveFocus()
@@ -432,6 +474,9 @@ describe('AddNewNoteModal', () => {
       const { createNewNote } = require('@/app/api/websocket')
       
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill required fields
       const textField = screen.getByLabelText('Note Text')
@@ -448,7 +493,9 @@ describe('AddNewNoteModal', () => {
       await user.click(johnOption)
       
       // Focus back to text field and use keyboard shortcut
-      textField.focus()
+      act(() => {
+        textField.focus()
+      })
       await user.keyboard('{Shift>}{Enter}{/Shift}')
       
       expect(createNewNote).toHaveBeenCalledWith('1', 'Test note', '')
@@ -458,6 +505,9 @@ describe('AddNewNoteModal', () => {
       const user = userEvent.setup()
       
       render(<AddNewNoteModal {...defaultProps} />)
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       // Fill form and enable save and create next
       const textField = screen.getByLabelText('Note Text')
@@ -494,6 +544,9 @@ describe('AddNewNoteModal', () => {
           clearTextFocus={undefined}
         />
       )
+      
+      // Wait for React Hook Form initialization
+      await act(async () => {})
       
       await waitFor(() => {
         const textField = screen.getByLabelText('Note Text')

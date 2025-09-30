@@ -1,4 +1,6 @@
-use sqlx::{MySqlPool, Row};
+use sqlx::MySqlPool;
+#[cfg(test)]
+use sqlx::Row;
 
 /// Common error handling for database operations
 pub type SqlResult<T> = sqlx::Result<T>;
@@ -16,7 +18,7 @@ pub async fn execute_delete(
 }
 
 /// Helper function for checking existence by ID
-#[allow(dead_code)]
+#[cfg(test)]
 pub async fn exists_by_id(
     db: &MySqlPool,
     table: &str,

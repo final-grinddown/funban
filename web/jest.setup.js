@@ -1,6 +1,7 @@
 // Jest setup file for React Testing Library
 import '@testing-library/jest-dom'
 
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
 	useRouter: () => ({
@@ -41,3 +42,5 @@ jest.mock('next-auth/react', () => ({
 
 // Mock environment variables if needed
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
+
+

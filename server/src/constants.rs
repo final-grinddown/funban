@@ -1,8 +1,9 @@
 /// Common constants for the application
+#[cfg(test)]
 use crate::model::note::{NoteState, NoteTag};
 
 /// Note state constants for easy access
-#[allow(dead_code)]
+#[cfg(test)]
 pub mod note_states {
     use super::NoteState;
 
@@ -13,12 +14,12 @@ pub mod note_states {
 
     /// Helper function to convert string to NoteState
     pub fn from_str(s: &str) -> NoteState {
-        s.to_string().into()
+        NoteState::from(s.to_owned())
     }
 }
 
 /// Note tag constants for easy access
-#[allow(dead_code)]
+#[cfg(test)]
 pub mod note_tags {
     use super::NoteTag;
 
@@ -29,7 +30,7 @@ pub mod note_tags {
 
     /// Helper function to convert string to NoteTag
     pub fn from_str(s: &str) -> NoteTag {
-        s.to_string().into()
+        NoteTag::from(s.to_owned())
     }
 }
 

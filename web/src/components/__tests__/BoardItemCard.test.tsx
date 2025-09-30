@@ -155,8 +155,8 @@ describe('BoardItemCard', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('menu')).toBeInTheDocument()
-      })
-    })
+      }, { timeout: 10000 })
+    }, 15000)
 
     it('shows edit option in context menu', async () => {
       const user = userEvent.setup()

@@ -12,10 +12,9 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use cookie::time::Duration;
 
-use crate::http::validation::validate_input;
+use crate::http::validation::{validate_input, validators, ValidationError};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use validator::Validate;
 
 use crate::http::ApiContext;
 
@@ -34,10 +33,19 @@ pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct EmailChange {
-    #[validate(email)]
     pub new_email: String,
+}
+
+impl EmailChange {
+    pub fn validate(&self) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if let Err(e) = validators::validate_user_email(&self.new_email) {
+            errors.push(e);
+        }
+        errors
+    }
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -160,7 +168,7 @@ pub async fn change_email(
     Extension(claims): Extension<Claims>,
     Json(payload): Json<EmailChange>,
 ) -> Result<Json<EmptyResponse>> {
-    validate_input(&payload).map_err(|e| Error::BadRequest(e.message))?;
+    validate_input(payload.validate()).map_err(|e| Error::BadRequest(e.message))?;
 
     sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
 

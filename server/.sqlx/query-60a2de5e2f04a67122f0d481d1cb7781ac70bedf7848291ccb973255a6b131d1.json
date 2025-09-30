@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": " \n\t\t\t\t\tSELECT id, label\n\t\t\t\t\tFROM history\n\t\t\t\t\tWHERE created_at > ?\n\t\t\t\t\tORDER BY created_at ASC\n\t\t\t\t\tLIMIT 1;\n\t\t\t\t\t",
+  "query": "\n\t\t\t\t\tSELECT id, label\n\t\t\t\t\tFROM history\n\t\t\t\t\tWHERE created_at > ?\n\t\t\t\t\tORDER BY created_at ASC\n\t\t\t\t\tLIMIT 1;\n\t\t\t\t\t",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       true
     ]
   },
-  "hash": "6168c788ba509600d5114ae90fbf25d308ebcd972683f85f1f1a7db580f377f5"
+  "hash": "60a2de5e2f04a67122f0d481d1cb7781ac70bedf7848291ccb973255a6b131d1"
 }

@@ -15,17 +15,17 @@ import {
 } from "@mui/material"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { fetchHistory, fetchHistoryItem } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { ERoutes } from "@/utils/enums"
-import { IExtendedSession } from "@/utils/interfaces"
 
 export function HistoryScreen() {
   const theme = useTheme()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { data: session } = useSession() as { data: IExtendedSession }
+  const { data: session } = useSession() as { data: Session }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["history"],

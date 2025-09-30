@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { IRawNote } from '@/utils/interfaces'
 import { EndStatusModal } from '../EndStatusModal'
@@ -60,9 +60,12 @@ describe('EndStatusModal', () => {
 
   // Basic Rendering & Modal Behavior (4 tests)
   describe('Basic rendering and modal behavior', () => {
-    it('renders modal when open', () => {
+    it('renders modal when open', async () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       expect(screen.getByText('Enter Snapshot Label')).toBeInTheDocument()
       expect(screen.getByLabelText('Snapshot Label')).toBeInTheDocument()
@@ -70,9 +73,12 @@ describe('EndStatusModal', () => {
       expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
 
-    it('does not render modal when closed', () => {
+    it('does not render modal when closed', async () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} isOpen={false} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       expect(screen.queryByText('Enter Snapshot Label')).not.toBeInTheDocument()
     })
@@ -83,6 +89,9 @@ describe('EndStatusModal', () => {
       const Wrapper = createWrapper()
       
       render(<EndStatusModal {...defaultProps} onClose={onClose} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const closeButton = screen.getByTestId('CloseIcon').closest('button')
       expect(closeButton).toBeInTheDocument()
@@ -99,6 +108,9 @@ describe('EndStatusModal', () => {
       
       render(<EndStatusModal {...defaultProps} onClose={onClose} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const cancelButton = screen.getByRole('button', { name: 'Cancel' })
       await user.click(cancelButton)
       
@@ -108,9 +120,12 @@ describe('EndStatusModal', () => {
 
   // Form Field & Validation (6 tests)
   describe('Form field and validation', () => {
-    it('auto-focuses the label input field', () => {
+    it('auto-focuses the label input field', async () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const labelInput = screen.getByLabelText('Snapshot Label')
       expect(labelInput).toHaveFocus()
@@ -122,16 +137,22 @@ describe('EndStatusModal', () => {
       
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Test snapshot label')
       
       expect(labelInput).toHaveValue('Test snapshot label')
     })
 
-    it('disables send button when label is empty', () => {
+    it('disables send button when label is empty', async () => {
       const Wrapper = createWrapper()
       
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const sendButton = screen.getByRole('button', { name: 'Send' })
       
@@ -144,6 +165,9 @@ describe('EndStatusModal', () => {
       const Wrapper = createWrapper()
       
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const longLabel = 'a'.repeat(41)
       const labelInput = screen.getByLabelText('Snapshot Label')
@@ -161,6 +185,9 @@ describe('EndStatusModal', () => {
       
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       
       await user.type(labelInput, ' invalid label')
@@ -175,6 +202,9 @@ describe('EndStatusModal', () => {
       const Wrapper = createWrapper()
       
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Valid label')
@@ -195,6 +225,9 @@ describe('EndStatusModal', () => {
       
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'My snapshot')
@@ -217,6 +250,9 @@ describe('EndStatusModal', () => {
       
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Loading test')
@@ -241,6 +277,9 @@ describe('EndStatusModal', () => {
       
       render(<EndStatusModal {...defaultProps} onClose={onClose} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Success test')
       
@@ -264,6 +303,9 @@ describe('EndStatusModal', () => {
       
       render(<EndStatusModal {...defaultProps} onClose={onClose} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Error test')
       
@@ -286,6 +328,9 @@ describe('EndStatusModal', () => {
       
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Snackbar test')
@@ -311,6 +356,9 @@ describe('EndStatusModal', () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Generic error test')
       
@@ -331,6 +379,9 @@ describe('EndStatusModal', () => {
       
       const { rerender } = render(<EndStatusModal {...defaultProps} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'Test content')
       expect(labelInput).toHaveValue('Test content')
@@ -338,8 +389,14 @@ describe('EndStatusModal', () => {
       // Close modal
       rerender(<EndStatusModal {...defaultProps} isOpen={false} />)
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       // Reopen modal
       rerender(<EndStatusModal {...defaultProps} />)
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       await waitFor(() => {
         const newLabelInput = screen.getByLabelText('Snapshot Label')
@@ -355,6 +412,9 @@ describe('EndStatusModal', () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} accessToken={undefined} />, { wrapper: Wrapper })
       
+      // Wait for form initialization
+      await act(async () => {})
+      
       const labelInput = screen.getByLabelText('Snapshot Label')
       await user.type(labelInput, 'No token test')
       
@@ -367,9 +427,12 @@ describe('EndStatusModal', () => {
       )
     })
 
-    it('handles empty notes array', () => {
+    it('handles empty notes array', async () => {
       const Wrapper = createWrapper()
       render(<EndStatusModal {...defaultProps} notes={[]} />, { wrapper: Wrapper })
+      
+      // Wait for form initialization
+      await act(async () => {})
       
       expect(screen.getByText('Enter Snapshot Label')).toBeInTheDocument()
       expect(screen.getByLabelText('Snapshot Label')).toBeInTheDocument()

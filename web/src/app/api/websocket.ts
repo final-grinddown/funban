@@ -1,21 +1,22 @@
 import {
-	IAddNote,
-	IAddUser,
-	IRemoveNote,
-	IRemoveNoteBulk,
-	IRemoveUser,
-	ISplitNote,
-	IUpdateNote,
-	IUpdateNoteTag,
-	IUpdateNoteText,
-	IUpdateReorderNote,
-	IUpdateUserColor,
-	IUpdateUserName,
-} from "@/utils/interfaces"
+	AddNote,
+	AddUser,
+	RemoveNote,
+	DeleteNotes,
+	RemoveUser,
+	SplitNote,
+	NoteUpdate,
+	UpdateNoteTag,
+	UpdateNoteText,
+	Reorder,
+	UpdateUserColor,
+	UpdateUserName,
+} from "@/schemas/websocket"
 
 export function createAddUserMessage(name: string, color: string): string {
-	const action: IAddUser = {
+	const action: AddUser = {
 		type: "AddUser",
+		uuid: undefined,
 		name,
 		color,
 	}
@@ -24,8 +25,9 @@ export function createAddUserMessage(name: string, color: string): string {
 }
 
 export function createUpdateUserNameMessage(id: number, name: string): string {
-	const action: IUpdateUserName = {
+	const action: UpdateUserName = {
 		type: "UpdateUserName",
+		uuid: undefined,
 		id,
 		name,
 	}
@@ -34,8 +36,9 @@ export function createUpdateUserNameMessage(id: number, name: string): string {
 }
 
 export function createUpdateUserColorMessage(id: number, color: string): string {
-	const action: IUpdateUserColor = {
+	const action: UpdateUserColor = {
 		type: "UpdateUserColor",
+		uuid: undefined,
 		id: id,
 		color: color,
 	}
@@ -44,8 +47,9 @@ export function createUpdateUserColorMessage(id: number, color: string): string 
 }
 
 export function createDeleteUser(id: number): string {
-	const action: IRemoveUser = {
+	const action: RemoveUser = {
 		type: "RemoveUser",
+		uuid: undefined,
 		id: id,
 	}
 
@@ -53,8 +57,9 @@ export function createDeleteUser(id: number): string {
 }
 
 export function createNewNote(owner: string, text: string, state: string): string {
-	const action: IAddNote = {
+	const action: AddNote = {
 		type: "AddNote",
+		uuid: undefined,
 		owner: parseInt(owner),
 		state,
 		text,
@@ -64,8 +69,9 @@ export function createNewNote(owner: string, text: string, state: string): strin
 }
 
 export function createUpdateNote(id: string, text: string, destinationStatus: string): string {
-	const action: IUpdateNote = {
+	const action: NoteUpdate = {
 		type: "NoteUpdate",
+		uuid: undefined,
 		id: parseInt(id),
 		updates: [
 			{
@@ -86,8 +92,9 @@ export function createUpdateNote(id: string, text: string, destinationStatus: st
 }
 
 export function createUpdateNoteText(id: string, text: string): string {
-	const action: IUpdateNoteText = {
+	const action: UpdateNoteText = {
 		type: "UpdateNoteText",
+		uuid: undefined,
 		id: parseInt(id),
 		text,
 	}
@@ -96,18 +103,20 @@ export function createUpdateNoteText(id: string, text: string): string {
 }
 
 export function createUpdateNoteTag(id: string, tag: string | null): string {
-	const action: IUpdateNoteTag = {
+	const action: UpdateNoteTag = {
 		type: "UpdateNoteTag",
+		uuid: undefined,
 		id: parseInt(id),
-		tag,
+		tag: tag as any, // TODO: Fix tag type mapping
 	}
 
 	return JSON.stringify(action)
 }
 
 export function createUpdateNoteReorderBefore(id: string, over_id: number): string {
-	const action: IUpdateReorderNote = {
+	const action: Reorder = {
 		type: "Reorder",
+		uuid: undefined,
 		moved_item_id: parseInt(id),
 		over_id: {
 			type: "Before",
@@ -119,8 +128,9 @@ export function createUpdateNoteReorderBefore(id: string, over_id: number): stri
 }
 
 export function createUpdateNoteReorderLast(id: string, state: string): string {
-	const action: IUpdateReorderNote = {
+	const action: Reorder = {
 		type: "Reorder",
+		uuid: undefined,
 		moved_item_id: parseInt(id),
 		over_id: {
 			type: "Last",
@@ -132,8 +142,9 @@ export function createUpdateNoteReorderLast(id: string, state: string): string {
 }
 
 export function createDeleteNote(id: string): string {
-	const action: IRemoveNote = {
+	const action: RemoveNote = {
 		type: "RemoveNote",
+		uuid: undefined,
 		id: parseInt(id),
 	}
 
@@ -141,8 +152,9 @@ export function createDeleteNote(id: string): string {
 }
 
 export function createDeleteNoteUserBulk(status: string, owner: number): string {
-	const action: IRemoveNoteBulk = {
+	const action: DeleteNotes = {
 		type: "DeleteNotes",
+		uuid: undefined,
 		owner,
 		status,
 	}
@@ -151,8 +163,10 @@ export function createDeleteNoteUserBulk(status: string, owner: number): string 
 }
 
 export function createDeleteNoteBulk(status: string): string {
-	const action: IRemoveNoteBulk = {
+	const action: DeleteNotes = {
 		type: "DeleteNotes",
+		uuid: undefined,
+		owner: undefined,
 		status,
 	}
 
@@ -167,8 +181,9 @@ export function createSplitNote(
 	newState?: string,
 	newOwner?: string
 ): string {
-	const action: ISplitNote = {
+	const action: SplitNote = {
 		type: "SplitNote",
+		uuid: undefined,
 		original_id: parseInt(originalId),
 		original_text: originalText,
 		new_text: newText,

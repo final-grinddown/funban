@@ -28,8 +28,8 @@ test-server:
 # Check/Lint
 check: check-web check-server
 
-# Precommit checks - run before committing
-precommit: precommit-web precommit-server
+# Precommit checks - run before committing, server first because it generates contracts
+precommit: precommit-server precommit-web
 	@echo "✅ All precommit checks passed!"
 
 precommit-web:
@@ -39,6 +39,12 @@ precommit-web:
 precommit-server:
 	@echo "🔍 Running server precommit checks..."
 	cd server && cargo build && cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo sqlx prepare --check -- --bins --tests
+	@echo "📋 Checking if contracts need to be committed..."
+	@if ! git diff --quiet contracts/; then \
+		echo "⚠️  Contract files have uncommitted changes - please review and commit them"; \
+		git status contracts/; \
+		exit 1; \
+	fi
 
 check-web:
 	cd web && yarn check:ts && yarn check:lint

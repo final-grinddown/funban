@@ -1,19 +1,12 @@
-import { Session } from "next-auth"
-import { JWT } from "next-auth/jwt"
+import type { MoveTarget as ContractMoveTarget } from "../../../contracts/MoveTarget"
+import type { Note } from "../../../contracts/Note"
+import type { NoteUpdate as ContractNoteUpdate } from "../../../contracts/NoteUpdate"
+import type { User } from "../../../contracts/User"
 import { TNoteState } from "./types"
 
-export interface IExtendedSession extends Session {
-	accessToken?: string
-}
-
-export interface IExtendedJWT extends JWT {
-	accessToken?: string
-}
-
-export interface IUser {
+// Re-export contract types for internal use
+export type IUser = Omit<User, 'id' | 'index' | 'email'> & {
 	id: number
-	name: string
-	color: string
 }
 
 export interface IUserAddedOperation {
@@ -58,16 +51,9 @@ export interface IRemoveUser {
 	id: number
 }
 
-export interface INote {
-	id: number
-	text: string
-	name: string
+export type INote = Omit<Note, 'owner_id' | 'tag'> & {
 	owner_id: number
-	color: string
 	state: TNoteState
-	predecessor_id: number | null
-	updated: string
-	created: string
 	tag: string | null
 }
 
@@ -99,15 +85,8 @@ export interface IUpdateNote {
 	updates: NoteUpdate[]
 }
 
-export type NoteUpdate =
-	| {
-		target: "Text"
-		text: string
-	}
-	| {
-		target: "Order"
-		over_id: MoveTarget
-	}
+// Use contract types for updates
+export type NoteUpdate = ContractNoteUpdate
 
 export interface IUpdateNoteText {
 	type: "UpdateNoteText"
@@ -148,7 +127,8 @@ export interface IUpdateReorderNote {
 	over_id: MoveTarget
 }
 
-export type MoveTarget = MoveTargetBefore | MoveTargetLast
+// Use contract types for move targets
+export type MoveTarget = ContractMoveTarget
 
 export type MoveTargetBefore = {
 	type: "Before"
