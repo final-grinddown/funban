@@ -5,11 +5,6 @@ import CredentialsProvider from "next-auth/providers/credentials"
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustedHosts: [
-    'localhost:3000',
-    'funban-dev.joseforge.cz',
-    'funban.dev'
-  ],
   providers: [
     CredentialsProvider({
       name: "Credentials",
