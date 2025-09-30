@@ -16,12 +16,13 @@ ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 
 # Install dependencies
-COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn/ ./.yarn/
+COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
+COPY web/.yarn/ ./.yarn/
 RUN yarn install --immutable
 
-# Copy source code and build
-COPY . ./
+# Copy contracts and web source code
+COPY contracts/ ../contracts/
+COPY web/ ./
 RUN yarn build
 
 # Production stage
