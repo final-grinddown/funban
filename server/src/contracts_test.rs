@@ -6,7 +6,7 @@
 mod tests {
     use crate::model::{note::*, user::*};
     use crate::sql::note::MoveTarget;
-    use crate::state::{WsAction, WsOperation, NoteUpdate, UserUpdate};
+    use crate::state::{NoteUpdate, UserUpdate, WsAction, WsOperation};
 
     #[test]
     fn generate_typescript_contracts() {
