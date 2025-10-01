@@ -1,8 +1,12 @@
+import typia from "typia"
 import type { WsAction, WsNoteTag } from "@/schemas/websocket"
 
-// Helper to create a WsAction message with optional UUID
+// Helper to create and validate a WsAction message with optional UUID
 function createAction(action: any): string {
-	return JSON.stringify({ uuid: null, ...action })
+	const actionWithUuid = { uuid: null, ...action }
+	// Validate the action matches WsAction contract before sending
+	typia.assert<WsAction>(actionWithUuid)
+	return JSON.stringify(actionWithUuid)
 }
 
 export function createAddUserMessage(name: string, color: string): string {
