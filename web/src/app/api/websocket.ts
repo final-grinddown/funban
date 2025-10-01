@@ -1,17 +1,17 @@
 import typia from "typia"
-import type { WsAction, WsNoteTag } from "@/schemas/websocket"
+import type { WsAction, WsNoteTag, WsNoteUpdate, WsMoveTarget, WsNoteState } from "@/schemas/websocket"
 
-// Helper to create and validate a WsAction message with optional UUID
-function createAction(action: any): string {
-	const actionWithUuid = { uuid: null, ...action }
-	// Validate the action matches WsAction contract before sending
-	typia.assert<WsAction>(actionWithUuid)
-	return JSON.stringify(actionWithUuid)
+// Helper to create and validate a WsAction message
+// Uses typia to validate the complete action before sending to server
+function createAction<T extends WsAction>(action: T): string {
+	typia.assert<WsAction>(action)
+	return JSON.stringify(action)
 }
 
 export function createAddUserMessage(name: string, color: string): string {
 	return createAction({
 		type: "AddUser",
+		uuid: null,
 		name,
 		color,
 	})
@@ -19,6 +19,7 @@ export function createAddUserMessage(name: string, color: string): string {
 
 export function createUpdateUserNameMessage(id: number, name: string): string {
 	return createAction({
+		uuid: null,
 		type: "UpdateUserName",
 		id,
 		name,
@@ -27,6 +28,7 @@ export function createUpdateUserNameMessage(id: number, name: string): string {
 
 export function createUpdateUserColorMessage(id: number, color: string): string {
 	return createAction({
+		uuid: null,
 		type: "UpdateUserColor",
 		id,
 		color,
@@ -35,6 +37,7 @@ export function createUpdateUserColorMessage(id: number, color: string): string 
 
 export function createDeleteUser(id: number): string {
 	return createAction({
+		uuid: null,
 		type: "RemoveUser",
 		id,
 	})
@@ -42,6 +45,7 @@ export function createDeleteUser(id: number): string {
 
 export function createNewNote(owner: string, text: string, state: string): string {
 	return createAction({
+		uuid: null,
 		type: "AddNote",
 		owner: parseInt(owner),
 		state,
@@ -50,27 +54,30 @@ export function createNewNote(owner: string, text: string, state: string): strin
 }
 
 export function createUpdateNote(id: string, text: string, destinationStatus: string): string {
+	const updates: WsNoteUpdate[] = [
+		{
+			target: "Text",
+			text: text,
+		},
+		{
+			target: "Order",
+			over_id: {
+				type: "Last",
+				state: destinationStatus as WsNoteState,
+			},
+		},
+	]
 	return createAction({
+		uuid: null,
 		type: "NoteUpdate",
 		id: parseInt(id),
-		updates: [
-			{
-				target: "Text",
-				text: text,
-			},
-			{
-				target: "Order",
-				over_id: {
-					type: "Last",
-					state: destinationStatus,
-				},
-			},
-		],
+		updates,
 	})
 }
 
 export function createUpdateNoteText(id: string, text: string): string {
 	return createAction({
+		uuid: null,
 		type: "UpdateNoteText",
 		id: parseInt(id),
 		text,
@@ -79,6 +86,7 @@ export function createUpdateNoteText(id: string, text: string): string {
 
 export function createUpdateNoteTag(id: string, tag: WsNoteTag | null): string {
 	return createAction({
+		uuid: null,
 		type: "UpdateNoteTag",
 		id: parseInt(id),
 		tag,
@@ -86,29 +94,34 @@ export function createUpdateNoteTag(id: string, tag: WsNoteTag | null): string {
 }
 
 export function createUpdateNoteReorderBefore(id: string, over_id: number): string {
+	const moveTarget: WsMoveTarget = {
+		type: "Before",
+		id: over_id,
+	}
 	return createAction({
+		uuid: null,
 		type: "Reorder",
 		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Before",
-			id: over_id,
-		},
+		over_id: moveTarget,
 	})
 }
 
 export function createUpdateNoteReorderLast(id: string, state: string): string {
+	const moveTarget: WsMoveTarget = {
+		type: "Last",
+		state: state as WsNoteState,
+	}
 	return createAction({
+		uuid: null,
 		type: "Reorder",
 		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Last",
-			state,
-		},
+		over_id: moveTarget,
 	})
 }
 
 export function createDeleteNote(id: string): string {
 	return createAction({
+		uuid: null,
 		type: "RemoveNote",
 		id: parseInt(id),
 	})
@@ -116,6 +129,7 @@ export function createDeleteNote(id: string): string {
 
 export function createDeleteNoteUserBulk(status: string, owner: number): string {
 	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
 		owner,
 		status,
@@ -124,6 +138,7 @@ export function createDeleteNoteUserBulk(status: string, owner: number): string 
 
 export function createDeleteNoteBulk(status: string): string {
 	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
 		owner: null,
 		status,
@@ -138,6 +153,7 @@ export function createSplitNote(
 	newOwner?: string
 ): string {
 	return createAction({
+		uuid: null,
 		type: "SplitNote",
 		original_id: parseInt(originalId),
 		original_text: originalText,

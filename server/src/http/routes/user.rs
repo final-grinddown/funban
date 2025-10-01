@@ -9,7 +9,7 @@ use crate::http::ApiContext;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct User {
-    id: i64,
+    id: i32,
     name: String,
     color: String,
 }

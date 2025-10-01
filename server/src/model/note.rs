@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 pub struct Note {
     pub id: i32,
     pub text: String,
     pub name: String,
     pub color: String,
-    pub owner_id: i64,
+    pub owner_id: i32,
     pub state: NoteState,
     pub predecessor_id: Option<i32>,
     pub updated: chrono::DateTime<Utc>,
@@ -41,7 +41,7 @@ pub struct NoteInsert {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum NoteState {
     Notes,
@@ -89,7 +89,7 @@ impl AsRef<str> for NoteState {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 pub enum NoteTag {
     Important,
     Deadline,

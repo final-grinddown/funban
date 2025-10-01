@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 pub struct User {
-    pub id: i64,
-    pub index: i64,
+    pub id: i32,
+    pub index: i32,
     pub name: String,
     pub color: String,
     pub email: String,

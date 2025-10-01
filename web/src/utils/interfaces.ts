@@ -1,19 +1,14 @@
-import type { WsNote, WsUser, WsNoteTag } from "@/schemas/websocket"
+import type { WsNote, WsUser, WsNoteTag, WsNoteState } from "@/schemas/websocket"
 import { TNoteState } from "./types"
 
-// App types with number IDs (transformed from contract bigint IDs)
-export type User = Omit<WsUser, 'id' | 'index'> & {
-	id: number
-	index: number
-}
-export type Note = Omit<WsNote, 'owner_id'> & {
-	owner_id: number
-	state: TNoteState  // TODO: Make this an enum in Rust to remove cast
-	tag: WsNoteTag | null
+// App types - contracts now use number for IDs (Rust i32 → TS number)
+export type User = WsUser
+export type Note = WsNote & {
+	state: TNoteState  // Convert WsNoteState enum to string union for app compatibility
 }
 
 // Re-export contract types for WebSocket message handling
-export type { WsNote, WsUser, WsNoteTag, WsNoteUpdate, WsUserUpdate, WsMoveTarget } from "@/schemas/websocket"
+export type { WsNote, WsUser, WsNoteTag, WsNoteState, WsNoteUpdate, WsUserUpdate, WsMoveTarget } from "@/schemas/websocket"
 
 export interface IPatchOperation {
 	ops: { type: "UserAdded"; user: User }[]

@@ -83,15 +83,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   // Transform contract types (bigint IDs) to app types (number IDs)
   const transformNote = (note: WsNote): Note => ({
     ...note,
-    owner_id: Number(note.owner_id),
-    state: note.state as TNoteState,  // TODO: Remove cast when state becomes enum in Rust
+    state: note.state as TNoteState,  // Convert WsNoteState enum to string union
   })
 
-  const transformUser = (user: WsUser): User => ({
-    ...user,
-    id: Number(user.id),
-    index: Number(user.index),
-  })
+  const transformUser = (user: WsUser): User => user  // No transformation needed - contracts use number for IDs
 
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {

@@ -10,7 +10,7 @@ use crate::model::history::History;
 pub mod tests;
 
 pub struct HistoryEntity {
-    pub id: i64,
+    pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
     pub created_at: chrono::DateTime<Utc>,
@@ -133,7 +133,7 @@ pub async fn create(
     )
     .execute(&mut *transaction)
     .await?
-    .last_insert_id() as i64;
+    .last_insert_id() as i32;
 
     let history = sqlx::query_as!(
         HistoryEntity,

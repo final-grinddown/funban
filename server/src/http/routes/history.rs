@@ -21,7 +21,7 @@ use crate::http::ApiContext;
 
 #[derive(Debug, Serialize, Clone, Default, ToSchema)]
 pub struct HistoryDto {
-    pub id: i64,
+    pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
     pub created_at: chrono::DateTime<Utc>,

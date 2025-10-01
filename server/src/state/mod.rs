@@ -110,7 +110,7 @@ impl AppState {
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsAction {
     AddNote {
@@ -184,7 +184,7 @@ pub enum WsAction {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsOperation {
     NoteAdded {

@@ -34,7 +34,7 @@ impl From<Note> for NoteDto {
             color: note.color,
             state: note.state.into(),
             predecessor_id: note.predecessor_id,
-            owner_id: note.owner_id as i32,
+            owner_id: note.owner_id,
             updated: note.updated,
             created: note.created,
             tag: note.tag.map(|tag| tag.into()),
@@ -51,7 +51,7 @@ impl From<NoteDto> for Note {
             color: note.color,
             state: NoteState::from(note.state),
             predecessor_id: note.predecessor_id,
-            owner_id: note.owner_id as i64,
+            owner_id: note.owner_id,
             updated: note.updated,
             created: note.created,
             tag: note.tag.map(NoteTag::from),
@@ -67,10 +67,10 @@ pub struct MoveTargetDto {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum MoveTarget {
-    Before { id: i64 },
+    Before { id: i32 },
     Last { state: NoteState },
 }
 
