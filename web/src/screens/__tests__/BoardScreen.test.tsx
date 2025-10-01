@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { INote, IUser } from '@/utils/interfaces'
+import { Note, User } from '@/utils/interfaces'
 import { BoardScreen } from '../BoardScreen'
 
 // Mock react-hotkeys-hook for keyboard shortcut testing
@@ -82,7 +82,7 @@ jest.mock('@/components/UserSelector', () => ({
       onChange={(e) => onChange(e.target.value)}
       aria-label="Select user"
     >
-      {users.map((user: IUser) => (
+      {users.map((user: User) => (
         <option key={user.id} value={user.id.toString()}>
           {user.name}
         </option>
@@ -138,13 +138,13 @@ jest.mock('@/components/FocusControls', () => ({
 }))
 
 describe('BoardScreen', () => {
-  const mockUsers: IUser[] = [
-    { id: 1, name: 'John Doe', color: '#ff0000' },
-    { id: 2, name: 'Jane Smith', color: '#00ff00' },
-    { id: 3, name: 'Bob Johnson', color: '#0000ff' },
+  const mockUsers: User[] = [
+    { id: 1, index: 1, name: 'John Doe', color: '#ff0000', email: 'John Doe@example.com' },
+    { id: 2, index: 2, name: 'Jane Smith', color: '#00ff00', email: 'Jane Smith@example.com' },
+    { id: 3, index: 3, name: 'Bob Johnson', color: '#0000ff', email: 'Bob Johnson@example.com' },
   ]
 
-  const mockNotes: INote[] = [
+  const mockNotes: Note[] = [
     {
       id: 1,
       text: 'Test note 1',
@@ -167,7 +167,7 @@ describe('BoardScreen', () => {
       predecessor_id: null,
       updated: '2024-01-01T11:00:00Z',
       created: '2024-01-01T11:00:00Z',
-      tag: 'IMPORTANT',
+      tag: 'Important',
     },
   ]
 

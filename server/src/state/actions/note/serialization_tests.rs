@@ -85,7 +85,7 @@ fn action_update_note_tag_none() {
 
 #[test]
 fn action_note_update() {
-    let json = r#"{"type": "NoteUpdate","uuid": "095be615-a8ad-4c33-8e9c-c7612fbf6c9f","id": 1,"updates": [{"target": "Text","text": "Hello, world!"},{"target": "Order","over_id":{"type":"Before","id":0}},{"target": "Order","over_id":{"type":"Last","state":"Hello, world!"}}]}"#;
+    let json = r#"{"type": "NoteUpdate","uuid": "095be615-a8ad-4c33-8e9c-c7612fbf6c9f","id": 1,"updates": [{"target": "Text","text": "Hello, world!"},{"target": "Order","over_id":{"type":"Before","id":0}},{"target": "Order","over_id":{"type":"Last","state":"done"}}]}"#;
     let action = serde_json::from_str::<WsAction>(json).unwrap();
     assert_eq!(
         action,
@@ -101,7 +101,7 @@ fn action_note_update() {
                 },
                 NoteUpdate::Order {
                     over_id: MoveTarget::Last {
-                        state: "Hello, world!".into()
+                        state: "done".into()
                     }
                 }
             ]

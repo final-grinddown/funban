@@ -6,7 +6,7 @@ use sqlx::{MySql, MySqlPool, Transaction};
 use tracing::warn;
 use ts_rs::TS;
 
-use crate::model::note::{Note, NoteInsert, NoteTag};
+use crate::model::note::{Note, NoteInsert, NoteState, NoteTag};
 
 #[cfg(test)]
 pub mod tests;
@@ -32,7 +32,7 @@ impl From<Note> for NoteDto {
             text: note.text,
             name: note.name,
             color: note.color,
-            state: note.state,
+            state: note.state.into(),
             predecessor_id: note.predecessor_id,
             owner_id: note.owner_id as i32,
             updated: note.updated,
@@ -49,15 +49,12 @@ impl From<NoteDto> for Note {
             text: note.text,
             name: note.name,
             color: note.color,
-            state: note.state,
+            state: NoteState::from(note.state),
             predecessor_id: note.predecessor_id,
             owner_id: note.owner_id as i64,
             updated: note.updated,
             created: note.created,
-            tag: note.tag.map(|tag| {
-                // Convert the string tag back to NoteTag enum
-                NoteTag::from(tag)
-            }),
+            tag: note.tag.map(NoteTag::from),
         }
     }
 }
@@ -74,7 +71,7 @@ pub struct MoveTargetDto {
 #[serde(tag = "type")]
 pub enum MoveTarget {
     Before { id: i64 },
-    Last { state: String },
+    Last { state: NoteState },
 }
 
 pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<NoteDto>> {
@@ -238,19 +235,20 @@ pub async fn transfer(
 ) -> sqlx::Result<Vec<MoveTargetDto>> {
     match over_id {
         MoveTarget::Before { id } => transfer_before(db, moved_item_id, id as u32).await,
-        MoveTarget::Last { state } => transfer_last(db, moved_item_id, &state).await,
+        MoveTarget::Last { state } => transfer_last(db, moved_item_id, state).await,
     }
 }
 
 pub async fn transfer_last(
     db: &MySqlPool,
     moved_item_id: u32,
-    target_state: &str,
+    target_state: NoteState,
 ) -> sqlx::Result<Vec<MoveTargetDto>> {
     let mut transaction = db.begin().await?;
     let change_set = uuid::Uuid::new_v4().to_string();
+    let target_state_str = target_state.as_ref();
 
-    let last_id = get_last_id(&mut *transaction, target_state).await?;
+    let last_id = get_last_id(&mut *transaction, target_state_str).await?;
 
     if let Some(last_id) = last_id {
         if last_id == moved_item_id {
@@ -265,14 +263,14 @@ pub async fn transfer_last(
     // Update our note to point to the last note
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					state = ?,
 					change_set = ?
 			WHERE id = ?
 			"#,
         last_id,
-        target_state,
+        target_state_str,
         change_set,
         moved_item_id,
     )
@@ -306,10 +304,10 @@ async fn remove_from_chain(
     // to point to whatever the removed note was pointing to
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = (
-					SELECT predecessor_id 
-					FROM (SELECT * FROM notes) AS n2 
+					SELECT predecessor_id
+					FROM (SELECT * FROM notes) AS n2
 					WHERE n2.id = ?
 			),
 			change_set = ?
@@ -355,7 +353,7 @@ pub async fn transfer_before(
     // Make moved note point to what target was pointing to and update its state
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					state = ?,
 					change_set = ?
@@ -372,7 +370,7 @@ pub async fn transfer_before(
     // Make target point to moved note
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					change_set = ?
 			WHERE id = ?
@@ -530,7 +528,7 @@ pub async fn split_note(
     let original_note = sqlx::query!(
         r#"
         SELECT id, text, owner, state, predecessor_id, tag, updated, created
-        FROM notes 
+        FROM notes
         WHERE id = ?
         "#,
         original_id

@@ -13,12 +13,12 @@ import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
 import { noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
-  users: IUser[]
+  users: User[]
   isOpen: boolean
   onClose: () => void
   hasTextFocus?: boolean

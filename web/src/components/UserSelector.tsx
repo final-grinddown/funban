@@ -1,9 +1,9 @@
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 
 interface UserSelectorProps {
-  users: IUser[]
+  users: User[]
   selectedUser: string
   onChange: (event: SelectChangeEvent) => void
 }

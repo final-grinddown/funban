@@ -27,6 +27,7 @@ mod tests {
         let _note_update: Option<NoteUpdate> = None;
         let _user_update: Option<UserUpdate> = None;
         let _note_tag: Option<NoteTag> = None;
+        let _note_state: Option<NoteState> = None;
 
         // Test passes if compilation succeeds
         assert!(true);

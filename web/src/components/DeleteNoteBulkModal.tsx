@@ -12,13 +12,13 @@ import {
 } from "@mui/material"
 import { createDeleteNoteBulk, createDeleteNoteUserBulk } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 
 interface Props {
   isOpen: boolean
   userName: string
-  userId: INote["owner_id"]
-  state: INote["state"]
+  userId: Note["owner_id"]
+  state: Note["state"]
   isFocus: boolean
   onClose: () => void
 }

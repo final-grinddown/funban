@@ -2,13 +2,13 @@ import { DragEvent, useMemo, useRef, useState } from "react"
 import { Box, Divider, Stack } from "@mui/material"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { IColumnData, INote } from "@/utils/interfaces"
+import { IColumnData, Note } from "@/utils/interfaces"
 import { getStoredColumnOrder } from "@/utils/storage"
 import { BackdropLoading } from "./BackdropLoading"
 import { BoardColumn } from "./BoardColumn"
 
 interface Props {
-  notes: INote[]
+  notes: Note[]
   isEditable: boolean
   isAnyModalOpen: boolean
   setIsAnyModalOpen: (isOpen: boolean) => void
@@ -32,9 +32,9 @@ export function Board({
   const columnOrder = getStoredColumnOrder()
 
   const columns = useMemo(() => {
-    const sortNotes = (notes: INote[]) => {
-      const idToNote = new Map<number, INote>()
-      const sorted: INote[] = []
+    const sortNotes = (notes: Note[]) => {
+      const idToNote = new Map<number, Note>()
+      const sorted: Note[] = []
       const visited = new Set<number>()
 
       notes.forEach((note) => idToNote.set(note.id, note))
@@ -44,7 +44,7 @@ export function Board({
 
       // Traverse linked list
       roots.forEach((root) => {
-        let current: INote | undefined = root
+        let current: Note | undefined = root
         while (current && !visited.has(current.id)) {
           sorted.push(current)
           visited.add(current.id)

@@ -32,7 +32,7 @@ async fn test_get_next_id_neg(db: MySqlPool) -> sqlx::Result<()> {
 async fn test_transfer_last_no_change(db: MySqlPool) -> sqlx::Result<()> {
     let id = 4;
     let state = note_states::TODO;
-    let done = note::transfer_last(&db, id, state).await?;
+    let done = note::transfer_last(&db, id, state.into()).await?;
 
     assert_eq!(0, done.len(), "No notes should be updated");
 
@@ -43,7 +43,7 @@ async fn test_transfer_last_no_change(db: MySqlPool) -> sqlx::Result<()> {
 async fn test_transfer_last_from_first(db: MySqlPool) -> sqlx::Result<()> {
     let id = 5;
     let state = note_states::TODO;
-    let done = note::transfer_last(&db, id, state).await?;
+    let done = note::transfer_last(&db, id, state.into()).await?;
 
     assert_eq!(2, done.len(), "Both notes in the state should be updated");
 
@@ -54,7 +54,7 @@ async fn test_transfer_last_from_first(db: MySqlPool) -> sqlx::Result<()> {
 async fn test_transfer_last_from_middle(db: MySqlPool) -> sqlx::Result<()> {
     let id = 2;
     let state = note_states::TODO;
-    let done = note::transfer_last(&db, id, state).await?;
+    let done = note::transfer_last(&db, id, state.into()).await?;
 
     assert_eq!(2, done.len(), "Both notes in the state should be updated");
 
@@ -65,7 +65,7 @@ async fn test_transfer_last_from_middle(db: MySqlPool) -> sqlx::Result<()> {
 async fn test_transfer_last_empty_target(db: MySqlPool) -> sqlx::Result<()> {
     let id = 1;
     let state = "info";
-    let done = note::transfer_last(&db, id, state).await?;
+    let done = note::transfer_last(&db, id, state.into()).await?;
 
     assert_eq!(2, done.len(), "Only transfered note should be updated");
 
@@ -398,7 +398,7 @@ async fn test_chain_integrity_after_moves(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         4,
         MoveTarget::Last {
-            state: "done".to_string(),
+            state: "done".into(),
         },
     )
     .await?;
@@ -830,7 +830,7 @@ async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("A".to_string()),
         },
     )
@@ -839,7 +839,7 @@ async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("B".to_string()),
         },
     )
@@ -848,7 +848,7 @@ async fn test_delete_by_chain_fixing_simple(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("C".to_string()),
         },
     )
@@ -902,7 +902,7 @@ async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx:
         &db,
         &NoteInsert {
             owner: 1,
-            state: "done".to_string(),
+            state: "done".into(),
             text: Some("Keep this".to_string()),
         },
     )
@@ -911,7 +911,7 @@ async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx:
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Delete A".to_string()),
         },
     )
@@ -920,7 +920,7 @@ async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx:
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Delete B".to_string()),
         },
     )
@@ -929,7 +929,7 @@ async fn test_delete_by_multiple_notes_in_same_operation(db: MySqlPool) -> sqlx:
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Middle".to_string()),
         },
     )
@@ -1000,7 +1000,7 @@ async fn test_delete_by_head_notes(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("HEAD".to_string()),
         },
     )
@@ -1009,7 +1009,7 @@ async fn test_delete_by_head_notes(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("SECOND".to_string()),
         },
     )
@@ -1055,7 +1055,7 @@ async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Standalone1".to_string()),
         },
     )
@@ -1064,7 +1064,7 @@ async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Standalone2".to_string()),
         },
     )
@@ -1073,7 +1073,7 @@ async fn test_delete_by_no_chain_effects(db: MySqlPool) -> sqlx::Result<()> {
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Keep".to_string()),
         },
     )
@@ -1125,7 +1125,7 @@ async fn test_delete_by_single_note_bulk_operation(db: MySqlPool) -> sqlx::Resul
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("A".to_string()),
         },
     )
@@ -1134,7 +1134,7 @@ async fn test_delete_by_single_note_bulk_operation(db: MySqlPool) -> sqlx::Resul
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("B".to_string()),
         },
     )
@@ -1143,7 +1143,7 @@ async fn test_delete_by_single_note_bulk_operation(db: MySqlPool) -> sqlx::Resul
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("C".to_string()),
         },
     )
@@ -1190,7 +1190,7 @@ async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Res
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Head1".to_string()),
         },
     )
@@ -1199,7 +1199,7 @@ async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Res
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Head2".to_string()),
         },
     )
@@ -1208,7 +1208,7 @@ async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Res
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Child1".to_string()),
         },
     )
@@ -1217,7 +1217,7 @@ async fn test_delete_by_notes_with_null_predecessors(db: MySqlPool) -> sqlx::Res
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("Child2".to_string()),
         },
     )
@@ -1268,7 +1268,7 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("A".to_string()),
         },
     )
@@ -1277,7 +1277,7 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("B".to_string()),
         },
     )
@@ -1286,7 +1286,7 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("C".to_string()),
         },
     )
@@ -1295,7 +1295,7 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
         &db,
         &NoteInsert {
             owner: 2,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("D".to_string()),
         },
     )
@@ -1304,7 +1304,7 @@ async fn test_delete_by_complex_chain_stress_test(db: MySqlPool) -> sqlx::Result
         &db,
         &NoteInsert {
             owner: 1,
-            state: "todo".to_string(),
+            state: "todo".into(),
             text: Some("E".to_string()),
         },
     )

@@ -1,34 +1,48 @@
 /**
  * WebSocket Provider with Type-Safe Message Validation
- * 
- * This provider implements runtime validation of WebSocket messages using Zod schemas.
- * All incoming messages are validated against contracts to ensure type safety and catch
- * compatibility issues between frontend and backend.
- * 
+ *
+ * This provider implements runtime validation of WebSocket messages using typia.
+ * All incoming messages are validated against TypeScript contracts to ensure type safety
+ * and catch compatibility issues between frontend and backend.
+ *
  * Architecture:
- * - WebSocketMessageSchema validates top-level message structure (Patch/Users/Notes)
- * - WsOperationSchema validates individual operations within Patch messages
- * - Comprehensive error logging for invalid messages
- * 
- * Known Issues:
- * - Backend and frontend use different field names (owner vs owner_id, created_at vs created)
- * - Type assertions are used as temporary bridge until data transformation is implemented
- * - TODO: Add proper data transformation functions for backend->frontend mapping
+ * - typia validates messages against generated TypeScript contracts from Rust types
+ * - WsOperation types from contracts define all possible operations
+ * - Runtime validation happens at compile-time with typia transformation
  */
 "use client"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
+import typia from "typia"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
-import { WsOperation, WebSocketMessageSchema, WebSocketMessage, PatchMessage } from "@/schemas/websocket"
-import { INote, IUser } from "@/utils/interfaces"
+import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
+import type { User, Note } from "@/utils/interfaces"
 import { useActionStateStore } from "@/utils/store"
 import { TNoteState } from "@/utils/types"
 
+// WebSocket message types
+type PatchMessage = {
+  type: "Patch"
+  ops: WsOperation[]
+}
+
+type UsersMessage = {
+  type: "Users"
+  items: WsUser[]
+}
+
+type NotesMessage = {
+  type: "Notes"
+  items: WsNote[]
+}
+
+type WebSocketMessage = PatchMessage | UsersMessage | NotesMessage
+
 interface WebSocketContextType {
-  users: IUser[]
-  notes: INote[]
+  users: User[]
+  notes: Note[]
   sendMessage: (message: string) => void
   sendMessageAsync: (message: string, successNotification: string) => void
   connectionStatus: string
@@ -41,8 +55,8 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(undefin
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
-  const [users, setUsers] = useState<IUser[]>([])
-  const [notes, setNotes] = useState<INote[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -66,12 +80,25 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status])
 
+  // Transform contract types (bigint IDs) to app types (number IDs)
+  const transformNote = (note: WsNote): Note => ({
+    ...note,
+    owner_id: Number(note.owner_id),
+    state: note.state as TNoteState,  // TODO: Remove cast when state becomes enum in Rust
+  })
+
+  const transformUser = (user: WsUser): User => ({
+    ...user,
+    id: Number(user.id),
+    index: Number(user.index),
+  })
+
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {
       msg.ops.forEach((op: WsOperation) => {
         switch (op.type) {
           case "UserAdded":
-            setUsers((prevUsers) => [...prevUsers, op.user])
+            setUsers((prevUsers) => [...prevUsers, transformUser(op.user)])
             break
           case "UserNameUpdated":
             setUsers((prevUsers) => prevUsers.map((user) => (user.id === op.id ? { ...user, name: op.name } : user)))
@@ -121,17 +148,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             setNotes((prevNotes) => prevNotes.filter((note) => note.id !== op.id))
             break
           case "NoteAdded":
-            // TODO: Transform backend note format to frontend format
-            // Backend: {id, owner, state, text, tag, predecessor_id, created_at, updated_at}  
-            // Frontend: {id, owner_id, name, color, state, text, tag, predecessor_id, created, updated}
-            setNotes((prevNotes) => [...prevNotes, op.note as any as INote])
+            setNotes((prevNotes) => [...prevNotes, transformNote(op.note)])
             break
           case "ActionFinished":
             finishAsync(op.uuid)
             setIsLoading(false)
             break
-          default:
-            console.error("Unknown operation", op)
+          case "SnapshotCreated":
+            // Handle snapshot creation notification
+            break
+          case "Error":
+            console.error("WebSocket error:", op.message)
+            if (op.uuid) {
+              finishAsync(op.uuid)
+            }
+            setIsLoading(false)
             break
         }
       })
@@ -146,37 +177,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     socketRef.current.onmessage = (event) => {
       try {
         const rawMessage = JSON.parse(event.data)
-        
-        // Validate incoming message against schema
-        const parseResult = WebSocketMessageSchema.safeParse(rawMessage)
-        if (!parseResult.success) {
-          console.error('Invalid WebSocket message:', {
-            message: rawMessage,
-            errors: parseResult.error.issues
-          })
-          return
-        }
 
-        const msg: WebSocketMessage = parseResult.data
+        // Validate incoming message against contract types using typia
+        const msg = typia.assert<WebSocketMessage>(rawMessage)
 
         switch (msg.type) {
           case "Patch":
             handlePatchMessage(msg)
             break
           case "Users":
-            // TODO: Transform backend user format to frontend format if needed
-            setUsers(msg.items as any as IUser[])
+            setUsers(msg.items.map(transformUser))
             break
           case "Notes":
-            // TODO: Transform backend note format to frontend format
-            setNotes(msg.items as any as INote[])
-            break
-          default:
-            console.error('Unknown message type:', msg)
+            setNotes(msg.items.map(transformNote))
             break
         }
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error)
+        console.error('Failed to parse or validate WebSocket message:', error)
       }
     }
 

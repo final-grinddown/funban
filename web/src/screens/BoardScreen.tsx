@@ -11,12 +11,12 @@ import { UserSelector } from "@/components/UserSelector"
 import { useBoardModalManagement } from "@/hooks/useBoardModalManagement"
 import { useFocusManagement } from "@/hooks/useFocusManagement"
 import { useUserSelection } from "@/hooks/useUserSelection"
-import { INote, IUser } from "@/utils/interfaces"
+import { Note, User } from "@/utils/interfaces"
 import { useFocusStateStore } from "@/utils/store"
 
 interface Props {
-  users: IUser[]
-  notes: INote[]
+  users: User[]
+  notes: Note[]
   accessToken?: string
 }
 
