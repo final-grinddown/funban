@@ -1,11 +1,8 @@
 import type { WsNote, WsUser, WsNoteTag, WsNoteState } from "@/schemas/websocket"
-import { TNoteState } from "./types"
 
 // App types - contracts now use number for IDs (Rust i32 → TS number)
 export type User = WsUser
-export type Note = WsNote & {
-	state: TNoteState  // Convert WsNoteState enum to string union for app compatibility
-}
+export type Note = WsNote
 
 // Re-export contract types for WebSocket message handling
 export type { WsNote, WsUser, WsNoteTag, WsNoteState, WsNoteUpdate, WsUserUpdate, WsMoveTarget } from "@/schemas/websocket"
@@ -27,7 +24,7 @@ export interface IServerMessage {
 export interface IRawNote {
 	id: string
 	text: string
-	state: TNoteState
+	state: WsNoteState
 	predecessor_id: string | null
 	owner: {
 		id: string
@@ -71,7 +68,7 @@ export interface IColumn {
 
 export interface IColumnData {
 	title: string
-	state: TNoteState
+	state: WsNoteState
 	items: Note[]
 	orderKey: number
 }

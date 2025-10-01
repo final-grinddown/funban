@@ -19,7 +19,7 @@ impl AppState {
             .into_iter()
             .map(|change| WsOperation::NoteOrderChanged {
                 id: change.id as u32,
-                state: change.state,
+                state: change.state.into(),
                 predecessor_id: change.predecessor_id.map(|id| id as u32),
             })
             .collect();
@@ -40,7 +40,7 @@ impl AppState {
             .into_iter()
             .map(|change| WsOperation::NoteOrderChanged {
                 id: change.id as u32,
-                state: change.state,
+                state: change.state.into(),
                 predecessor_id: change.predecessor_id.map(|id| id as u32),
             })
             .collect();

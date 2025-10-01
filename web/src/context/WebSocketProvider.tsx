@@ -20,7 +20,6 @@ import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import type { User, Note } from "@/utils/interfaces"
 import { useActionStateStore } from "@/utils/store"
-import { TNoteState } from "@/utils/types"
 
 // WebSocket message types
 type PatchMessage = {
@@ -80,13 +79,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status])
 
-  // Transform contract types (bigint IDs) to app types (number IDs)
-  const transformNote = (note: WsNote): Note => ({
-    ...note,
-    state: note.state as TNoteState,  // Convert WsNoteState enum to string union
-  })
-
-  const transformUser = (user: WsUser): User => user  // No transformation needed - contracts use number for IDs
+  // Transform contract types to app types
+  const transformNote = (note: WsNote): Note => note  // No transformation needed
+  const transformUser = (user: WsUser): User => user  // No transformation needed
 
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {
@@ -131,7 +126,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                 note.id === op.id
                   ? {
                       ...note,
-                      state: op.state as TNoteState,
+                      state: op.state,
                       predecessor_id: op.predecessor_id,
                       updated: new Date().toISOString(),
                     }

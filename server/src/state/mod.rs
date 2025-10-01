@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use ts_rs::TS;
 
-use crate::model::note::{Note, NoteTag};
+use crate::model::note::{Note, NoteState, NoteTag};
 use crate::model::user::User;
 use crate::sql::note::MoveTarget;
 use crate::sql::{note, user};
@@ -196,7 +196,7 @@ pub enum WsOperation {
     },
     NoteOrderChanged {
         id: u32,
-        state: String,
+        state: NoteState,
         predecessor_id: Option<u32>,
     },
     NoteTagChanged {
