@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE notes\n\t\t\tSET predecessor_id = ?,\n\t\t\t\t\tstate = ?,\n\t\t\t\t\tchange_set = ?\n\t\t\tWHERE id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "70e5727c5cc5447b72dbb56fb909468c8a48f96f8466450ae9df8354e84149eb"
+}

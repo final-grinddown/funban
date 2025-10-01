@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT id, text, owner, state, predecessor_id, tag, updated, created\n        FROM notes \n        WHERE id = ?\n        ",
+  "query": "\n        SELECT id, text, owner, state, predecessor_id, tag, updated, created\n        FROM notes\n        WHERE id = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -90,5 +90,5 @@
       false
     ]
   },
-  "hash": "82cd6b9a14dd881043386baf0b0dfa361c8a805b729b73a320c0437b58e3d4ca"
+  "hash": "6c0f0597f1d364b5470ebd1db8d1bb11dbaf27e9d08b08eb90e069691daab507"
 }

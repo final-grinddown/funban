@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use ts_rs::TS;
 
-use crate::model::note::{Note, NoteTag};
+use crate::model::note::{Note, NoteState, NoteTag};
 use crate::model::user::User;
 use crate::sql::note::MoveTarget;
 use crate::sql::{note, user};
@@ -110,7 +110,7 @@ impl AppState {
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsAction {
     AddNote {
@@ -184,7 +184,7 @@ pub enum WsAction {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsOperation {
     NoteAdded {
@@ -196,7 +196,7 @@ pub enum WsOperation {
     },
     NoteOrderChanged {
         id: u32,
-        state: String,
+        state: NoteState,
         predecessor_id: Option<u32>,
     },
     NoteTagChanged {

@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 import { useFocusStateStore } from "@/utils/store"
 
-export function useFocusManagement(users: IUser[]) {
+export function useFocusManagement(users: User[]) {
   const { isFocus, setIsFocus, currentUser, setCurrentUser } = useFocusStateStore()
   const [shouldRenderFocus, setShouldRenderFocus] = useState(false)
 

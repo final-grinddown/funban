@@ -9,8 +9,8 @@ pub mod tests;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct UserDto {
-    pub id: i64,
-    pub index: i64,
+    pub id: i32,
+    pub index: i32,
     pub name: String,
     pub color: String,
     pub email: String,

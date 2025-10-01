@@ -17,7 +17,7 @@ jest.mock('next-auth/react', () => ({
 jest.mock('@/context/WebSocketProvider', () => ({
   useWebSocketContext: jest.fn(() => ({
     users: [
-      { id: 1, name: 'Test User', color: '#ff0000' }
+      { id: 1, index: 1, name: 'Test User', color: '#ff0000', email: 'Test User@example.com' }
     ],
     notes: [
       { 

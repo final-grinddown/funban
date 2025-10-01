@@ -10,15 +10,15 @@ import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } f
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   isOpen: boolean
-  noteId: INote["id"]
-  noteState: INote["state"]
-  noteText: INote["text"]
+  noteId: Note["id"]
+  noteState: Note["state"]
+  noteText: Note["text"]
   onClose: () => void
   hasTextFocus?: boolean
   clearTextFocus?: () => void

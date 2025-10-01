@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE notes\n\t\t\tSET predecessor_id = (\n\t\t\t\t\tSELECT predecessor_id\n\t\t\t\t\tFROM (SELECT * FROM notes) AS n2\n\t\t\t\t\tWHERE n2.id = ?\n\t\t\t),\n\t\t\tchange_set = ?\n\t\t\tWHERE predecessor_id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ae3e306f566b408649c9650d766b51104034ad7faefb699c98d142985efc7551"
+}

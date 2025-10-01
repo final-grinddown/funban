@@ -2,19 +2,36 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
+#[ts(export)]
 pub struct Note {
     pub id: i32,
     pub text: String,
     pub name: String,
     pub color: String,
-    pub owner_id: i64,
-    pub state: String,
+    pub owner_id: i32,
+    pub state: NoteState,
     pub predecessor_id: Option<i32>,
     pub updated: chrono::DateTime<Utc>,
     pub created: chrono::DateTime<Utc>,
     pub tag: Option<NoteTag>,
+}
+
+impl Default for Note {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            text: String::new(),
+            name: String::new(),
+            color: String::new(),
+            owner_id: 0,
+            state: NoteState::Notes,
+            predecessor_id: None,
+            updated: Utc::now(),
+            created: Utc::now(),
+            tag: None,
+        }
+    }
 }
 
 pub struct NoteInsert {
@@ -23,7 +40,9 @@ pub struct NoteInsert {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
 pub enum NoteState {
     Notes,
     Todo,
@@ -33,7 +52,13 @@ pub enum NoteState {
 
 impl From<String> for NoteState {
     fn from(s: String) -> Self {
-        match s.as_str() {
+        Self::from(s.as_str())
+    }
+}
+
+impl From<&str> for NoteState {
+    fn from(s: &str) -> Self {
+        match s {
             "notes" => NoteState::Notes,
             "todo" => NoteState::Todo,
             "in_progress" => NoteState::InProgress,
@@ -64,7 +89,7 @@ impl AsRef<str> for NoteState {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
-#[ts(export, export_to = "../contracts/")]
+#[ts(export)]
 pub enum NoteTag {
     Important,
     Deadline,

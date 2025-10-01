@@ -25,6 +25,9 @@ test-web:
 test-server:
 	cd server && cargo test
 
+sqlx-prepare:
+	cd server && cargo sqlx prepare --workspace -- --all-targets  --all-features --bins --tests
+
 # Check/Lint
 check: check-web check-server
 

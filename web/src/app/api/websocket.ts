@@ -1,178 +1,149 @@
-import {
-	AddNote,
-	AddUser,
-	RemoveNote,
-	DeleteNotes,
-	RemoveUser,
-	SplitNote,
-	NoteUpdate,
-	UpdateNoteTag,
-	UpdateNoteText,
-	Reorder,
-	UpdateUserColor,
-	UpdateUserName,
-} from "@/schemas/websocket"
+import typia from "typia"
+import type { WsAction, WsNoteTag, WsNoteUpdate, WsMoveTarget, WsNoteState } from "@/schemas/websocket"
+
+// Helper to create and validate a WsAction message
+// Uses typia to validate the complete action before sending to server
+function createAction<T extends WsAction>(action: T): string {
+	typia.assert<WsAction>(action)
+	return JSON.stringify(action)
+}
 
 export function createAddUserMessage(name: string, color: string): string {
-	const action: AddUser = {
+	return createAction({
 		type: "AddUser",
-		uuid: undefined,
+		uuid: null,
 		name,
 		color,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateUserNameMessage(id: number, name: string): string {
-	const action: UpdateUserName = {
+	return createAction({
+		uuid: null,
 		type: "UpdateUserName",
-		uuid: undefined,
 		id,
 		name,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateUserColorMessage(id: number, color: string): string {
-	const action: UpdateUserColor = {
+	return createAction({
+		uuid: null,
 		type: "UpdateUserColor",
-		uuid: undefined,
-		id: id,
-		color: color,
-	}
-
-	return JSON.stringify(action)
+		id,
+		color,
+	})
 }
 
 export function createDeleteUser(id: number): string {
-	const action: RemoveUser = {
+	return createAction({
+		uuid: null,
 		type: "RemoveUser",
-		uuid: undefined,
-		id: id,
-	}
-
-	return JSON.stringify(action)
+		id,
+	})
 }
 
 export function createNewNote(owner: string, text: string, state: string): string {
-	const action: AddNote = {
+	return createAction({
+		uuid: null,
 		type: "AddNote",
-		uuid: undefined,
 		owner: parseInt(owner),
 		state,
 		text,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateNote(id: string, text: string, destinationStatus: string): string {
-	const action: NoteUpdate = {
+	const updates: WsNoteUpdate[] = [
+		{
+			target: "Text",
+			text: text,
+		},
+		{
+			target: "Order",
+			over_id: {
+				type: "Last",
+				state: destinationStatus as WsNoteState,
+			},
+		},
+	]
+	return createAction({
+		uuid: null,
 		type: "NoteUpdate",
-		uuid: undefined,
 		id: parseInt(id),
-		updates: [
-			{
-				target: "Text",
-				text: text,
-			},
-			{
-				target: "Order",
-				over_id: {
-					type: "Last",
-					state: destinationStatus,
-				},
-			},
-		],
-	}
-
-	return JSON.stringify(action)
+		updates,
+	})
 }
 
 export function createUpdateNoteText(id: string, text: string): string {
-	const action: UpdateNoteText = {
+	return createAction({
+		uuid: null,
 		type: "UpdateNoteText",
-		uuid: undefined,
 		id: parseInt(id),
 		text,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
-export function createUpdateNoteTag(id: string, tag: string | null): string {
-	const action: UpdateNoteTag = {
+export function createUpdateNoteTag(id: string, tag: WsNoteTag | null): string {
+	return createAction({
+		uuid: null,
 		type: "UpdateNoteTag",
-		uuid: undefined,
 		id: parseInt(id),
-		tag: tag as any, // TODO: Fix tag type mapping
-	}
-
-	return JSON.stringify(action)
+		tag,
+	})
 }
 
 export function createUpdateNoteReorderBefore(id: string, over_id: number): string {
-	const action: Reorder = {
-		type: "Reorder",
-		uuid: undefined,
-		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Before",
-			id: over_id,
-		},
+	const moveTarget: WsMoveTarget = {
+		type: "Before",
+		id: over_id,
 	}
-
-	return JSON.stringify(action)
+	return createAction({
+		uuid: null,
+		type: "Reorder",
+		moved_item_id: parseInt(id),
+		over_id: moveTarget,
+	})
 }
 
 export function createUpdateNoteReorderLast(id: string, state: string): string {
-	const action: Reorder = {
-		type: "Reorder",
-		uuid: undefined,
-		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Last",
-			state,
-		},
+	const moveTarget: WsMoveTarget = {
+		type: "Last",
+		state: state as WsNoteState,
 	}
-
-	return JSON.stringify(action)
+	return createAction({
+		uuid: null,
+		type: "Reorder",
+		moved_item_id: parseInt(id),
+		over_id: moveTarget,
+	})
 }
 
 export function createDeleteNote(id: string): string {
-	const action: RemoveNote = {
+	return createAction({
+		uuid: null,
 		type: "RemoveNote",
-		uuid: undefined,
 		id: parseInt(id),
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createDeleteNoteUserBulk(status: string, owner: number): string {
-	const action: DeleteNotes = {
+	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
-		uuid: undefined,
 		owner,
 		status,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createDeleteNoteBulk(status: string): string {
-	const action: DeleteNotes = {
+	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
-		uuid: undefined,
-		owner: undefined,
+		owner: null,
 		status,
-	}
-
-	return JSON.stringify(action)
+	})
 }
-
 
 export function createSplitNote(
 	originalId: string,
@@ -181,15 +152,13 @@ export function createSplitNote(
 	newState?: string,
 	newOwner?: string
 ): string {
-	const action: SplitNote = {
+	return createAction({
+		uuid: null,
 		type: "SplitNote",
-		uuid: undefined,
 		original_id: parseInt(originalId),
 		original_text: originalText,
 		new_text: newText,
-		new_state: newState,
-		new_owner: newOwner ? parseInt(newOwner) : undefined,
-	}
-
-	return JSON.stringify(action)
+		new_state: newState ?? null,
+		new_owner: newOwner ? parseInt(newOwner) : null,
+	})
 }

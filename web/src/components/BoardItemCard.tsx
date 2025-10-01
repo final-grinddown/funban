@@ -20,9 +20,10 @@ import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useSimpleModal } from "@/hooks/useSimpleModal"
+import type { WsNoteTag } from "@/schemas/websocket"
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
-import { DevSettings, INote } from "@/utils/interfaces"
+import { DevSettings, Note } from "@/utils/interfaces"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/storage"
 import { useFocusStateStore } from "@/utils/store"
 import { DeleteNoteModal } from "./DeleteNoteModal"
@@ -31,7 +32,7 @@ import { SplitNoteModal } from "./SplitNoteModal"
 
 const HEADER_CONFIG_KEY = "funban-header-config"
 
-interface Props extends INote {
+interface Props extends Note {
   isEditable: boolean
   predecessor_id: number | null
   onDragStart: (event: DragEvent<HTMLDivElement>, itemId: string) => void
@@ -127,7 +128,7 @@ export function BoardItemCard({
   }
 
   const handleSet = (modifier: string) => {
-    const message = createUpdateNoteTag(id.toString(), modifier)
+    const message = createUpdateNoteTag(id.toString(), modifier as WsNoteTag)
     sendMessageAsync(message, "Modifier set to " + modifier)
     setIsSubmitting(true)
     handleCloseMenu()

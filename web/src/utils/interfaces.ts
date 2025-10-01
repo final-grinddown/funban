@@ -1,26 +1,19 @@
-import type { MoveTarget as ContractMoveTarget } from "../../../contracts/MoveTarget"
-import type { Note } from "../../../contracts/Note"
-import type { NoteUpdate as ContractNoteUpdate } from "../../../contracts/NoteUpdate"
-import type { User } from "../../../contracts/User"
-import { TNoteState } from "./types"
+import type { WsNote, WsUser, WsNoteTag, WsNoteState } from "@/schemas/websocket"
 
-// Re-export contract types for internal use
-export type IUser = Omit<User, 'id' | 'index' | 'email'> & {
-	id: number
-}
+// App types - contracts now use number for IDs (Rust i32 → TS number)
+export type User = WsUser
+export type Note = WsNote
 
-export interface IUserAddedOperation {
-	type: "UserAdded"
-	user: IUser
-}
+// Re-export contract types for WebSocket message handling
+export type { WsNote, WsUser, WsNoteTag, WsNoteState, WsNoteUpdate, WsUserUpdate, WsMoveTarget } from "@/schemas/websocket"
 
 export interface IPatchOperation {
-	ops: IUserAddedOperation[]
+	ops: { type: "UserAdded"; user: User }[]
 }
 
 export interface IWebSocketMessage {
 	type: "Users" | "Notes" | "Patch"
-	items?: IUser[]
+	items?: User[]
 	ops?: IPatchOperation[]
 }
 
@@ -28,39 +21,10 @@ export interface IServerMessage {
 	type: "Users" | "Notes" | "Patch"
 }
 
-export interface IAddUser {
-	type: "AddUser"
-	name: string
-	color: string
-}
-
-export interface IUpdateUserName {
-	type: "UpdateUserName"
-	id: number
-	name: string
-}
-
-export interface IUpdateUserColor {
-	type: "UpdateUserColor"
-	id: number
-	color: string
-}
-
-export interface IRemoveUser {
-	type: "RemoveUser"
-	id: number
-}
-
-export type INote = Omit<Note, 'owner_id' | 'tag'> & {
-	owner_id: number
-	state: TNoteState
-	tag: string | null
-}
-
 export interface IRawNote {
 	id: string
 	text: string
-	state: TNoteState
+	state: WsNoteState
 	predecessor_id: string | null
 	owner: {
 		id: string
@@ -70,74 +34,6 @@ export interface IRawNote {
 	updated: string
 	created: string
 	tag: string | null
-}
-
-export interface IAddNote {
-	type: "AddNote"
-	owner: number
-	state: string
-	text: string
-}
-
-export interface IUpdateNote {
-	type: "NoteUpdate"
-	id: number
-	updates: NoteUpdate[]
-}
-
-// Use contract types for updates
-export type NoteUpdate = ContractNoteUpdate
-
-export interface IUpdateNoteText {
-	type: "UpdateNoteText"
-	id: number
-	text: string
-}
-
-export interface IUpdateNoteTag {
-	type: "UpdateNoteTag"
-	id: number
-	tag: string | null
-}
-
-export interface IRemoveNote {
-	type: "RemoveNote"
-	id: number
-}
-
-export interface IRemoveNoteBulk {
-	type: "DeleteNotes"
-	owner?: number,
-	status: string
-}
-
-
-export interface ISplitNote {
-	type: "SplitNote"
-	original_id: number
-	original_text: string
-	new_text: string
-	new_state?: string
-	new_owner?: number
-}
-
-export interface IUpdateReorderNote {
-	type: "Reorder"
-	moved_item_id: number
-	over_id: MoveTarget
-}
-
-// Use contract types for move targets
-export type MoveTarget = ContractMoveTarget
-
-export type MoveTargetBefore = {
-	type: "Before"
-	id: number
-}
-
-export type MoveTargetLast = {
-	type: "Last"
-	state: string
 }
 
 export type DevSettings = {
@@ -172,8 +68,8 @@ export interface IColumn {
 
 export interface IColumnData {
 	title: string
-	state: TNoteState
-	items: INote[]
+	state: WsNoteState
+	items: Note[]
 	orderKey: number
 }
 

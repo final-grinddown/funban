@@ -5,7 +5,7 @@ import { Box, IconButton, List, Typography, Menu, MenuItem, ListItemText, ListIt
 import { useTheme } from "@mui/material/styles"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 import { AddNewNoteModal } from "./AddNewNoteModal"
 import { BoardItemCard } from "./BoardItemCard"
 import { DeleteNoteBulkModal } from "./DeleteNoteBulkModal"
@@ -13,8 +13,8 @@ import { DragAndDropPlaceholder } from "./DragAndDropPlaceholder"
 
 interface Props {
   title: string
-  items: INote[]
-  state: INote["state"]
+  items: Note[]
+  state: Note["state"]
   isEditable: boolean
   hoveredColumn: string | null
   setHoveredColumn: (columnId: string | null) => void

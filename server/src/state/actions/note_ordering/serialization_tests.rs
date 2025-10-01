@@ -16,14 +16,14 @@ fn action_reorder_note() {
 
 #[test]
 fn action_reorder_note_last() {
-    let json = r#"{"type":"Reorder","moved_item_id":146,"over_id":{"type":"Last","state":"DONE"}}"#;
+    let json = r#"{"type":"Reorder","moved_item_id":146,"over_id":{"type":"Last","state":"done"}}"#;
     let action = serde_json::from_str::<WsAction>(json).unwrap();
     assert_eq!(
         action,
         WsAction::Reorder {
             moved_item_id: 146,
             over_id: MoveTarget::Last {
-                state: "DONE".into()
+                state: "done".into()
             },
             uuid: None
         }
@@ -39,7 +39,7 @@ fn action_reorder_note_no_index() {
         WsAction::Reorder {
             moved_item_id: 1,
             over_id: MoveTarget::Last {
-                state: "done".to_string()
+                state: "done".into()
             },
             uuid: Some("0191a379-246e-702a-af56-b9d6e10b246e".into())
         }

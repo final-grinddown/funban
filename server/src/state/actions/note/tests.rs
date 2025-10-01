@@ -41,7 +41,7 @@ async fn add_note(db: MySqlPool) -> sqlx::Result<()> {
         [WsOperation::NoteAdded { note }, WsOperation::ActionFinished {
             uuid: finished_uuid,
         }] => {
-            assert_eq!(note.owner_id, owner as i64);
+            assert_eq!(note.owner_id, owner as i32);
             assert_eq!(finished_uuid, &uuid);
         }
         _ => panic!("Unexpected operations: {:?}", operations),

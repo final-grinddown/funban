@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IUser } from '@/utils/interfaces'
+import { User } from '@/utils/interfaces'
 import { SettingsScreen } from '../SettingsScreen'
 
 // Mock Next.js router
@@ -17,7 +17,7 @@ jest.mock('@/components/AccountSettings', () => ({
 }))
 
 jest.mock('@/components/TeamManagement', () => ({
-  TeamManagement: ({ users }: { users: IUser[] }) => (
+  TeamManagement: ({ users }: { users: User[] }) => (
     <div data-testid="team-management">
       Team Management Content - {users.length} users
     </div>
@@ -45,10 +45,10 @@ jest.mock('@mui/material', () => ({
 }))
 
 describe('SettingsScreen', () => {
-  const mockUsers: IUser[] = [
-    { id: 1, name: 'John Doe', color: '#ff0000' },
-    { id: 2, name: 'Jane Smith', color: '#00ff00' },
-    { id: 3, name: 'Bob Johnson', color: '#0000ff' },
+  const mockUsers: User[] = [
+    { id: 1, index: 1, name: 'John Doe', color: '#ff0000', email: 'John Doe@example.com' },
+    { id: 2, index: 2, name: 'Jane Smith', color: '#00ff00', email: 'Jane Smith@example.com' },
+    { id: 3, index: 3, name: 'Bob Johnson', color: '#0000ff', email: 'Bob Johnson@example.com' },
   ]
 
   const user = userEvent.setup()

@@ -7,8 +7,8 @@ const mockWebSocketContext = {
   sendMessageAsync: jest.fn().mockResolvedValue(undefined),
   isLoading: false,
   users: [
-    { id: 1, name: 'User 1', color: '#ff0000' },
-    { id: 2, name: 'User 2', color: '#00ff00' },
+    { id: 1, index: 1, name: 'User 1', color: '#ff0000', email: 'User 1@example.com' },
+    { id: 2, index: 2, name: 'User 2', color: '#00ff00', email: 'User 2@example.com' },
   ],
   isConnected: true,
 }

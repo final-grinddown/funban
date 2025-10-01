@@ -21,13 +21,13 @@ import { createSplitNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { MaxTextLength } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { INote, IUser } from "@/utils/interfaces"
+import { Note, User } from "@/utils/interfaces"
 import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   isOpen: boolean
-  originalNote: INote
-  users: IUser[]
+  originalNote: Note
+  users: User[]
   onClose: () => void
   hasTextFocus?: boolean
   clearTextFocus?: () => void

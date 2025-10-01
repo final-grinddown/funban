@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { INote } from '@/utils/interfaces'
+import { Note } from '@/utils/interfaces'
 import { Board } from '../Board'
 
 // Mock WebSocket context
@@ -52,7 +52,7 @@ jest.mock('../BoardColumn', () => ({
         data-editable={isEditable}
       >
         <h3>{title}</h3>
-        {items.map((item: INote) => (
+        {items.map((item: Note) => (
           <div key={item.id} data-testid={`note-${item.id}`}>
             {item.text}
           </div>
@@ -68,7 +68,7 @@ jest.mock('../BackdropLoading', () => ({
   ),
 }))
 
-const mockNotes: INote[] = [
+const mockNotes: Note[] = [
   {
     id: 1,
     text: 'Note 1 - root todo',
@@ -91,7 +91,7 @@ const mockNotes: INote[] = [
     predecessor_id: 1,
     updated: '2024-01-01T11:00:00Z',
     created: '2024-01-01T11:00:00Z',
-    tag: 'IMPORTANT',
+    tag: 'Important',
   },
   {
     id: 3,
@@ -115,7 +115,7 @@ const mockNotes: INote[] = [
     predecessor_id: null,
     updated: '2024-01-01T13:00:00Z',
     created: '2024-01-01T13:00:00Z',
-    tag: 'DEADLINE',
+    tag: 'Deadline',
   },
   {
     id: 5,
@@ -250,7 +250,7 @@ describe('Board', () => {
 
     it('prevents circular references in note chains', () => {
       // Create notes with potential circular reference
-      const circularNotes: INote[] = [
+      const circularNotes: Note[] = [
         {
           id: 1,
           text: 'Note 1',
