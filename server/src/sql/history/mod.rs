@@ -162,6 +162,7 @@ pub struct BrowserInfoEntity {
     pub id: String,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
     pub previous_id: Option<u32>,
     pub previous_label: Option<String>,
@@ -175,7 +176,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
     let result = if let Some(current_id) = id {
         let row = sqlx::query!(
             r#"
-						  SELECT snapshot, label, created_at, id
+						  SELECT snapshot, label, created_at, id, version
     					FROM history
     					WHERE id = ?;
 						"#,
@@ -184,12 +185,12 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
         .fetch_one(&mut *transaction)
         .await?;
 
-        (row.snapshot, row.label, row.created_at, row.id)
+        (row.snapshot, row.label, row.created_at, row.id, row.version)
     } else {
         // Fetch the most recent entry when no ID is provided
         let row = sqlx::query!(
             r#"
-						  SELECT snapshot, label, created_at, id
+						  SELECT snapshot, label, created_at, id, version
     					FROM history
     					WHERE created_at = (SELECT MAX(created_at) FROM history);
 				"#,
@@ -198,7 +199,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
         .await?;
 
         if let Some(row) = row {
-            (row.snapshot, row.label, row.created_at, row.id)
+            (row.snapshot, row.label, row.created_at, row.id, row.version)
         } else {
             return Err(sqlx::Error::RowNotFound);
         }
@@ -236,6 +237,7 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
         id: result.3.to_string(),
         label: result.1,
         snapshot: result.0,
+        version: result.4,
         created_at: result.2,
         previous_id: previous.as_ref().map(|s| s.id as u32),
         previous_label: previous.and_then(|s| s.label),

@@ -1,14 +1,12 @@
-import { getSnapshotVersion } from "@/utils/snapshot-types"
 import { HistoryV1 } from "./v1/HistoryV1"
 import { HistoryV2 } from "./v2/HistoryV2"
 
 interface HistoryRendererProps {
   snapshot: string
+  version: number
 }
 
-export function HistoryRenderer({ snapshot }: HistoryRendererProps) {
-  const version = getSnapshotVersion(snapshot)
-
+export function HistoryRenderer({ snapshot, version }: HistoryRendererProps) {
   switch (version) {
     case 1:
       return <HistoryV1 snapshot={snapshot} />

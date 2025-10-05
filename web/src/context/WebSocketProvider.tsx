@@ -72,7 +72,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === "authenticated" && session) {
       const extendedSession = session as Session
-      console.log('WebSocket: session status', status, 'has accessToken:', !!extendedSession?.accessToken)
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
         shouldReconnectRef.current = true
@@ -228,11 +227,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       reconnectTimeoutRef.current = null
     }
 
-    console.log('WebSocket: Connecting to', socketUrl)
     socketRef.current = new WebSocket(socketUrl!)
 
     socketRef.current.onopen = () => {
-      console.log('WebSocket: Connected successfully')
       // Reset reconnect delay on successful connection
       reconnectDelayRef.current = INITIAL_RECONNECT_DELAY
       shouldReconnectRef.current = true
@@ -244,24 +241,19 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
         // Validate incoming message against contract types using typia
         const msg = typia.assert<WebSocketMessage>(rawMessage)
-        console.log('WebSocket: Received message type:', msg.type)
 
         switch (msg.type) {
           case "Patch":
             handlePatchMessage(msg)
             break
           case "Users": {
-            console.log('WebSocket: Received', msg.items.length, 'users')
             const users = msg.items.map(transformUser)
             setUsers(users)
-            console.log('WebSocket: Users state updated to', users.length)
             break
           }
           case "Notes": {
-            console.log('WebSocket: Received', msg.items.length, 'notes')
             const notes = msg.items.map(transformNote)
             setNotes(notes)
-            console.log('WebSocket: Notes state updated to', notes.length)
             break
           }
         }

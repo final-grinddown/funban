@@ -57,7 +57,7 @@ jest.mock('@/components/history/HistoryRenderer', () => {
   const React = require('react')
 
   return {
-    HistoryRenderer: ({ snapshot }: { snapshot: string }) => {
+    HistoryRenderer: ({ snapshot, version }: { snapshot: string; version: number }) => {
       const [selectedUser, setSelectedUser] = React.useState(null as string | null)
 
       const handleUserChange = (event: any) => {
@@ -102,6 +102,7 @@ describe('HistoryDetailScreen', () => {
     created_at: '2024-01-15T14:20:00Z',
     label: 'Board Snapshot v2',
     snapshot: 'mock-base64-snapshot',
+    version: 2,
     previous: { id: 1, label: 'Board Snapshot v1' },
     next: { id: 3, label: 'Board Snapshot v3' },
   }
@@ -112,6 +113,7 @@ describe('HistoryDetailScreen', () => {
     created_at: '2024-01-15T18:00:00Z',
     label: 'Board Snapshot v3',
     snapshot: 'mock-base64-snapshot',
+    version: 2,
     previous: { id: 2, label: 'Board Snapshot v2' },
     next: { id: 4, label: 'Next Item' },
   }

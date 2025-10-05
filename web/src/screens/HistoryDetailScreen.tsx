@@ -182,7 +182,7 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
       <Typography variant="h1" component="h1">
         History Detail for: {data?.label}
       </Typography>
-      {data?.snapshot && <HistoryRenderer snapshot={data.snapshot} />}
+      {data?.snapshot && <HistoryRenderer snapshot={data.snapshot} version={data.version} />}
     </Box>
   )
 }

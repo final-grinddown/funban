@@ -46,6 +46,7 @@ export interface IHistoryItem {
 	created_at: string
 	label: string
 	snapshot: string
+	version: number
 	previous: {
 		id: number
 		label: string

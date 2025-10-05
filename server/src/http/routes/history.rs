@@ -25,6 +25,7 @@ pub struct HistoryDto {
     pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
 }
 
@@ -34,6 +35,7 @@ impl From<HistoryEntity> for HistoryDto {
             id: user.id,
             label: user.label,
             snapshot: user.snapshot,
+            version: user.version,
             created_at: user.created_at,
         }
     }
@@ -50,6 +52,7 @@ pub struct BrowserInfoDto {
     pub next: Option<BrowserInfoBitDto>,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
 }
 
@@ -304,6 +307,7 @@ impl From<BrowserInfoEntity> for BrowserInfoDto {
             }),
             label: user.label,
             snapshot: user.snapshot,
+            version: user.version,
             created_at: user.created_at,
         }
     }
