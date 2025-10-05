@@ -106,6 +106,25 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             setUsers((prevUsers) => prevUsers.filter((user) => user.id !== op.id))
             setNotes((prevNotes) => prevNotes.filter((note) => note.owner_id !== op.id))
             break
+          case "UserMarkAdded":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: [
+                        ...(user.marks || []),
+                        {
+                          mark_type: op.mark_type,
+                          custom_text: op.custom_text,
+                          expires_in: op.expires_after_status_ends,
+                        },
+                      ],
+                    }
+                  : user
+              )
+            )
+            break
           case "NoteTextUpdated":
             setNotes((prevNotes) =>
               prevNotes.map((note) =>

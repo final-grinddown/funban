@@ -88,6 +88,23 @@ impl AppState {
                 self.handle_user_update(db, uuid, id, updates).await
             }
             WsAction::NotifySnapshot {} => self.handle_notify_snapshot().await,
+            WsAction::AddUserMark {
+                uuid,
+                user_id,
+                mark_type,
+                custom_text,
+                expires_after_status_ends,
+            } => {
+                self.handle_add_user_mark(
+                    db,
+                    uuid,
+                    user_id,
+                    mark_type,
+                    custom_text,
+                    expires_after_status_ends,
+                )
+                .await
+            }
             WsAction::SplitNote {
                 uuid,
                 original_id,
@@ -173,6 +190,13 @@ pub enum WsAction {
         updates: Vec<UserUpdate>,
     },
     NotifySnapshot {},
+    AddUserMark {
+        uuid: Option<String>,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
+    },
     SplitNote {
         uuid: Option<String>,
         original_id: u32,
@@ -220,6 +244,12 @@ pub enum WsOperation {
     },
     UserRemoved {
         id: u32,
+    },
+    UserMarkAdded {
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
     },
     ActionFinished {
         uuid: String,

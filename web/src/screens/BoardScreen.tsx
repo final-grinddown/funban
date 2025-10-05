@@ -2,12 +2,15 @@ import { useEffect, useMemo } from "react"
 import SettingsIcon from "@mui/icons-material/Settings"
 import { Box, Button, ButtonGroup, Typography } from "@mui/material"
 import { useHotkeys } from "react-hotkeys-hook"
+import { createAddUserMark } from "@/app/api/websocket"
 import { AddNewNoteModal } from "@/components/AddNewNoteModal"
+import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { Board } from "@/components/Board"
 import { BoardActionsMenu } from "@/components/BoardActionMenu"
 import { EndStatusModal } from "@/components/EndStatusModal"
 import { FocusControls } from "@/components/FocusControls"
 import { UserSelector } from "@/components/UserSelector"
+import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useBoardModalManagement } from "@/hooks/useBoardModalManagement"
 import { useFocusManagement } from "@/hooks/useFocusManagement"
 import { useUserSelection } from "@/hooks/useUserSelection"
@@ -24,15 +27,19 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
   const { user, handleChange, handlePrevUser, handleNextUser } = useUserSelection(users)
   const { currentUser, setCurrentUser } = useFocusStateStore()
   const { isFocus, shouldRenderFocus, handleStartFocus, handleEndFocus } = useFocusManagement(users)
+  const { sendMessageAsync } = useWebSocketContext()
   const {
     isEndStatusModalOpen,
     isAddNewNoteModalOpen,
+    isAddUserMarkModalOpen,
     anchorEl,
     openMenu,
     handleCloseEndStatusModal,
     handleOpenAddNewNoteModal,
     handleOpenEndStatusModal,
     handleCloseAddNewNoteModal,
+    handleOpenAddUserMarkModal,
+    handleCloseAddUserMarkModal,
     handleOpenMenu,
     handleCloseMenu,
     isAnyModalOpen,
@@ -69,6 +76,11 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
 
   useHotkeys("d", () => handleNextUser(), [handleNextUser])
 
+  const handleAddUserMark = (data: { userId: number; markType: string; duration: number; customText?: string }) => {
+    const message = createAddUserMark(data.userId, data.markType, data.duration, data.customText)
+    sendMessageAsync(message, "Mark added!")
+  }
+
   return (
     <>
       <Typography variant="h1">Board</Typography>
@@ -100,7 +112,7 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
         <ButtonGroup
           variant="contained"
           aria-label="Board button group"
-          sx={{ maxWidth: { md: 600 }, display: { xs: "none", md: "flex" } }}
+          sx={{ maxWidth: { md: 800 }, display: { xs: "none", md: "flex" } }}
           fullWidth
         >
           <Button onClick={handleOpenAddNewNoteModal}>Create a new note</Button>
@@ -109,6 +121,9 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
           </Button>
           <Button color="error" onClick={handleOpenEndStatusModal}>
             End status
+          </Button>
+          <Button color="warning" onClick={handleOpenAddUserMarkModal} disabled={!user}>
+            Add mark
           </Button>
         </ButtonGroup>
       </Box>
@@ -130,6 +145,14 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
         notes={snapshot}
         onClose={handleCloseEndStatusModal}
         accessToken={accessToken}
+      />
+
+      <AddUserMarkModal
+        isOpen={isAddUserMarkModalOpen}
+        onClose={handleCloseAddUserMarkModal}
+        users={users}
+        selectedUserId={user ? parseInt(user) : undefined}
+        onSubmit={handleAddUserMark}
       />
 
       {shouldRenderFocus && (
