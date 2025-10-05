@@ -19,10 +19,10 @@ impl AppState {
         // Validate mark type
         if !crate::model::user_mark::UserMarkType::is_valid_mark_type(&mark_type) {
             return WsOperation::Error {
-                uuid,
+                uuid: uuid.clone(),
                 message: format!("Invalid mark type: {}", mark_type),
             }
-            .client_only();
+            .respond(uuid);
         }
 
         let user_mark_insert = UserMarkInsert {
@@ -41,10 +41,10 @@ impl AppState {
             }
             .broadcast(uuid),
             Err(e) => WsOperation::Error {
-                uuid,
+                uuid: uuid.clone(),
                 message: format!("Failed to add user mark: {}", e),
             }
-            .client_only(),
+            .respond(uuid),
         }
     }
 }

@@ -24,6 +24,7 @@ impl From<UserDto> for User {
             name: user.name,
             color: user.color,
             email: user.email,
+            marks: Vec::new(), // Marks are populated separately in get_users
         }
     }
 }
