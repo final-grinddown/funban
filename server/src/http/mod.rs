@@ -33,6 +33,7 @@ pub fn api_router() -> Router {
         .merge(routes::health::router())
         .merge(routes::note::router())
         .merge(routes::user::router())
+        .merge(routes::user_mark::router())
         .merge(routes::history::protected_router())
         .merge(routes::openapi::router())
         .merge(routes::auth::router())
