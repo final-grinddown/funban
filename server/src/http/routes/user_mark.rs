@@ -1,5 +1,4 @@
 use crate::http::Result;
-use crate::http::validation::Validate;
 use crate::model::user_mark::{UserMarkInsert, UserMarkType};
 use crate::sql::{self, user_mark::UserMarkDto};
 use axum::{
@@ -40,7 +39,7 @@ pub struct CreateUserMarkRequest {
     expires_after_status_ends: Option<i32>,
 }
 
-impl Validate for CreateUserMarkRequest {
+impl CreateUserMarkRequest {
     fn validate(&self) -> Result<()> {
         if !UserMarkType::is_valid_mark_type(&self.mark_type) {
             return Err(crate::http::Error::BadRequest(format!(
@@ -73,8 +72,8 @@ pub fn router() -> Router {
     Router::new()
         .route("/user-marks", get(get_all))
         .route("/user-marks", post(create))
-        .route("/user-marks/:id", delete(delete_mark))
-        .route("/user-marks/user/:user_id", get(get_by_user_id))
+        .route("/user-marks/{id}", delete(delete_mark))
+        .route("/user-marks/user/{user_id}", get(get_by_user_id))
 }
 
 async fn get_all(ctx: Extension<ApiContext>) -> Result<Json<Vec<UserMark>>> {
@@ -127,7 +126,7 @@ async fn create(
         Ok(user_mark) => Ok(Json(UserMark::from(user_mark))),
         Err(e) => {
             tracing::error!("Failed to create user mark: {}", e);
-            Err(crate::http::Error::InternalServerError(
+            Err(crate::http::Error::Internal(
                 "Failed to create user mark".to_string(),
             ))
         }
@@ -143,15 +142,12 @@ async fn delete_mark(
             if deleted {
                 Ok(Json(serde_json::json!({ "success": true })))
             } else {
-                Err(crate::http::Error::NotFound(format!(
-                    "User mark with id {} not found",
-                    id
-                )))
+                Err(crate::http::Error::NotFound)
             }
         }
         Err(e) => {
             tracing::error!("Failed to delete user mark {}: {}", id, e);
-            Err(crate::http::Error::InternalServerError(
+            Err(crate::http::Error::Internal(
                 "Failed to delete user mark".to_string(),
             ))
         }

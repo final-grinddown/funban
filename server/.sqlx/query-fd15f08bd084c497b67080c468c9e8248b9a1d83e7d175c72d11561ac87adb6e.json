@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO user_marks (user_id, mark_type, custom_text, expires_after_status_ends)\n        VALUES (?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "fd15f08bd084c497b67080c468c9e8248b9a1d83e7d175c72d11561ac87adb6e"
+}

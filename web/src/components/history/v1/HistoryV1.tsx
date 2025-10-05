@@ -8,8 +8,8 @@ import {
   MenuItem,
 } from "@mui/material"
 import { Board } from "@/components/Board"
-import { SnapshotParserV1 } from "./SnapshotParserV1"
 import type { ParsedSnapshot } from "@/utils/snapshot-types"
+import { SnapshotParserV1 } from "./SnapshotParserV1"
 
 interface HistoryV1Props {
   snapshot: string

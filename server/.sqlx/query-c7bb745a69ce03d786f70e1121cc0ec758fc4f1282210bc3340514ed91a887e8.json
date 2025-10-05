@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\t\tSELECT id, label, snapshot, created_at\n\t\t\t\tFROM history\n\t\t\t\tORDER BY created_at DESC\n\t\t\t\t",
+  "query": "\n\t\t\tSELECT id, label, snapshot, version, created_at\n\t\t\tFROM history\n\t\t\tWHERE id = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,15 @@
       },
       {
         "ordinal": 3,
+        "name": "version",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "created_at",
         "type_info": {
           "type": "Timestamp",
@@ -41,14 +50,15 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "7a2d3767e98060cbd257a03f28a5198c373294a4c8b60b4c1769b2f53e86921e"
+  "hash": "c7bb745a69ce03d786f70e1121cc0ec758fc4f1282210bc3340514ed91a887e8"
 }

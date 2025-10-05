@@ -13,6 +13,7 @@ pub struct HistoryEntity {
     pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
 }
 
@@ -22,6 +23,7 @@ impl From<History> for HistoryEntity {
             id: history.id,
             label: history.label,
             snapshot: history.snapshot,
+            version: history.version,
             created_at: history.created_at,
         }
     }
@@ -33,6 +35,7 @@ impl From<HistoryEntity> for History {
             id: history.id,
             label: history.label,
             snapshot: history.snapshot,
+            version: history.version,
             created_at: history.created_at,
         }
     }
@@ -42,7 +45,7 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<HistoryEntity>> {
     let users = sqlx::query_as!(
         HistoryEntity,
         r#"
-				SELECT id, label, snapshot, created_at
+				SELECT id, label, snapshot, version, created_at
 				FROM history
 				ORDER BY created_at DESC
 				"#,
@@ -57,7 +60,7 @@ pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<Option<HistoryE
     let users = sqlx::query_as!(
         HistoryEntity,
         r#"
-			SELECT id, label, snapshot, created_at
+			SELECT id, label, snapshot, version, created_at
 			FROM history
 			WHERE id = ?
 			"#,
@@ -105,7 +108,7 @@ pub async fn read_last(db: &MySqlPool) -> sqlx::Result<Option<HistoryEntity>> {
     let user = sqlx::query_as!(
         HistoryEntity,
         r#"
-					SELECT id, label, snapshot, created_at
+					SELECT id, label, snapshot, version, created_at
 					FROM history
 					WHERE created_at = (SELECT MAX(created_at) FROM history)
 				"#,
@@ -120,16 +123,18 @@ pub async fn create(
     db: &MySqlPool,
     label: Option<String>,
     snapshot: &str,
+    version: i32,
 ) -> sqlx::Result<HistoryEntity> {
     let mut transaction = db.begin().await?;
 
     let insert = sqlx::query!(
         r#"
-					INSERT INTO history (label, snapshot)
-					VALUES (?, ?)
+					INSERT INTO history (label, snapshot, version)
+					VALUES (?, ?, ?)
 				"#,
         label,
-        snapshot
+        snapshot,
+        version
     )
     .execute(&mut *transaction)
     .await?
@@ -138,7 +143,7 @@ pub async fn create(
     let history = sqlx::query_as!(
         HistoryEntity,
         r#"
-				SELECT id, label, snapshot, created_at
+				SELECT id, label, snapshot, version, created_at
 				FROM history
 				WHERE id = ?
 				"#,

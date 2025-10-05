@@ -13,6 +13,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::Utc;
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -144,7 +145,91 @@ pub async fn create(
     Extension(ctx): Extension<ApiContext>,
     Json(payload): Json<HistoryInsert>,
 ) -> Result<Json<HistoryDto>> {
-    let result = sql::history::create(&ctx.db, payload.label, &payload.snapshot).await?;
+    // Build V2 snapshot from database
+
+    // Fetch all notes
+    let notes = sql::note::read_all(&ctx.db)
+        .await
+        .map_err(|e| Error::Internal(format!("Failed to fetch notes: {}", e)))?;
+
+    // Fetch all users
+    let users = sql::user::read_all(&ctx.db)
+        .await
+        .map_err(|e| Error::Internal(format!("Failed to fetch users: {}", e)))?;
+
+    // Fetch all user marks
+    let user_marks_all = sql::user_mark::read_all(&ctx.db)
+        .await
+        .map_err(|e| Error::Internal(format!("Failed to fetch user marks: {}", e)))?;
+
+    // Build users array with marks
+    let users_with_marks: Vec<serde_json::Value> = users
+        .iter()
+        .map(|user| {
+            let marks: Vec<serde_json::Value> = user_marks_all
+                .iter()
+                .filter(|mark| mark.user_id == user.id)
+                .map(|mark| {
+                    serde_json::json!({
+                        "mark_type": mark.mark_type,
+                        "custom_text": mark.custom_text,
+                        "expires_in": mark.expires_after_status_ends
+                    })
+                })
+                .collect();
+
+            serde_json::json!({
+                "id": user.id,
+                "name": user.name,
+                "color": user.color,
+                "email": user.email,
+                "marks": marks
+            })
+        })
+        .collect();
+
+    // Build notes array with owner_id references
+    let notes_v2: Vec<serde_json::Value> = notes
+        .iter()
+        .map(|note| {
+            serde_json::json!({
+                "id": note.id,
+                "text": note.text,
+                "name": note.name,
+                "color": note.color,
+                "owner_id": note.owner_id,
+                "state": note.state,
+                "predecessor_id": note.predecessor_id,
+                "updated": note.updated,
+                "created": note.created,
+                "tag": note.tag
+            })
+        })
+        .collect();
+
+    // Create V2 snapshot structure
+    let v2_snapshot = serde_json::json!({
+        "version": 2,
+        "users": users_with_marks,
+        "notes": notes_v2
+    });
+
+    // Serialize to JSON string
+    let snapshot_str = serde_json::to_string(&v2_snapshot)
+        .map_err(|e| Error::Internal(format!("Failed to serialize snapshot: {}", e)))?;
+
+    // Encode as base64
+    let snapshot_base64 = BASE64.encode(&snapshot_str);
+
+    // Insert history record
+    let result = sql::history::create(&ctx.db, payload.label, &snapshot_base64, 2)
+        .await
+        .map_err(|e| Error::Internal(format!("Failed to create history: {}", e)))?;
+
+    // Decrement user marks expiration and cleanup
+    sql::user_mark::decrement_expires_and_cleanup(&ctx.db)
+        .await
+        .map_err(|e| Error::Internal(format!("Failed to update user marks: {}", e)))?;
 
     Ok(Json(HistoryDto::from(result)))
 }

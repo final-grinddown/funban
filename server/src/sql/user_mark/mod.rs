@@ -1,5 +1,5 @@
 use serde::Serialize;
-use sqlx::{MySql, MySqlPool};
+use sqlx::MySqlPool;
 
 use super::common;
 use crate::model::user_mark::{UserMark, UserMarkInsert};
