@@ -52,6 +52,11 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
+// Reconnection configuration
+const INITIAL_RECONNECT_DELAY = 1000 // 1 second
+const MAX_RECONNECT_DELAY = 30000 // 30 seconds
+const RECONNECT_BACKOFF_MULTIPLIER = 1.5
+
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
   const [users, setUsers] = useState<User[]>([])
@@ -59,17 +64,33 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  ///const lastUUIDRef = useRef<string | null>(null)
+  const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const shouldReconnectRef = useRef(true)
   const { startAsync, finishAsync } = useActionStateStore()
 
   useEffect(() => {
     if (status === "authenticated" && session) {
       const extendedSession = session as Session
+      console.log('WebSocket: session status', status, 'has accessToken:', !!extendedSession?.accessToken)
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
+        shouldReconnectRef.current = true
+      } else {
+        console.error('WebSocket: No accessToken in session', session)
       }
     } else {
+      // Disable reconnection when unauthenticated
+      shouldReconnectRef.current = false
+
+      // Clear any pending reconnection
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+
       if (socketRef.current) {
+        socketRef.current.onclose = null // Prevent reconnection
         socketRef.current.close()
         socketRef.current = null
       }
@@ -115,13 +136,25 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                       marks: [
                         ...user.marks,
                         {
-                          id: 0, // Will be ignored, just for type compatibility
+                          id: op.mark_id,
                           user_id: op.user_id,
                           mark_type: op.mark_type,
                           custom_text: op.custom_text,
                           expires_after_status_ends: op.expires_after_status_ends,
                         },
                       ],
+                    }
+                  : user
+              )
+            )
+            break
+          case "UserMarkRemoved":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: user.marks.filter((mark) => mark.id !== op.mark_id),
                     }
                   : user
               )
@@ -183,7 +216,27 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   )
 
   const connectWebSocket = useCallback(() => {
+    // Close existing connection if any
+    if (socketRef.current) {
+      socketRef.current.onclose = null // Prevent reconnection
+      socketRef.current.close()
+    }
+
+    // Clear any pending reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+
+    console.log('WebSocket: Connecting to', socketUrl)
     socketRef.current = new WebSocket(socketUrl!)
+
+    socketRef.current.onopen = () => {
+      console.log('WebSocket: Connected successfully')
+      // Reset reconnect delay on successful connection
+      reconnectDelayRef.current = INITIAL_RECONNECT_DELAY
+      shouldReconnectRef.current = true
+    }
 
     socketRef.current.onmessage = (event) => {
       try {
@@ -191,31 +244,62 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
         // Validate incoming message against contract types using typia
         const msg = typia.assert<WebSocketMessage>(rawMessage)
+        console.log('WebSocket: Received message type:', msg.type)
 
         switch (msg.type) {
           case "Patch":
             handlePatchMessage(msg)
             break
-          case "Users":
-            setUsers(msg.items.map(transformUser))
+          case "Users": {
+            console.log('WebSocket: Received', msg.items.length, 'users')
+            const users = msg.items.map(transformUser)
+            setUsers(users)
+            console.log('WebSocket: Users state updated to', users.length)
             break
-          case "Notes":
-            setNotes(msg.items.map(transformNote))
+          }
+          case "Notes": {
+            console.log('WebSocket: Received', msg.items.length, 'notes')
+            const notes = msg.items.map(transformNote)
+            setNotes(notes)
+            console.log('WebSocket: Notes state updated to', notes.length)
             break
+          }
         }
       } catch (error) {
         console.error('Failed to parse or validate WebSocket message:', error)
       }
     }
 
-    socketRef.current.onclose = () => {
-      setTimeout(() => {
-        connectWebSocket() // Attempt to reconnect
-      }, 1000)
+    socketRef.current.onclose = (event) => {
+      console.log('WebSocket: Closed with code', event.code, 'reason:', event.reason)
+
+      // Auth failure (code 1008) - redirect to sign-in
+      if (event.code === 1008) {
+        console.log('WebSocket: Auth failure, redirecting to sign-in')
+        clearApp()
+        return
+      }
+
+      // Don't reconnect if it was a clean close or reconnection is disabled
+      if (!shouldReconnectRef.current || event.code === 1000) {
+        console.log('WebSocket: Not reconnecting (clean close)')
+        return
+      }
+
+      // Attempt to reconnect with exponential backoff
+      console.log('WebSocket: Reconnecting in', reconnectDelayRef.current, 'ms')
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connectWebSocket()
+        reconnectDelayRef.current = Math.min(
+          reconnectDelayRef.current * RECONNECT_BACKOFF_MULTIPLIER,
+          MAX_RECONNECT_DELAY
+        )
+      }, reconnectDelayRef.current)
     }
 
-    socketRef.current.onerror = () => {
-      clearApp()
+    socketRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      // Let the close handler manage reconnection or auth redirect
     }
   }, [socketUrl, handlePatchMessage])
 
@@ -275,7 +359,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (socketUrl) {
       connectWebSocket()
     }
-  }, [socketUrl, connectWebSocket])
+
+    return () => {
+      // Cleanup: close socket when component unmounts or socketUrl changes
+      shouldReconnectRef.current = false
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+
+      if (socketRef.current) {
+        socketRef.current.onclose = null // Prevent reconnection
+        socketRef.current.close()
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketUrl])
 
   return (
     <WebSocketContext.Provider

@@ -65,6 +65,8 @@ export type VersionedSnapshotData = SnapshotV1Data | SnapshotV2Data
 export function getSnapshotVersion(rawSnapshot: string): 1 | 2 {
   try {
     const data = JSON.parse(rawSnapshot)
+    console.log("Snapshot data:", data)
+    console.log("Detected version:", data.version || 1)
     return data.version || 1
   } catch {
     return 1

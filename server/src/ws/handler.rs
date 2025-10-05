@@ -168,7 +168,8 @@ pub async fn websocket_handler(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
-    let client_id = claims.username;
+    // Generate unique client_id per connection to support multiple tabs
+    let client_id = format!("{}_{}", claims.username, uuid::Uuid::new_v4());
     let client_email = claims.email;
     info!(client_id, client_email, "Client connected");
     ws.on_upgrade(move |socket| handle_client(socket, state, client_id))

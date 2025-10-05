@@ -1,4 +1,5 @@
 use crate::config::Configuration;
+use crate::ws::WsContext;
 
 use axum::Router;
 use errors::Error;
@@ -16,6 +17,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub struct ApiContext {
     pub config: Arc<Configuration>,
     pub db: MySqlPool,
+    pub ws_context: Option<Arc<WsContext>>,
 }
 
 impl ApiContext {
@@ -23,7 +25,13 @@ impl ApiContext {
         Self {
             config: Arc::new(config),
             db,
+            ws_context: None,
         }
+    }
+
+    pub fn with_ws_context(mut self, ws_context: Arc<WsContext>) -> Self {
+        self.ws_context = Some(ws_context);
+        self
     }
 }
 

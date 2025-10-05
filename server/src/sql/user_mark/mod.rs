@@ -109,7 +109,19 @@ pub async fn remove(db: &MySqlPool, id: i32) -> sqlx::Result<bool> {
     common::execute_delete(db, "user_marks", "id", id as u32).await
 }
 
-pub async fn decrement_expires_and_cleanup(db: &MySqlPool) -> sqlx::Result<()> {
+pub async fn decrement_expires_and_cleanup(db: &MySqlPool) -> sqlx::Result<Vec<UserMarkDto>> {
+    // First, fetch the marks that will be deleted
+    let marks_to_delete = sqlx::query_as!(
+        UserMarkDto,
+        r#"
+        SELECT id, user_id, mark_type, custom_text, expires_after_status_ends
+        FROM user_marks
+        WHERE expires_after_status_ends <= 1
+        "#,
+    )
+    .fetch_all(db)
+    .await?;
+
     // Decrement expires_after_status_ends for all marks
     sqlx::query!(
         r#"
@@ -130,5 +142,5 @@ pub async fn decrement_expires_and_cleanup(db: &MySqlPool) -> sqlx::Result<()> {
     .execute(db)
     .await?;
 
-    Ok(())
+    Ok(marks_to_delete)
 }

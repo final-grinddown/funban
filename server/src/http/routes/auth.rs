@@ -51,6 +51,9 @@ impl EmailChange {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct TokenResponse {
     pub token: String,
+    pub email: String,
+    pub username: String,
+    pub id: i32,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -103,7 +106,11 @@ pub async fn signin(
         }
     };
 
-    let token = create_token(user.name, user.email, ctx.config.api_secret.clone())?;
+    let token = create_token(
+        user.name.clone(),
+        user.email.clone(),
+        ctx.config.api_secret.clone(),
+    )?;
     let duration = Duration::days(14);
 
     let secure = ctx.config.cookie_secure;
@@ -133,7 +140,15 @@ pub async fn signin(
         });
 
     let changed_cookies = cookies.add(token_cookie).add(marker_cookie);
-    Ok((changed_cookies, Json(TokenResponse { token })))
+    Ok((
+        changed_cookies,
+        Json(TokenResponse {
+            token,
+            email: user.email,
+            username: user.name,
+            id: user.id,
+        }),
+    ))
 }
 
 #[utoipa::path(post, path = "/auth/signout", responses((status = 200, body = EmptyResponse, description = "Successfull logout.")), security(("jwt" = [])))]

@@ -227,9 +227,26 @@ pub async fn create(
         .map_err(|e| Error::Internal(format!("Failed to create history: {}", e)))?;
 
     // Decrement user marks expiration and cleanup
-    sql::user_mark::decrement_expires_and_cleanup(&ctx.db)
+    let removed_marks = sql::user_mark::decrement_expires_and_cleanup(&ctx.db)
         .await
         .map_err(|e| Error::Internal(format!("Failed to update user marks: {}", e)))?;
+
+    // Broadcast mark removals via WebSocket
+    if !removed_marks.is_empty() {
+        use crate::state::WsOperation;
+
+        let ops: Vec<WsOperation> = removed_marks
+            .iter()
+            .map(|mark| WsOperation::UserMarkRemoved {
+                user_id: mark.user_id as u32,
+                mark_id: mark.id as u32,
+            })
+            .collect();
+
+        if let Some(ws_ctx) = &ctx.ws_context {
+            let _ = ws_ctx.broadcast(ops).await;
+        }
+    }
 
     Ok(Json(HistoryDto::from(result)))
 }

@@ -277,10 +277,15 @@ pub enum WsOperation {
         id: u32,
     },
     UserMarkAdded {
+        mark_id: u32,
         user_id: u32,
         mark_type: String,
         custom_text: Option<String>,
         expires_after_status_ends: u32,
+    },
+    UserMarkRemoved {
+        user_id: u32,
+        mark_id: u32,
     },
     ActionFinished {
         uuid: String,

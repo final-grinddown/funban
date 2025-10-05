@@ -33,7 +33,8 @@ impl AppState {
         };
 
         match sql::user_mark::add(db, &user_mark_insert).await {
-            Ok(_) => WsOperation::UserMarkAdded {
+            Ok(mark_dto) => WsOperation::UserMarkAdded {
+                mark_id: mark_dto.id as u32,
                 user_id,
                 mark_type,
                 custom_text,
