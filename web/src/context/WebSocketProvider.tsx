@@ -113,11 +113,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                   ? {
                       ...user,
                       marks: [
-                        ...(user.marks || []),
+                        ...user.marks,
                         {
+                          id: 0, // Will be ignored, just for type compatibility
+                          user_id: op.user_id,
                           mark_type: op.mark_type,
                           custom_text: op.custom_text,
-                          expires_in: op.expires_after_status_ends,
+                          expires_after_status_ends: op.expires_after_status_ends,
                         },
                       ],
                     }

@@ -139,9 +139,9 @@ jest.mock('@/components/FocusControls', () => ({
 
 describe('BoardScreen', () => {
   const mockUsers: User[] = [
-    { id: 1, index: 1, name: 'John Doe', color: '#ff0000', email: 'John Doe@example.com' },
-    { id: 2, index: 2, name: 'Jane Smith', color: '#00ff00', email: 'Jane Smith@example.com' },
-    { id: 3, index: 3, name: 'Bob Johnson', color: '#0000ff', email: 'Bob Johnson@example.com' },
+    { id: 1, index: 1, name: 'John Doe', color: '#ff0000', email: 'John Doe@example.com', marks: [] },
+    { id: 2, index: 2, name: 'Jane Smith', color: '#00ff00', email: 'Jane Smith@example.com', marks: [] },
+    { id: 3, index: 3, name: 'Bob Johnson', color: '#0000ff', email: 'Bob Johnson@example.com', marks: [] },
   ]
 
   const mockNotes: Note[] = [

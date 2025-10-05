@@ -28,7 +28,7 @@ export function createAddUserMark(
 		uuid: null,
 		user_id: userId,
 		mark_type: markType,
-		custom_text: customText,
+		custom_text: customText ?? null,
 		expires_after_status_ends: expiresAfterStatusEnds,
 	})
 }
