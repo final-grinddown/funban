@@ -95,7 +95,7 @@ impl WsContext {
         Ok(())
     }
 
-    async fn broadcast(&self, ops: Vec<WsOperation>) -> anyhow::Result<()> {
+    pub async fn broadcast(&self, ops: Vec<WsOperation>) -> anyhow::Result<()> {
         if ops.is_empty() {
             return Ok(());
         }

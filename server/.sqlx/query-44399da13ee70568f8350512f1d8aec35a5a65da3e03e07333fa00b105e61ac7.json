@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\t\t\t\t  SELECT snapshot, label, created_at, id\n    \t\t\t\t\tFROM history\n    \t\t\t\t\tWHERE created_at = (SELECT MAX(created_at) FROM history);\n\t\t\t\t",
+  "query": "\n\t\t\t\t\t\t  SELECT snapshot, label, created_at, id, version\n    \t\t\t\t\tFROM history\n    \t\t\t\t\tWHERE created_at = (SELECT MAX(created_at) FROM history);\n\t\t\t\t",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,15 @@
           "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
           "max_size": 11
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "version",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL",
+          "max_size": 11
+        }
       }
     ],
     "parameters": {
@@ -47,8 +56,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "1b51f19d20185e585884ccf1383bc105725276750a4dcba14bf14fb81b076abd"
+  "hash": "44399da13ee70568f8350512f1d8aec35a5a65da3e03e07333fa00b105e61ac7"
 }

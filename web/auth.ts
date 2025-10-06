@@ -62,39 +62,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }: { token: any; user: any }) {
-      if (user && "token" in user) {
-        token.accessToken = user.token
-      }
-      return token
-    },
-    async session({ session, token }: { session: any; token: any }) {
-      if (token.accessToken) {
-        session.accessToken = token.accessToken
-
-        try {
-          const res = await fetch(`${API_URL}/auth/me`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token.accessToken}`,
-            },
-          })
-
-          if (res.ok) {
-            const userData = await res.json()
-            session.user = {
-              ...session.user,
-              email: userData.email,
-              name: userData.username,
-            }
-          } else {
-            console.error("Failed to fetch user details:", res.statusText)
-          }
-        } catch (error) {
-          console.error("Error fetching user details:", error)
+      // On sign in, store user data in token
+      if (user) {
+        return {
+          ...token,
+          accessToken: user.token,
+          sub: user.id,
+          email: user.email,
+          name: user.name,
         }
       }
 
-      return session
+      // Return existing token on subsequent calls
+      return token
+    },
+    async session({ session, token }: { session: any; token: any }) {
+      // Pass token data to session
+      return {
+        ...session,
+        accessToken: token.accessToken,
+        user: {
+          id: token.sub,
+          email: token.email,
+          name: token.name,
+        },
+      }
     },
   },
 })

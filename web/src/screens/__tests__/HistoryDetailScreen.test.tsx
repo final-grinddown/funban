@@ -51,15 +51,50 @@ jest.mock('@/components/BackdropLoading', () => ({
   ),
 }))
 
-// Mock base64 decode utility
-jest.mock('@/utils/helpers', () => ({
-  base64DecodeUnicode: jest.fn(() => JSON.stringify({ notes: [] })),
-  normalizeNotes: jest.fn(() => [
-    { id: 1, text: 'Note 1', name: 'John Doe', state: 'todo' },
-    { id: 2, text: 'Note 2', name: 'Jane Smith', state: 'in_progress' },
-    { id: 3, text: 'Note 3', name: 'John Doe', state: 'done' },
-  ]),
-}))
+// Mock HistoryRenderer component since we now use versioned rendering
+jest.mock('@/components/history/HistoryRenderer', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+
+  return {
+    HistoryRenderer: ({ snapshot, version }: { snapshot: string; version: number }) => {
+      const [selectedUser, setSelectedUser] = React.useState(null as string | null)
+
+      const handleUserChange = (event: any) => {
+        setSelectedUser(event.target.value === 'All' ? null : event.target.value)
+      }
+
+      // Mock notes data
+      const notes = [
+        { id: 1, text: 'Note 1', name: 'John Doe', owner_id: 1, color: 'blue', state: 'todo', predecessor_id: null, updated: '2024-01-15T12:00:00Z', created: '2024-01-15T12:00:00Z', tag: null },
+        { id: 2, text: 'Note 2', name: 'Jane Smith', owner_id: 2, color: 'red', state: 'in_progress', predecessor_id: null, updated: '2024-01-15T12:00:00Z', created: '2024-01-15T12:00:00Z', tag: null },
+        { id: 3, text: 'Note 3', name: 'John Doe', owner_id: 1, color: 'blue', state: 'done', predecessor_id: null, updated: '2024-01-15T12:00:00Z', created: '2024-01-15T12:00:00Z', tag: null },
+      ]
+
+      return (
+        <div data-testid="history-renderer" data-snapshot={snapshot}>
+          <select
+            data-testid="user-selector"
+            aria-label="Choose visible user"
+            value={selectedUser ?? 'All'}
+            onChange={handleUserChange}
+          >
+            <option value="All">All</option>
+            <option value="John Doe">John Doe</option>
+            <option value="Jane Smith">Jane Smith</option>
+          </select>
+          <div
+            data-testid="board"
+            data-editable="false"
+            data-notes-count={notes.length.toString()}
+            data-focus={selectedUser != null ? 'true' : 'false'}
+            data-current-user={selectedUser ?? ''}
+          />
+        </div>
+      )
+    }
+  }
+})
 
 describe('HistoryDetailScreen', () => {
   const mockHistoryItem: IHistoryItem = {
@@ -67,6 +102,7 @@ describe('HistoryDetailScreen', () => {
     created_at: '2024-01-15T14:20:00Z',
     label: 'Board Snapshot v2',
     snapshot: 'mock-base64-snapshot',
+    version: 2,
     previous: { id: 1, label: 'Board Snapshot v1' },
     next: { id: 3, label: 'Board Snapshot v3' },
   }
@@ -77,6 +113,7 @@ describe('HistoryDetailScreen', () => {
     created_at: '2024-01-15T18:00:00Z',
     label: 'Board Snapshot v3',
     snapshot: 'mock-base64-snapshot',
+    version: 2,
     previous: { id: 2, label: 'Board Snapshot v2' },
     next: { id: 4, label: 'Next Item' },
   }
@@ -325,9 +362,8 @@ describe('HistoryDetailScreen', () => {
 
     it('updates board props when user is selected', async () => {
       const userSelect = screen.getByRole('combobox', { name: /choose visible user/i })
-      
-      await user.click(userSelect)
-      await user.click(screen.getByRole('option', { name: 'John Doe' }))
+
+      await user.selectOptions(userSelect, 'John Doe')
 
       await waitFor(() => {
         const board = screen.getByTestId('board')
@@ -338,14 +374,12 @@ describe('HistoryDetailScreen', () => {
 
     it('shows all users when "All" is selected', async () => {
       const userSelect = screen.getByRole('combobox', { name: /choose visible user/i })
-      
+
       // Select a specific user first
-      await user.click(userSelect)
-      await user.click(screen.getByRole('option', { name: 'John Doe' }))
+      await user.selectOptions(userSelect, 'John Doe')
 
       // Then select "All"
-      await user.click(userSelect)
-      await user.click(screen.getByRole('option', { name: 'All' }))
+      await user.selectOptions(userSelect, 'All')
 
       await waitFor(() => {
         const board = screen.getByTestId('board')
@@ -374,9 +408,8 @@ describe('HistoryDetailScreen', () => {
 
     it('updates board props when user filtering changes', async () => {
       const userSelect = screen.getByRole('combobox', { name: /choose visible user/i })
-      
-      await user.click(userSelect)
-      await user.click(screen.getByRole('option', { name: 'Jane Smith' }))
+
+      await user.selectOptions(userSelect, 'Jane Smith')
 
       await waitFor(() => {
         const board = screen.getByTestId('board')

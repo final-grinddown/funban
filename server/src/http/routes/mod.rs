@@ -4,3 +4,4 @@ pub mod history;
 pub mod note;
 pub mod openapi;
 pub mod user;
+pub mod user_mark;

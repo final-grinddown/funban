@@ -92,23 +92,22 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             header::COOKIE,
         ]);
 
-    // Create router for HTTP routes.
+    // Create shared WebSocket context
+    let ws_context = Arc::new(WsContext::new(db.clone(), config.clone()));
+
+    // Create router for HTTP routes with WsContext for broadcasting
     let api_router = api_router().layer(
         ServiceBuilder::new()
-            .layer(AddExtensionLayer::new(ApiContext::new(
-                config.clone(),
-                db.clone(),
-            )))
+            .layer(AddExtensionLayer::new(
+                ApiContext::new(config.clone(), db.clone()).with_ws_context(ws_context.clone()),
+            ))
             .layer(TraceLayer::new_for_http()),
     );
 
-    // Create router for WebSocket routes.
+    // Create router for WebSocket routes
     let ws_router = ws_router().layer(
         ServiceBuilder::new()
-            .layer(AddExtensionLayer::new(Arc::new(WsContext::new(
-                db,
-                config.clone(),
-            ))))
+            .layer(AddExtensionLayer::new(ws_context))
             .layer(TraceLayer::new_for_http()),
     );
 

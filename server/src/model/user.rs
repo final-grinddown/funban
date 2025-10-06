@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::user_mark::UserMark;
+
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, TS)]
 #[ts(export)]
 pub struct User {
@@ -9,4 +11,5 @@ pub struct User {
     pub name: String,
     pub color: String,
     pub email: String,
+    pub marks: Vec<UserMark>,
 }

@@ -46,3 +46,21 @@ export const changeEmail = async (new_email: string, accessToken?: string): Prom
 		},
 	})
 }
+
+export const addUserMark = async (
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number,
+	customText?: string,
+	accessToken?: string
+): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks`, accessToken, {
+		method: "POST",
+		body: {
+			user_id: userId,
+			mark_type: markType,
+			expires_after_status_ends: expiresAfterStatusEnds,
+			custom_text: customText,
+		},
+	})
+}

@@ -35,9 +35,40 @@ impl AppState {
     }
 
     pub async fn get_users(&self, db: &MySqlPool) -> Result<Vec<User>> {
-        let mut users = user::read_all(db).await?;
-        users.sort_by(|a, b| a.index.cmp(&b.index));
-        Ok(users.into_iter().map(|u| u.into()).collect())
+        let mut user_dtos = user::read_all(db).await?;
+        user_dtos.sort_by(|a, b| a.index.cmp(&b.index));
+
+        // Fetch all user marks
+        let all_marks = crate::sql::user_mark::read_all(db).await?;
+
+        // Build users with their marks
+        let users: Vec<User> = user_dtos
+            .into_iter()
+            .map(|user_dto| {
+                let user_marks: Vec<crate::model::user_mark::UserMark> = all_marks
+                    .iter()
+                    .filter(|mark| mark.user_id == user_dto.id)
+                    .map(|mark| crate::model::user_mark::UserMark {
+                        id: mark.id,
+                        user_id: mark.user_id,
+                        mark_type: mark.mark_type.clone(),
+                        custom_text: mark.custom_text.clone(),
+                        expires_after_status_ends: mark.expires_after_status_ends,
+                    })
+                    .collect();
+
+                User {
+                    id: user_dto.id,
+                    index: user_dto.index,
+                    name: user_dto.name,
+                    color: user_dto.color,
+                    email: user_dto.email,
+                    marks: user_marks,
+                }
+            })
+            .collect();
+
+        Ok(users)
     }
 
     pub async fn get_notes(&self, db: &MySqlPool) -> Result<Vec<Note>> {
@@ -88,6 +119,23 @@ impl AppState {
                 self.handle_user_update(db, uuid, id, updates).await
             }
             WsAction::NotifySnapshot {} => self.handle_notify_snapshot().await,
+            WsAction::AddUserMark {
+                uuid,
+                user_id,
+                mark_type,
+                custom_text,
+                expires_after_status_ends,
+            } => {
+                self.handle_add_user_mark(
+                    db,
+                    uuid,
+                    user_id,
+                    mark_type,
+                    custom_text,
+                    expires_after_status_ends,
+                )
+                .await
+            }
             WsAction::SplitNote {
                 uuid,
                 original_id,
@@ -173,6 +221,13 @@ pub enum WsAction {
         updates: Vec<UserUpdate>,
     },
     NotifySnapshot {},
+    AddUserMark {
+        uuid: Option<String>,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
+    },
     SplitNote {
         uuid: Option<String>,
         original_id: u32,
@@ -220,6 +275,17 @@ pub enum WsOperation {
     },
     UserRemoved {
         id: u32,
+    },
+    UserMarkAdded {
+        mark_id: u32,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
+    },
+    UserMarkRemoved {
+        user_id: u32,
+        mark_id: u32,
     },
     ActionFinished {
         uuid: String,

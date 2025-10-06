@@ -17,6 +17,22 @@ export function createAddUserMessage(name: string, color: string): string {
 	})
 }
 
+export function createAddUserMark(
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number,
+	customText?: string
+): string {
+	return createAction({
+		type: "AddUserMark",
+		uuid: null,
+		user_id: userId,
+		mark_type: markType,
+		custom_text: customText ?? null,
+		expires_after_status_ends: expiresAfterStatusEnds,
+	})
+}
+
 export function createUpdateUserNameMessage(id: number, name: string): string {
 	return createAction({
 		uuid: null,
