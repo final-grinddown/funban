@@ -31,6 +31,10 @@ const markTypeOptions = [
   { value: "⚫", label: "⚫ Black Mark" },
   { value: "⭐", label: "⭐ Gold Star" },
   { value: "🕐", label: "🕐 Clock" },
+  { value: "🩺", label: "🩺 Doctor" },
+  { value: "🌴", label: "🌴 Vacation" },
+  { value: "🦒", label: "🦒 Giraffe" },
+  { value: "🔕", label: "🔕 Do Not Disturb" },
 ]
 
 const durationOptions = [

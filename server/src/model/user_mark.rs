@@ -27,6 +27,10 @@ pub enum UserMarkType {
     BlackMark,
     GoldStar,
     Clock,
+    Doctor,
+    Vacation,
+    Giraffe,
+    DoNotDisturb,
 }
 
 impl From<UserMarkType> for String {
@@ -35,6 +39,10 @@ impl From<UserMarkType> for String {
             UserMarkType::BlackMark => "⚫".to_string(),
             UserMarkType::GoldStar => "⭐".to_string(),
             UserMarkType::Clock => "🕐".to_string(),
+            UserMarkType::Doctor => "🩺".to_string(),
+            UserMarkType::Vacation => "🌴".to_string(),
+            UserMarkType::Giraffe => "🦒".to_string(),
+            UserMarkType::DoNotDisturb => "🔕".to_string(),
         }
     }
 }
@@ -45,12 +53,16 @@ impl AsRef<str> for UserMarkType {
             UserMarkType::BlackMark => "⚫",
             UserMarkType::GoldStar => "⭐",
             UserMarkType::Clock => "🕐",
+            UserMarkType::Doctor => "🩺",
+            UserMarkType::Vacation => "🌴",
+            UserMarkType::Giraffe => "🦒",
+            UserMarkType::DoNotDisturb => "🔕",
         }
     }
 }
 
 impl UserMarkType {
     pub fn is_valid_mark_type(mark_type: &str) -> bool {
-        matches!(mark_type, "⚫" | "⭐" | "🕐")
+        matches!(mark_type, "⚫" | "⭐" | "🕐" | "🩺" | "🌴" | "🦒" | "🔕")
     }
 }
