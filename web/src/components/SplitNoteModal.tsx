@@ -31,6 +31,7 @@ interface Props {
   onClose: () => void
   hasTextFocus?: boolean
   clearTextFocus?: () => void
+  selectedUserId?: number
 }
 
 interface FormInputs {
@@ -47,6 +48,7 @@ export function SplitNoteModal({
   onClose,
   hasTextFocus,
   clearTextFocus,
+  selectedUserId,
 }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const originalTextRef = useRef<HTMLInputElement | null>(null)
@@ -85,11 +87,13 @@ export function SplitNoteModal({
 
   useEffect(() => {
     if (isOpen && !isLoading) {
+      const newOwnerId = selectedUserId ? selectedUserId.toString() : originalNote.owner_id.toString()
+
       reset({
         originalText: originalNote.text,
         newText: originalNote.text,
         newState: originalNote.state,
-        newOwner: originalNote.owner_id.toString(),
+        newOwner: newOwnerId,
       })
 
       // Handle focus management
@@ -106,7 +110,7 @@ export function SplitNoteModal({
         }
       }, 0)
     }
-  }, [clearTextFocus, hasTextFocus, isLoading, isOpen, originalNote, reset])
+  }, [clearTextFocus, hasTextFocus, isLoading, isOpen, originalNote, reset, selectedUserId])
 
   // This useEffect should only close the modal after a successful submission
   // We need to track if a submission was initiated

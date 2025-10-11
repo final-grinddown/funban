@@ -3,7 +3,7 @@ use crate::model::user_mark::{UserMarkInsert, UserMarkType};
 use crate::sql::{self, user_mark::UserMarkDto};
 use axum::{
     extract::Path,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -49,9 +49,9 @@ impl CreateUserMarkRequest {
         }
 
         if let Some(expires) = self.expires_after_status_ends {
-            if expires < 1 {
+            if expires < 0 {
                 return Err(crate::http::Error::BadRequest(
-                    "expires_after_status_ends must be at least 1".to_string(),
+                    "expires_after_status_ends must be at least 0".to_string(),
                 ));
             }
         }
@@ -72,8 +72,21 @@ pub fn router() -> Router {
     Router::new()
         .route("/user-marks", get(get_all))
         .route("/user-marks", post(create))
-        .route("/user-marks/{id}", delete(delete_mark))
+        .route(
+            "/user-marks/user/{user_id}/expired",
+            get(get_expired_by_user_id),
+        )
+        .route(
+            "/user-marks/user/{user_id}/expired",
+            delete(delete_expired_marks),
+        )
+        .route(
+            "/user-marks/user/{user_id}/expire-all",
+            put(expire_all_marks),
+        )
         .route("/user-marks/user/{user_id}", get(get_by_user_id))
+        .route("/user-marks/{id}", put(update_mark))
+        .route("/user-marks/{id}", delete(delete_mark))
 }
 
 async fn get_all(ctx: Extension<ApiContext>) -> Result<Json<Vec<UserMark>>> {
@@ -117,13 +130,41 @@ async fn create(
 
     let user_mark_insert = UserMarkInsert {
         user_id: payload.user_id,
-        mark_type: payload.mark_type,
-        custom_text: payload.custom_text,
+        mark_type: payload.mark_type.clone(),
+        custom_text: payload.custom_text.clone(),
         expires_after_status_ends: payload.expires_after_status_ends,
     };
 
     match sql::user_mark::add(&ctx.db, &user_mark_insert).await {
-        Ok(user_mark) => Ok(Json(UserMark::from(user_mark))),
+        Ok(user_mark) => {
+            // Broadcast WebSocket message to all clients
+            if let Some(ws_ctx) = &ctx.ws_context {
+                use crate::state::WsOperation;
+
+                let ws_op = WsOperation::UserMarkAdded {
+                    mark_id: user_mark.id as u32,
+                    user_id: user_mark.user_id as u32,
+                    mark_type: user_mark.mark_type.clone(),
+                    custom_text: user_mark.custom_text.clone(),
+                    expires_after_status_ends: user_mark.expires_after_status_ends as u32,
+                };
+
+                tracing::info!(
+                    "Broadcasting UserMarkAdded: user_id={}, mark_id={}",
+                    user_mark.user_id,
+                    user_mark.id
+                );
+                if let Err(e) = ws_ctx.broadcast(vec![ws_op]).await {
+                    tracing::error!("Failed to broadcast user mark creation: {}", e);
+                } else {
+                    tracing::info!("Successfully broadcasted UserMarkAdded");
+                }
+            } else {
+                tracing::warn!("WebSocket context not available for broadcasting UserMarkAdded");
+            }
+
+            Ok(Json(UserMark::from(user_mark)))
+        }
         Err(e) => {
             tracing::error!("Failed to create user mark: {}", e);
             Err(crate::http::Error::Internal(
@@ -137,9 +178,53 @@ async fn delete_mark(
     ctx: Extension<ApiContext>,
     Path(id): Path<i32>,
 ) -> Result<Json<serde_json::Value>> {
+    // Fetch the mark before deleting to get user_id for WebSocket broadcast
+    let mark = match sql::user_mark::read_by_id(&ctx.db, id).await {
+        Ok(Some(m)) => m,
+        Ok(None) => return Err(crate::http::Error::NotFound),
+        Err(e) => {
+            tracing::error!("Failed to fetch user mark {}: {}", id, e);
+            return Err(crate::http::Error::Internal(
+                "Failed to fetch user mark".to_string(),
+            ));
+        }
+    };
+
     match sql::user_mark::remove(&ctx.db, id).await {
         Ok(deleted) => {
             if deleted {
+                // Broadcast WebSocket message to all clients (only if mark was active)
+                if mark.expires_after_status_ends > 0 {
+                    if let Some(ws_ctx) = &ctx.ws_context {
+                        use crate::state::WsOperation;
+
+                        let ws_op = WsOperation::UserMarkRemoved {
+                            user_id: mark.user_id as u32,
+                            mark_id: mark.id as u32,
+                        };
+
+                        tracing::info!(
+                            "Broadcasting UserMarkRemoved: user_id={}, mark_id={}",
+                            mark.user_id,
+                            mark.id
+                        );
+                        if let Err(e) = ws_ctx.broadcast(vec![ws_op]).await {
+                            tracing::error!("Failed to broadcast user mark deletion: {}", e);
+                        } else {
+                            tracing::info!("Successfully broadcasted UserMarkRemoved");
+                        }
+                    } else {
+                        tracing::warn!(
+                            "WebSocket context not available for broadcasting UserMarkRemoved"
+                        );
+                    }
+                } else {
+                    tracing::info!(
+                        "Skipping WebSocket broadcast for expired mark deletion: mark_id={}",
+                        mark.id
+                    );
+                }
+
                 Ok(Json(serde_json::json!({ "success": true })))
             } else {
                 Err(crate::http::Error::NotFound)
@@ -149,6 +234,169 @@ async fn delete_mark(
             tracing::error!("Failed to delete user mark {}: {}", id, e);
             Err(crate::http::Error::Internal(
                 "Failed to delete user mark".to_string(),
+            ))
+        }
+    }
+}
+
+async fn update_mark(
+    ctx: Extension<ApiContext>,
+    Path(id): Path<i32>,
+    Json(payload): Json<CreateUserMarkRequest>,
+) -> Result<Json<UserMark>> {
+    payload.validate()?;
+
+    // Fetch the old mark to compare status changes
+    let old_mark = match sql::user_mark::read_by_id(&ctx.db, id).await {
+        Ok(Some(mark)) => mark,
+        Ok(None) => return Err(crate::http::Error::NotFound),
+        Err(e) => {
+            tracing::error!("Failed to fetch user mark {}: {}", id, e);
+            return Err(crate::http::Error::Internal(
+                "Failed to fetch user mark".to_string(),
+            ));
+        }
+    };
+
+    let user_mark_update = UserMarkInsert {
+        user_id: payload.user_id,
+        mark_type: payload.mark_type.clone(),
+        custom_text: payload.custom_text.clone(),
+        expires_after_status_ends: payload.expires_after_status_ends,
+    };
+
+    match sql::user_mark::update(&ctx.db, id, &user_mark_update).await {
+        Ok(Some(updated_mark)) => {
+            // Broadcast WebSocket message based on the type of change
+            if let Some(ws_ctx) = &ctx.ws_context {
+                use crate::state::WsOperation;
+
+                let was_active = old_mark.expires_after_status_ends > 0;
+                let is_active = updated_mark.expires_after_status_ends > 0;
+
+                let ws_op = match (was_active, is_active) {
+                    (true, false) => {
+                        // Mark was expired (active -> inactive)
+                        WsOperation::UserMarkRemoved {
+                            user_id: updated_mark.user_id as u32,
+                            mark_id: updated_mark.id as u32,
+                        }
+                    }
+                    (false, true) => {
+                        // Mark was restored (inactive -> active)
+                        WsOperation::UserMarkAdded {
+                            mark_id: updated_mark.id as u32,
+                            user_id: updated_mark.user_id as u32,
+                            mark_type: updated_mark.mark_type.clone(),
+                            custom_text: updated_mark.custom_text.clone(),
+                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                                as u32,
+                        }
+                    }
+                    (true, true) | (false, false) => {
+                        // Mark was updated but status didn't change
+                        WsOperation::UserMarkUpdated {
+                            mark_id: updated_mark.id as u32,
+                            user_id: updated_mark.user_id as u32,
+                            mark_type: updated_mark.mark_type.clone(),
+                            custom_text: updated_mark.custom_text.clone(),
+                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                                as u32,
+                        }
+                    }
+                };
+
+                if let Err(e) = ws_ctx.broadcast(vec![ws_op]).await {
+                    tracing::error!("Failed to broadcast user mark update: {}", e);
+                }
+            }
+
+            Ok(Json(UserMark::from(updated_mark)))
+        }
+        Ok(None) => Err(crate::http::Error::NotFound),
+        Err(e) => {
+            tracing::error!("Failed to update user mark {}: {}", id, e);
+            Err(crate::http::Error::Internal(
+                "Failed to update user mark".to_string(),
+            ))
+        }
+    }
+}
+
+async fn get_expired_by_user_id(
+    ctx: Extension<ApiContext>,
+    Path(user_id): Path<i32>,
+) -> Result<Json<Vec<UserMark>>> {
+    let from_db = sql::user_mark::read_expired_by_user_id(&ctx.db, user_id).await;
+
+    match from_db {
+        Ok(user_marks) => {
+            let result = user_marks.into_iter().map(UserMark::from).collect();
+            Ok(Json(result))
+        }
+        Err(e) => {
+            tracing::error!(
+                "Failed to fetch expired user marks for user {}: {}",
+                user_id,
+                e
+            );
+            Ok(Json(vec![]))
+        }
+    }
+}
+
+async fn expire_all_marks(
+    ctx: Extension<ApiContext>,
+    Path(user_id): Path<i32>,
+) -> Result<Json<serde_json::Value>> {
+    match sql::user_mark::expire_all_by_user_id(&ctx.db, user_id).await {
+        Ok(expired_marks) => {
+            let count = expired_marks.len();
+
+            // Broadcast WebSocket messages for each expired mark
+            if let Some(ws_ctx) = &ctx.ws_context {
+                use crate::state::WsOperation;
+
+                let ws_ops: Vec<WsOperation> = expired_marks
+                    .iter()
+                    .map(|mark| WsOperation::UserMarkRemoved {
+                        user_id: mark.user_id as u32,
+                        mark_id: mark.id as u32,
+                    })
+                    .collect();
+
+                if let Err(e) = ws_ctx.broadcast(ws_ops).await {
+                    tracing::error!("Failed to broadcast user mark expirations: {}", e);
+                }
+            }
+
+            Ok(Json(serde_json::json!({
+                "success": true,
+                "expired_count": count
+            })))
+        }
+        Err(e) => {
+            tracing::error!("Failed to expire all marks for user {}: {}", user_id, e);
+            Err(crate::http::Error::Internal(
+                "Failed to expire marks".to_string(),
+            ))
+        }
+    }
+}
+
+async fn delete_expired_marks(
+    ctx: Extension<ApiContext>,
+    Path(user_id): Path<i32>,
+) -> Result<Json<serde_json::Value>> {
+    match sql::user_mark::delete_expired_by_user_id(&ctx.db, user_id).await {
+        Ok(deleted_count) => Ok(Json(serde_json::json!({
+            "success": true,
+            "deleted_count": deleted_count
+        }))),
+        Err(e) => {
+            tracing::error!("Failed to delete expired marks for user {}: {}", user_id, e);
+            Err(crate::http::Error::Internal(
+                "Failed to delete expired marks".to_string(),
             ))
         }
     }

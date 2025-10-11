@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        DELETE FROM user_marks\n        WHERE user_id = ? AND expires_after_status_ends <= 0\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "3eca9eff34187bace44a1da7420596e9f66d7d28f4d210b3ff4458d25f82f6e8"
+}

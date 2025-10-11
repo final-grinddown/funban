@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
-import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
+import { requiredSelectRules } from "@/hooks/useFormValidation"
 import { User } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 

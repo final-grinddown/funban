@@ -26,6 +26,7 @@ Funban is a real-time collaborative Kanban board system with three main componen
 - **Test**: `cargo test`
 - **Database migration**: `sqlx migrate run`
 - **Docker development**: `docker-compose up` (includes MySQL database)
+- **Generate TypeScript contracts**: `cargo test export_bindings` (exports Rust types to contracts/)
 
 ## Architecture Overview
 

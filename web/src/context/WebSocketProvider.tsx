@@ -147,6 +147,28 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               )
             )
             break
+          case "UserMarkUpdated":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: user.marks.map((mark) =>
+                        mark.id === op.mark_id
+                          ? {
+                              id: op.mark_id,
+                              user_id: op.user_id,
+                              mark_type: op.mark_type,
+                              custom_text: op.custom_text,
+                              expires_after_status_ends: op.expires_after_status_ends,
+                            }
+                          : mark
+                      ),
+                    }
+                  : user
+              )
+            )
+            break
           case "UserMarkRemoved":
             setUsers((prevUsers) =>
               prevUsers.map((user) =>
