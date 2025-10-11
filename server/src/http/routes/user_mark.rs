@@ -273,7 +273,6 @@ async fn update_mark(
 
                 let was_active = old_mark.expires_after_status_ends > 0;
                 let is_active = updated_mark.expires_after_status_ends > 0;
-                let expires_after = payload.expires_after_status_ends.unwrap_or(1);
 
                 let ws_op = match (was_active, is_active) {
                     (true, false) => {
@@ -301,7 +300,8 @@ async fn update_mark(
                             user_id: updated_mark.user_id as u32,
                             mark_type: updated_mark.mark_type.clone(),
                             custom_text: updated_mark.custom_text.clone(),
-                            expires_after_status_ends: expires_after as u32,
+                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                                as u32,
                         }
                     }
                 };

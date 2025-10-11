@@ -63,8 +63,7 @@ export function UserMarksScreen() {
 
   useEffect(() => {
     loadMarks()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [session?.accessToken])
 
   const loadMarks = async () => {
     try {
