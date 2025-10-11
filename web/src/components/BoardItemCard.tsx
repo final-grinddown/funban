@@ -352,6 +352,7 @@ export function BoardItemCard({
             originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
             users={users}
             onClose={splitModal.closeModal}
+            selectedUserId={currentUser ? parseInt(currentUser) : undefined}
           />
 
           <DeleteNoteModal isOpen={deleteModal.isOpen} noteId={id} onClose={deleteModal.closeModal} />

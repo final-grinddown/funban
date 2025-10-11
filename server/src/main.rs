@@ -80,7 +80,7 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             header::SET_COOKIE,
             header::COOKIE,
         ])
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_origin(origins)
         .allow_credentials(true)
         .expose_headers([

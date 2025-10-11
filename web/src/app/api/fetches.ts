@@ -64,3 +64,60 @@ export const addUserMark = async (
 		},
 	})
 }
+
+export interface UserMark {
+	id: number
+	user_id: number
+	mark_type: string
+	custom_text: string | null
+	expires_after_status_ends: number
+}
+
+export const fetchUserMarks = async (accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks`, accessToken)
+}
+
+export const fetchUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}`, accessToken)
+}
+
+export const fetchExpiredUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken)
+}
+
+export const updateUserMark = async (
+	id: number,
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number,
+	customText?: string,
+	accessToken?: string
+): Promise<UserMark> => {
+	return fetchWithAuth<UserMark>(`${API_URL}/user-marks/${id}`, accessToken, {
+		method: "PUT",
+		body: {
+			user_id: userId,
+			mark_type: markType,
+			expires_after_status_ends: expiresAfterStatusEnds,
+			custom_text: customText,
+		},
+	})
+}
+
+export const deleteUserMark = async (id: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/${id}`, accessToken, {
+		method: "DELETE",
+	})
+}
+
+export const expireAllUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expire-all`, accessToken, {
+		method: "PUT",
+	})
+}
+
+export const deleteExpiredUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken, {
+		method: "DELETE",
+	})
+}

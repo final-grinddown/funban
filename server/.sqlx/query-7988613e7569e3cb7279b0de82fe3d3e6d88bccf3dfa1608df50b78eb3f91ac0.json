@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT id, user_id, mark_type, custom_text, expires_after_status_ends\n        FROM user_marks\n        ORDER BY id DESC\n        ",
+  "query": "\n        SELECT id, user_id, mark_type, custom_text, expires_after_status_ends\n        FROM user_marks\n        WHERE user_id = ? AND expires_after_status_ends <= 0\n        ORDER BY id DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -60,5 +60,5 @@
       false
     ]
   },
-  "hash": "e3fbc265250ddc8162eb8af093beb831fd577a0b7c2785daf230bc7a40c67d98"
+  "hash": "7988613e7569e3cb7279b0de82fe3d3e6d88bccf3dfa1608df50b78eb3f91ac0"
 }
