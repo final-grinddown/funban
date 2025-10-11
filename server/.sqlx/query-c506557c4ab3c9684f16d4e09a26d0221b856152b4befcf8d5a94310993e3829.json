@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE user_marks\n        SET expires_after_status_ends = expires_after_status_ends - 1\n        WHERE expires_after_status_ends > 0\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "c506557c4ab3c9684f16d4e09a26d0221b856152b4befcf8d5a94310993e3829"
+}

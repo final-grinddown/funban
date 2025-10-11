@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE user_marks\n        SET mark_type = ?, custom_text = ?, expires_after_status_ends = ?, expires_at = ?\n        WHERE id = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "1518fafd30bccf2137f12b1c0ce19c0f6ebc20292a78978935e6570145305658"
+}

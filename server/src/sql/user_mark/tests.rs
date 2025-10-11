@@ -10,6 +10,7 @@ async fn add_user_mark(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: Some("Great work!".to_string()),
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
 
     let added_mark = user_mark::add(&db, &user_mark_insert).await?;
@@ -30,6 +31,7 @@ async fn read_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "black_mark".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(1),
+        expires_at: None,
     };
 
     let added_mark = user_mark::add(&db, &user_mark_insert).await?;
@@ -54,6 +56,7 @@ async fn decrement_and_cleanup(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "clock".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
 
     user_mark::add(&db, &user_mark_insert).await?;
@@ -81,6 +84,7 @@ async fn remove_user_mark(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(1),
+        expires_at: None,
     };
 
     let added_mark = user_mark::add(&db, &user_mark_insert).await?;
@@ -103,6 +107,7 @@ async fn read_user_mark_by_id(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: Some("Great work!".to_string()),
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
 
     let added_mark = user_mark::add(&db, &user_mark_insert).await?;
@@ -129,6 +134,7 @@ async fn update_user_mark(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: Some("Original".to_string()),
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
 
     let added_mark = user_mark::add(&db, &user_mark_insert).await?;
@@ -139,6 +145,7 @@ async fn update_user_mark(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "black_mark".to_string(),
         custom_text: Some("Updated".to_string()),
         expires_after_status_ends: Some(5),
+        expires_at: None,
     };
 
     let updated = user_mark::update(&db, added_mark.id, &update_data).await?;
@@ -159,6 +166,7 @@ async fn read_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
     user_mark::add(&db, &active_mark).await?;
 
@@ -168,6 +176,7 @@ async fn read_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "black_mark".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(0),
+        expires_at: None,
     };
     user_mark::add(&db, &expired_mark).await?;
 
@@ -193,6 +202,7 @@ async fn expire_all_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(3),
+        expires_at: None,
     };
     user_mark::add(&db, &mark1).await?;
 
@@ -201,6 +211,7 @@ async fn expire_all_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "clock".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(5),
+        expires_at: None,
     };
     user_mark::add(&db, &mark2).await?;
 
@@ -231,6 +242,7 @@ async fn delete_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "gold_star".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(2),
+        expires_at: None,
     };
     user_mark::add(&db, &active_mark).await?;
 
@@ -239,6 +251,7 @@ async fn delete_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "black_mark".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(0),
+        expires_at: None,
     };
     user_mark::add(&db, &expired_mark1).await?;
 
@@ -247,6 +260,7 @@ async fn delete_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
         mark_type: "clock".to_string(),
         custom_text: None,
         expires_after_status_ends: Some(0),
+        expires_at: None,
     };
     user_mark::add(&db, &expired_mark2).await?;
 

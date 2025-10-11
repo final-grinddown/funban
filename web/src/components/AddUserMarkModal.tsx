@@ -16,14 +16,16 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   selectedUserId?: number
-  onSubmit: (data: { userId: number; markType: string; duration: number; customText?: string }) => void
+  onSubmit: (data: { userId: number; markType: string; duration: number; customText?: string; expiresAt?: string }) => void
 }
 
 interface FormInputs {
   userId: string
   markType: string
+  durationType: string
   duration: string
   customDuration: string
+  expirationDate: string
   customText: string
 }
 
@@ -41,7 +43,12 @@ const durationOptions = [
   { value: "1", label: "Current status (1)" },
   { value: "2", label: "Until next (2)" },
   { value: "5", label: "For a week (5)" },
-  { value: "custom", label: "Custom" },
+  { value: "custom", label: "Custom count" },
+]
+
+const durationTypeOptions = [
+  { value: "count", label: "Number of Standups" },
+  { value: "date", label: "Specific Date" },
 ]
 
 export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSubmit }: Props) {
@@ -57,28 +64,43 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
     defaultValues: {
       userId: "",
       markType: "",
+      durationType: "count",
       duration: "",
       customDuration: "",
+      expirationDate: "",
       customText: "",
     },
     mode: "onChange",
   })
 
+  const durationType = watch("durationType")
   const duration = watch("duration")
-  const showCustomDuration = duration === "custom"
+  const showCustomDuration = durationType === "count" && duration === "custom"
+  const showDatePicker = durationType === "date"
 
   const handleFormSubmit = (data: FormInputs) => {
     setIsSubmitting(true)
 
-    const finalDuration = data.duration === "custom"
-      ? parseInt(data.customDuration, 10)
-      : parseInt(data.duration, 10)
+    let finalDuration = 1
+    let expiresAt: string | undefined
+
+    if (data.durationType === "count") {
+      finalDuration = data.duration === "custom"
+        ? parseInt(data.customDuration, 10)
+        : parseInt(data.duration, 10)
+    } else if (data.durationType === "date") {
+      // For date-based expiration, set counter to a large number (e.g., 999)
+      // The date will be the primary expiration mechanism
+      finalDuration = 999
+      expiresAt = data.expirationDate ? new Date(data.expirationDate).toISOString() : undefined
+    }
 
     onSubmit({
       userId: parseInt(data.userId, 10),
       markType: data.markType,
       duration: finalDuration,
       customText: data.customText || undefined,
+      expiresAt,
     })
 
     reset()
@@ -92,8 +114,10 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
       reset({
         userId: selectedUserId.toString(),
         markType: "",
+        durationType: "count",
         duration: "",
         customDuration: "",
+        expirationDate: "",
         customText: "",
       })
     }
@@ -148,14 +172,14 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
         />
 
         <Controller
-          name="duration"
+          name="durationType"
           control={control}
           rules={requiredSelectRules}
           render={({ field }) => (
             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel id="duration-label">Duration</InputLabel>
-              <Select {...field} labelId="duration-label" label="Duration" error={!!errors.duration}>
-                {durationOptions.map((option) => (
+              <InputLabel id="duration-type-label">Duration Type</InputLabel>
+              <Select {...field} labelId="duration-type-label" label="Duration Type" error={!!errors.durationType}>
+                {durationTypeOptions.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
                   </MenuItem>
@@ -164,6 +188,26 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
             </FormControl>
           )}
         />
+
+        {durationType === "count" && (
+          <Controller
+            name="duration"
+            control={control}
+            rules={requiredSelectRules}
+            render={({ field }) => (
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel id="duration-label">Duration</InputLabel>
+                <Select {...field} labelId="duration-label" label="Duration" error={!!errors.duration}>
+                  {durationOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
+        )}
 
         {showCustomDuration && (
           <Controller
@@ -181,6 +225,33 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
                 label="Custom Duration (status ends)"
                 error={!!errors.customDuration}
                 helperText={errors.customDuration?.message}
+                sx={{ mt: 2 }}
+              />
+            )}
+          />
+        )}
+
+        {showDatePicker && (
+          <Controller
+            name="expirationDate"
+            control={control}
+            rules={{
+              required: "Expiration date is required",
+              validate: (value) => {
+                const selectedDate = new Date(value)
+                const now = new Date()
+                return selectedDate > now || "Expiration date must be in the future"
+              }
+            }}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                type="datetime-local"
+                label="Expires At"
+                error={!!errors.expirationDate}
+                helperText={errors.expirationDate?.message || "Select when this mark should expire"}
+                InputLabelProps={{ shrink: true }}
                 sx={{ mt: 2 }}
               />
             )}

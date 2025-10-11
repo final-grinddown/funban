@@ -54,6 +54,7 @@ impl AppState {
                         mark_type: mark.mark_type.clone(),
                         custom_text: mark.custom_text.clone(),
                         expires_after_status_ends: mark.expires_after_status_ends,
+                        expires_at: mark.expires_at,
                     })
                     .collect();
 
@@ -125,14 +126,18 @@ impl AppState {
                 mark_type,
                 custom_text,
                 expires_after_status_ends,
+                expires_at,
             } => {
                 self.handle_add_user_mark(
                     db,
                     uuid,
-                    user_id,
-                    mark_type,
-                    custom_text,
-                    expires_after_status_ends,
+                    crate::state::actions::user_mark::AddUserMarkParams {
+                        user_id,
+                        mark_type,
+                        custom_text,
+                        expires_after_status_ends,
+                        expires_at,
+                    },
                 )
                 .await
             }
@@ -227,6 +232,7 @@ pub enum WsAction {
         mark_type: String,
         custom_text: Option<String>,
         expires_after_status_ends: u32,
+        expires_at: Option<String>,
     },
     SplitNote {
         uuid: Option<String>,
@@ -282,6 +288,7 @@ pub enum WsOperation {
         mark_type: String,
         custom_text: Option<String>,
         expires_after_status_ends: u32,
+        expires_at: Option<String>,
     },
     UserMarkUpdated {
         mark_id: u32,
@@ -289,6 +296,7 @@ pub enum WsOperation {
         mark_type: String,
         custom_text: Option<String>,
         expires_after_status_ends: u32,
+        expires_at: Option<String>,
     },
     UserMarkRemoved {
         user_id: u32,

@@ -140,6 +140,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                           mark_type: op.mark_type,
                           custom_text: op.custom_text,
                           expires_after_status_ends: op.expires_after_status_ends,
+                          expires_at: op.expires_at,
                         },
                       ],
                     }
@@ -161,6 +162,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                               mark_type: op.mark_type,
                               custom_text: op.custom_text,
                               expires_after_status_ends: op.expires_after_status_ends,
+                              expires_at: op.expires_at,
                             }
                           : mark
                       ),

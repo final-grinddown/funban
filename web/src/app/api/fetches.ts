@@ -52,6 +52,7 @@ export const addUserMark = async (
 	markType: string,
 	expiresAfterStatusEnds: number,
 	customText?: string,
+	expiresAt?: string,
 	accessToken?: string
 ): Promise<void> => {
 	return fetchWithAuth<void>(`${API_URL}/user-marks`, accessToken, {
@@ -61,6 +62,7 @@ export const addUserMark = async (
 			mark_type: markType,
 			expires_after_status_ends: expiresAfterStatusEnds,
 			custom_text: customText,
+			expires_at: expiresAt,
 		},
 	})
 }
@@ -71,6 +73,7 @@ export interface UserMark {
 	mark_type: string
 	custom_text: string | null
 	expires_after_status_ends: number
+	expires_at: string | null
 }
 
 export const fetchUserMarks = async (accessToken?: string): Promise<UserMark[]> => {

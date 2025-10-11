@@ -21,7 +21,8 @@ export function createAddUserMark(
 	userId: number,
 	markType: string,
 	expiresAfterStatusEnds: number,
-	customText?: string
+	customText?: string,
+	expiresAt?: string
 ): string {
 	return createAction({
 		type: "AddUserMark",
@@ -30,6 +31,7 @@ export function createAddUserMark(
 		mark_type: markType,
 		custom_text: customText ?? null,
 		expires_after_status_ends: expiresAfterStatusEnds,
+		expires_at: expiresAt ?? null,
 	})
 }
 

@@ -259,13 +259,14 @@ export function UserMarksScreen() {
     }
   }
 
-  const handleAddMark = async (data: { userId: number; markType: string; duration: number; customText?: string }) => {
+  const handleAddMark = async (data: { userId: number; markType: string; duration: number; customText?: string; expiresAt?: string }) => {
     try {
       await addUserMark(
         data.userId,
         data.markType,
         data.duration,
         data.customText,
+        data.expiresAt,
         session?.accessToken
       )
 
