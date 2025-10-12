@@ -3,4 +3,5 @@ export enum ERoutes {
   Board = "/board",
   History = "/history",
   Settings = "/settings",
+  UserMarks = "/user-marks",
 }

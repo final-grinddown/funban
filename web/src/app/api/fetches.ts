@@ -46,3 +46,83 @@ export const changeEmail = async (new_email: string, accessToken?: string): Prom
 		},
 	})
 }
+
+export const addUserMark = async (
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number | null,
+	customText?: string,
+	expiresAt?: string,
+	accessToken?: string
+): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks`, accessToken, {
+		method: "POST",
+		body: {
+			user_id: userId,
+			mark_type: markType,
+			expires_after_status_ends: expiresAfterStatusEnds,
+			custom_text: customText,
+			expires_at: expiresAt,
+		},
+	})
+}
+
+export interface UserMark {
+	id: number
+	user_id: number
+	mark_type: string
+	custom_text: string | null
+	expires_after_status_ends: number
+	expires_at: string | null
+}
+
+export const fetchUserMarks = async (accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks`, accessToken)
+}
+
+export const fetchUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}`, accessToken)
+}
+
+export const fetchExpiredUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
+	return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken)
+}
+
+export const updateUserMark = async (
+	id: number,
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number | null,
+	customText?: string,
+	expiresAt?: string,
+	accessToken?: string
+): Promise<UserMark> => {
+	return fetchWithAuth<UserMark>(`${API_URL}/user-marks/${id}`, accessToken, {
+		method: "PUT",
+		body: {
+			user_id: userId,
+			mark_type: markType,
+			expires_after_status_ends: expiresAfterStatusEnds,
+			custom_text: customText,
+			expires_at: expiresAt,
+		},
+	})
+}
+
+export const deleteUserMark = async (id: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/${id}`, accessToken, {
+		method: "DELETE",
+	})
+}
+
+export const expireAllUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expire-all`, accessToken, {
+		method: "PUT",
+	})
+}
+
+export const deleteExpiredUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
+	return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken, {
+		method: "DELETE",
+	})
+}

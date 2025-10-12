@@ -12,13 +12,13 @@ import {
 } from "@mui/material"
 import { createDeleteNoteBulk, createDeleteNoteUserBulk } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 
 interface Props {
   isOpen: boolean
   userName: string
-  userId: INote["owner_id"]
-  state: INote["state"]
+  userId: Note["owner_id"]
+  state: Note["state"]
   isFocus: boolean
   onClose: () => void
 }
@@ -28,9 +28,9 @@ export function DeleteNoteBulkModal({ isOpen, userId, userName, state, onClose, 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleDelete = () => {
+    setIsSubmitting(true)
     const message = isFocus ? createDeleteNoteUserBulk(state, userId) : createDeleteNoteBulk(state)
     sendMessageAsync(message, "Notes deleted successfully!")
-    setIsSubmitting(true)
   }
 
   useEffect(() => {
@@ -39,6 +39,13 @@ export function DeleteNoteBulkModal({ isOpen, userId, userName, state, onClose, 
       onClose()
     }
   }, [isLoading, isSubmitting, onClose])
+
+  // Reset submitting state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false)
+    }
+  }, [isOpen])
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth>

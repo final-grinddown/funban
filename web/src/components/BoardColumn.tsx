@@ -1,11 +1,11 @@
-import { DragEvent, useRef, useState, useEffect } from "react"
+import { DragEvent, useRef, useState } from "react"
 import AddIcon from "@mui/icons-material/Add"
 import MoreVertIcon from "@mui/icons-material/MoreVert"
 import { Box, IconButton, List, Typography, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material"
 import { useTheme } from "@mui/material/styles"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 import { AddNewNoteModal } from "./AddNewNoteModal"
 import { BoardItemCard } from "./BoardItemCard"
 import { DeleteNoteBulkModal } from "./DeleteNoteBulkModal"
@@ -13,8 +13,8 @@ import { DragAndDropPlaceholder } from "./DragAndDropPlaceholder"
 
 interface Props {
   title: string
-  items: INote[]
-  state: INote["state"]
+  items: Note[]
+  state: Note["state"]
   isEditable: boolean
   hoveredColumn: string | null
   setHoveredColumn: (columnId: string | null) => void
@@ -178,7 +178,7 @@ export function BoardColumn({
     setHoveredColumn(null)
   }
 
-  const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = () => {
     setIsDraggingOver(true)
   }
 

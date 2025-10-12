@@ -1,6 +1,7 @@
 use serde::Serialize;
-use sqlx::MySqlPool;
+use sqlx::{MySql, MySqlPool};
 
+use super::common;
 use crate::model::user::User;
 
 #[cfg(test)]
@@ -8,8 +9,8 @@ pub mod tests;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct UserDto {
-    pub id: i64,
-    pub index: i64,
+    pub id: i32,
+    pub index: i32,
     pub name: String,
     pub color: String,
     pub email: String,
@@ -23,6 +24,7 @@ impl From<UserDto> for User {
             name: user.name,
             color: user.color,
             email: user.email,
+            marks: Vec::new(), // Marks are populated separately in get_users
         }
     }
 }
@@ -53,7 +55,10 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<UserDto>> {
     Ok(users)
 }
 
-pub async fn read_by_email(db: &MySqlPool, email: &str) -> sqlx::Result<Option<UserDto>> {
+pub async fn read_by_email<'c, E>(executor: E, email: &str) -> sqlx::Result<Option<UserDto>>
+where
+    E: sqlx::Executor<'c, Database = MySql>,
+{
     let user = sqlx::query_as!(
         UserDto,
         r#"
@@ -63,15 +68,16 @@ pub async fn read_by_email(db: &MySqlPool, email: &str) -> sqlx::Result<Option<U
 			"#,
         email
     )
-    .fetch_optional(db)
+    .fetch_optional(executor)
     .await?;
 
     Ok(user)
 }
 
 pub async fn add(db: &MySqlPool, user: &UserDto) -> sqlx::Result<UserDto> {
-    let new_user = sqlx::query_as!(
-        UserDto,
+    let mut transaction = db.begin().await?;
+
+    sqlx::query!(
         r#"
 				INSERT INTO users (name, `index`, color, email)
 				VALUES (?, ?, ?, ?)
@@ -81,18 +87,17 @@ pub async fn add(db: &MySqlPool, user: &UserDto) -> sqlx::Result<UserDto> {
         user.color,
         user.email,
     )
-    .execute(db)
+    .execute(&mut *transaction)
     .await?;
 
-    let id = new_user.last_insert_id() as i64;
+    // Read back the inserted user within the same transaction
+    let inserted_user = read_by_email(&mut *transaction, &user.email)
+        .await?
+        .ok_or_else(|| sqlx::Error::RowNotFound)?;
 
-    Ok(UserDto {
-        id,
-        index: user.index,
-        name: user.name.clone(),
-        color: user.color.clone(),
-        email: user.email.clone(),
-    })
+    transaction.commit().await?;
+
+    Ok(inserted_user)
 }
 
 pub async fn update_name(db: &MySqlPool, id: u32, name: &str) -> sqlx::Result<()> {
@@ -128,18 +133,7 @@ pub async fn update_color(db: &MySqlPool, id: u32, color: &str) -> sqlx::Result<
 }
 
 pub async fn remove(db: &MySqlPool, id: u32) -> sqlx::Result<bool> {
-    let deleted_rows = sqlx::query!(
-        r#"
-			DELETE FROM users
-			WHERE id = ?
-			"#,
-        id
-    )
-    .execute(db)
-    .await?
-    .rows_affected();
-
-    Ok(deleted_rows > 0)
+    common::execute_delete(db, "users", "id", id).await
 }
 
 pub async fn get_password(db: &MySqlPool, email: &str) -> sqlx::Result<Option<String>> {
@@ -169,7 +163,7 @@ pub async fn update_password(
         new_password_hashed,
         email
     )
-    .fetch_optional(db)
+    .execute(db)
     .await?;
 
     Ok(())
@@ -182,7 +176,7 @@ UPDATE users SET email = ? WHERE email = ?"#,
         new_email,
         email
     )
-    .fetch_optional(db)
+    .execute(db)
     .await?;
 
     Ok(())

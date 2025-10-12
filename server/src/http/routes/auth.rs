@@ -12,9 +12,9 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use cookie::time::Duration;
 
+use crate::http::validation::{validate_input, validators, ValidationError};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use validator::Validate;
 
 use crate::http::ApiContext;
 
@@ -33,15 +33,27 @@ pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct EmailChange {
-    #[validate(email)]
     pub new_email: String,
+}
+
+impl EmailChange {
+    pub fn validate(&self) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if let Err(e) = validators::validate_user_email(&self.new_email) {
+            errors.push(e);
+        }
+        errors
+    }
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct TokenResponse {
     pub token: String,
+    pub email: String,
+    pub username: String,
+    pub id: i32,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -50,7 +62,6 @@ pub struct MeResponse {
     pub username: String,
 }
 
-// TODO: Generalize this to be used in both auth.rs and history.rs
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EmptyResponse {
     pub message: &'static str,
@@ -95,7 +106,11 @@ pub async fn signin(
         }
     };
 
-    let token = create_token(user.name, user.email, ctx.config.api_secret.clone())?;
+    let token = create_token(
+        user.name.clone(),
+        user.email.clone(),
+        ctx.config.api_secret.clone(),
+    )?;
     let duration = Duration::days(14);
 
     let secure = ctx.config.cookie_secure;
@@ -125,7 +140,15 @@ pub async fn signin(
         });
 
     let changed_cookies = cookies.add(token_cookie).add(marker_cookie);
-    Ok((changed_cookies, Json(TokenResponse { token })))
+    Ok((
+        changed_cookies,
+        Json(TokenResponse {
+            token,
+            email: user.email,
+            username: user.name,
+            id: user.id,
+        }),
+    ))
 }
 
 #[utoipa::path(post, path = "/auth/signout", responses((status = 200, body = EmptyResponse, description = "Successfull logout.")), security(("jwt" = [])))]
@@ -160,21 +183,13 @@ pub async fn change_email(
     Extension(claims): Extension<Claims>,
     Json(payload): Json<EmailChange>,
 ) -> Result<Json<EmptyResponse>> {
-    let result = payload.validate();
+    validate_input(payload.validate()).map_err(|e| Error::BadRequest(e.message))?;
 
-    match result {
-        Ok(_) => {
-            sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
+    sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
 
-            Ok(Json(EmptyResponse {
-                message: "Email successfully changed.",
-            }))
-        }
-        Err(_) => Err(Error::BadRequest(
-            serde_json::json!({"message": "Not a valid email", "code": "INVALID_EMAIL"})
-                .to_string(),
-        )),
-    }
+    Ok(Json(EmptyResponse {
+        message: "Email successfully changed.",
+    }))
 }
 
 #[utoipa::path(post, path = "/auth/password", responses((status = 200, body = EmptyResponse, description = "Password successfully changed."), (status = UNAUTHORIZED, description = "Not logged in")), security(("jwt" = [])))]

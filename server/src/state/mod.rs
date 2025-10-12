@@ -1,20 +1,24 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
-use tracing::error;
+use ts_rs::TS;
 
-use crate::model::note::{Note, NoteInsert, NoteTag};
+use crate::model::note::{Note, NoteState, NoteTag};
 use crate::model::user::User;
-use crate::sql::note;
 use crate::sql::note::MoveTarget;
-use crate::sql::user;
+use crate::sql::{note, user};
 use crate::ws::OperationResult;
 
-#[cfg(test)]
-mod action_tests;
+mod actions;
+mod response_helpers;
+mod transaction_helpers;
 
-#[cfg(test)]
-mod serialization_tests;
+pub use response_helpers::respond_error;
+pub use transaction_helpers::BusinessOperation;
+
+// Re-export domain models for external use
+pub use actions::note::NoteUpdate;
+pub use actions::user::UserUpdate;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct AppState {
@@ -31,48 +35,47 @@ impl AppState {
     }
 
     pub async fn get_users(&self, db: &MySqlPool) -> Result<Vec<User>> {
-        let mut users = user::read_all(db).await?;
-        users.sort_by(|a, b| a.index.cmp(&b.index));
-        Ok(users.into_iter().map(|u| u.into()).collect())
+        let mut user_dtos = user::read_all(db).await?;
+        user_dtos.sort_by(|a, b| a.index.cmp(&b.index));
+
+        // Fetch all user marks
+        let all_marks = crate::sql::user_mark::read_all(db).await?;
+
+        // Build users with their marks
+        let users: Vec<User> = user_dtos
+            .into_iter()
+            .map(|user_dto| {
+                let user_marks: Vec<crate::model::user_mark::UserMark> = all_marks
+                    .iter()
+                    .filter(|mark| mark.user_id == user_dto.id)
+                    .map(|mark| crate::model::user_mark::UserMark {
+                        id: mark.id,
+                        user_id: mark.user_id,
+                        mark_type: mark.mark_type.clone(),
+                        custom_text: mark.custom_text.clone(),
+                        expires_after_status_ends: mark.expires_after_status_ends,
+                        expires_at: mark.expires_at,
+                    })
+                    .collect();
+
+                User {
+                    id: user_dto.id,
+                    index: user_dto.index,
+                    name: user_dto.name,
+                    color: user_dto.color,
+                    email: user_dto.email,
+                    marks: user_marks,
+                }
+            })
+            .collect();
+
+        Ok(users)
     }
 
     pub async fn get_notes(&self, db: &MySqlPool) -> Result<Vec<Note>> {
         let notes = note::read_all(db).await?;
 
         Ok(notes.into_iter().map(|n| n.into()).collect())
-    }
-
-    pub fn add_action_finished(
-        uuid: Option<String>,
-        mut operations: Vec<WsOperation>,
-    ) -> Vec<WsOperation> {
-        if let Some(uuid) = uuid {
-            operations.push(WsOperation::ActionFinished { uuid });
-        }
-        operations
-    }
-
-    pub fn broadcast_notes(
-        uuid: Option<String>,
-        operations: Vec<WsOperation>,
-    ) -> Result<OperationResult> {
-        Ok(OperationResult::Broadcast(Self::add_action_finished(
-            uuid, operations,
-        )))
-    }
-
-    pub fn broadcast_note(uuid: Option<String>, operation: WsOperation) -> Result<OperationResult> {
-        Ok(OperationResult::Broadcast(Self::add_action_finished(
-            uuid,
-            vec![operation],
-        )))
-    }
-
-    pub fn respond_empty(uuid: Option<String>) -> Result<OperationResult> {
-        Ok(OperationResult::ClientOnly(Self::add_action_finished(
-            uuid,
-            vec![],
-        )))
     }
 
     pub async fn apply(&mut self, db: &MySqlPool, action: WsAction) -> Result<OperationResult> {
@@ -82,203 +85,85 @@ impl AppState {
                 owner,
                 state,
                 text,
-            } => {
-                // Find the next available index
-                //let index = self.notes.keys().max().copied().unwrap_or_default() + 1;
-
-                let note = NoteInsert {
-                    owner: owner as i32,
-                    text,
-                    state,
-                };
-
-                let created = note::add(db, &note).await;
-
-                if let Err(e) = &created {
-                    error!("{:?}", e);
-                }
-
-                let created = created.unwrap();
-
-                Self::broadcast_note(
-                    uuid,
-                    WsOperation::NoteAdded {
-                        note: created.into(),
-                    },
-                )
-            }
+            } => self.handle_add_note(db, uuid, owner, state, text).await,
             WsAction::UpdateNoteText { uuid, id, text } => {
-                note::update_text(db, id, &text).await?;
-
-                Self::broadcast_note(uuid, WsOperation::NoteTextUpdated { id, text })
+                self.handle_update_note_text(db, uuid, id, text).await
             }
             WsAction::UpdateNoteTag { uuid, id, tag } => {
-                match &tag {
-                    Some(t) => {
-                        if t == &NoteTag::Error {
-                            return Err(anyhow::anyhow!("Cannot set tag to Error"));
-                        }
-                        note::set_tag(db, id, t.clone()).await?;
-                    }
-                    None => {
-                        note::clear_tag(db, id).await?;
-                    }
-                }
-
-                Self::broadcast_note(uuid.clone(), WsOperation::NoteTagChanged { id, tag })
+                self.handle_update_note_tag(db, uuid, id, tag).await
             }
             WsAction::Reorder {
                 uuid,
                 moved_item_id,
                 over_id,
-            } => {
-                let changes = note::transfer(db, moved_item_id, over_id).await?;
-
-                let changes = changes
-                    .into_iter()
-                    .map(|change| WsOperation::NoteOrderChanged {
-                        id: change.id as u32,
-                        state: change.state,
-                        predecessor_id: change.predecessor_id.map(|id| id as u32),
-                    })
-                    .collect();
-
-                Self::broadcast_notes(uuid, changes)
-            }
-            WsAction::RemoveNote { uuid, id } => {
-                let deleted = note::remove(db, id).await;
-
-                if let std::result::Result::Ok(changes) = deleted {
-                    let mut changes: Vec<WsOperation> = changes
-                        .into_iter()
-                        .map(|change| WsOperation::NoteOrderChanged {
-                            id: change.id as u32,
-                            state: change.state,
-                            predecessor_id: change.predecessor_id.map(|id| id as u32),
-                        })
-                        .collect();
-
-                    changes.push(WsOperation::NoteRemoved { id });
-
-                    Self::broadcast_notes(uuid, changes)
-                } else {
-                    Self::respond_empty(uuid)
-                }
-            }
+            } => self.handle_reorder(db, uuid, moved_item_id, over_id).await,
+            WsAction::RemoveNote { uuid, id } => self.handle_remove_note(db, uuid, id).await,
             WsAction::AddUser { uuid, name, color } => {
-                let user = user::add(
-                    db,
-                    &user::UserDto {
-                        id: 0,
-                        index: 9999,
-                        name,
-                        color,
-                        email: "empty@email.com".into(),
-                    },
-                )
-                .await?;
-
-                Self::broadcast_note(uuid, WsOperation::UserAdded { user: user.into() })
+                self.handle_add_user(db, uuid, name, color).await
             }
             WsAction::UpdateUserName { uuid, id, name } => {
-                user::update_name(db, id, &name).await?;
-
-                Self::broadcast_note(uuid, WsOperation::UserNameUpdated { id, name })
+                self.handle_update_user_name(db, uuid, id, name).await
             }
             WsAction::UpdateUserColor { uuid, id, color } => {
-                user::update_color(db, id, &color).await?;
-
-                Self::broadcast_note(uuid, WsOperation::UserColorUpdated { id, color })
+                self.handle_update_user_color(db, uuid, id, color).await
             }
-            WsAction::RemoveUser { uuid, id } => {
-                let deleted = user::remove(db, id).await?;
-
-                //TODO: Reindex
-
-                if deleted {
-                    Self::broadcast_note(uuid, WsOperation::UserRemoved { id })
-                } else {
-                    Self::respond_empty(uuid)
-                }
-            }
+            WsAction::RemoveUser { uuid, id } => self.handle_remove_user(db, uuid, id).await,
             WsAction::DeleteNotes {
                 uuid,
                 owner,
                 status,
-            } => {
-                let (deleted, moved) = note::delete_by(db, owner, status).await?;
-
-                let mut operations: Vec<WsOperation> = moved
-                    .into_iter()
-                    .map(|change| WsOperation::NoteOrderChanged {
-                        id: change.id as u32,
-                        state: change.state,
-                        predecessor_id: change.predecessor_id.map(|id| id as u32),
-                    })
-                    .collect();
-
-                operations.extend(
-                    deleted
-                        .iter()
-                        .map(|id| WsOperation::NoteRemoved { id: *id as u32 }),
-                );
-
-                Self::broadcast_notes(uuid, operations)
-            }
+            } => self.handle_delete_notes(db, uuid, owner, status).await,
             WsAction::NoteUpdate { uuid, id, updates } => {
-                let mut operations = Vec::new();
-
-                for update in updates {
-                    match update {
-                        NoteUpdate::Text { text } => {
-                            note::update_text(db, id, &text).await?;
-                            operations.push(WsOperation::NoteTextUpdated { id, text });
-                        }
-                        NoteUpdate::Order { over_id } => {
-                            let changes = note::transfer(db, id, over_id).await?;
-
-                            let changes: Vec<WsOperation> = changes
-                                .into_iter()
-                                .map(|change| WsOperation::NoteOrderChanged {
-                                    id: change.id as u32,
-                                    state: change.state,
-                                    predecessor_id: change.predecessor_id.map(|id| id as u32),
-                                })
-                                .collect();
-
-                            operations.extend(changes);
-                        }
-                    }
-                }
-
-                Self::broadcast_notes(uuid, operations)
+                self.handle_note_update(db, uuid, id, updates).await
             }
             WsAction::UserUpdate { uuid, id, updates } => {
-                let mut operations = Vec::new();
-
-                for update in updates {
-                    match update {
-                        UserUpdate::Name { name } => {
-                            user::update_name(db, id, &name).await?;
-                            operations.push(WsOperation::UserNameUpdated { id, name });
-                        }
-                        UserUpdate::Color { color } => {
-                            user::update_color(db, id, &color).await?;
-                            operations.push(WsOperation::UserColorUpdated { id, color });
-                        }
-                    }
-                }
-
-                Self::broadcast_notes(uuid, operations)
+                self.handle_user_update(db, uuid, id, updates).await
             }
-            WsAction::NotifySnapshot {} => Ok(OperationResult::Broadcast(vec![
-                WsOperation::SnapshotCreated {},
-            ])),
+            WsAction::NotifySnapshot {} => self.handle_notify_snapshot().await,
+            WsAction::AddUserMark {
+                uuid,
+                user_id,
+                mark_type,
+                custom_text,
+                expires_after_status_ends,
+                expires_at,
+            } => {
+                self.handle_add_user_mark(
+                    db,
+                    uuid,
+                    crate::state::actions::user_mark::AddUserMarkParams {
+                        user_id,
+                        mark_type,
+                        custom_text,
+                        expires_after_status_ends,
+                        expires_at,
+                    },
+                )
+                .await
+            }
+            WsAction::SplitNote {
+                uuid,
+                original_id,
+                original_text,
+                new_text,
+                new_state,
+                new_owner,
+            } => {
+                let params = actions::note::SplitNoteParams {
+                    original_id,
+                    original_text,
+                    new_text,
+                    new_state,
+                    new_owner,
+                };
+                self.handle_split_note(db, uuid, params).await
+            }
         }
     }
 }
 
-#[derive(Deserialize, PartialEq, Debug, Clone)]
+#[derive(Deserialize, PartialEq, Debug, Clone, TS)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsAction {
     AddNote {
@@ -341,23 +226,26 @@ pub enum WsAction {
         updates: Vec<UserUpdate>,
     },
     NotifySnapshot {},
+    AddUserMark {
+        uuid: Option<String>,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: Option<u32>,
+        expires_at: Option<String>,
+    },
+    SplitNote {
+        uuid: Option<String>,
+        original_id: u32,
+        original_text: String,
+        new_text: String,
+        new_state: Option<String>,
+        new_owner: Option<u32>,
+    },
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(tag = "target")]
-pub enum NoteUpdate {
-    Text { text: String },
-    Order { over_id: MoveTarget },
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(tag = "target")]
-pub enum UserUpdate {
-    Name { name: String },
-    Color { color: String },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum WsOperation {
     NoteAdded {
@@ -369,7 +257,7 @@ pub enum WsOperation {
     },
     NoteOrderChanged {
         id: u32,
-        state: String,
+        state: NoteState,
         predecessor_id: Option<u32>,
     },
     NoteTagChanged {
@@ -394,12 +282,32 @@ pub enum WsOperation {
     UserRemoved {
         id: u32,
     },
+    UserMarkAdded {
+        mark_id: u32,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
+        expires_at: Option<String>,
+    },
+    UserMarkUpdated {
+        mark_id: u32,
+        user_id: u32,
+        mark_type: String,
+        custom_text: Option<String>,
+        expires_after_status_ends: u32,
+        expires_at: Option<String>,
+    },
+    UserMarkRemoved {
+        user_id: u32,
+        mark_id: u32,
+    },
     ActionFinished {
         uuid: String,
     },
     SnapshotCreated {},
     Error {
-        uuid: String,
+        uuid: Option<String>,
         message: String,
     },
 }

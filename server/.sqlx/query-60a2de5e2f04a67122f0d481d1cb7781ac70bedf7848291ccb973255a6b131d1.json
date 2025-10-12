@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\tSELECT id, label\n\t\t\t\t\tFROM history\n\t\t\t\t\tWHERE created_at > ?\n\t\t\t\t\tORDER BY created_at ASC\n\t\t\t\t\tLIMIT 1;\n\t\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "label",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "60a2de5e2f04a67122f0d481d1cb7781ac70bedf7848291ccb973255a6b131d1"
+}

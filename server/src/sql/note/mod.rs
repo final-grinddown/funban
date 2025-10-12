@@ -4,8 +4,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, MySqlPool, Transaction};
 use tracing::warn;
+use ts_rs::TS;
 
-use crate::model::note::{Note, NoteInsert, NoteTag};
+use crate::model::note::{Note, NoteInsert, NoteState, NoteTag};
 
 #[cfg(test)]
 pub mod tests;
@@ -31,9 +32,9 @@ impl From<Note> for NoteDto {
             text: note.text,
             name: note.name,
             color: note.color,
-            state: note.state,
+            state: note.state.into(),
             predecessor_id: note.predecessor_id,
-            owner_id: note.owner_id as i32,
+            owner_id: note.owner_id,
             updated: note.updated,
             created: note.created,
             tag: note.tag.map(|tag| tag.into()),
@@ -48,15 +49,12 @@ impl From<NoteDto> for Note {
             text: note.text,
             name: note.name,
             color: note.color,
-            state: note.state,
+            state: NoteState::from(note.state),
             predecessor_id: note.predecessor_id,
-            owner_id: note.owner_id as i64,
+            owner_id: note.owner_id,
             updated: note.updated,
             created: note.created,
-            tag: note.tag.map(|tag| {
-                // Convert the string tag back to NoteTag enum
-                NoteTag::from(tag)
-            }),
+            tag: note.tag.map(NoteTag::from),
         }
     }
 }
@@ -68,11 +66,12 @@ pub struct MoveTargetDto {
     pub state: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, TS)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum MoveTarget {
-    Before { id: i64 },
-    Last { state: String },
+    Before { id: i32 },
+    Last { state: NoteState },
 }
 
 pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<NoteDto>> {
@@ -90,7 +89,10 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<NoteDto>> {
     Ok(users)
 }
 
-pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<NoteDto> {
+pub async fn read_by_id<'c, E>(executor: E, id: u32) -> sqlx::Result<NoteDto>
+where
+    E: sqlx::Executor<'c, Database = MySql>,
+{
     let users = sqlx::query_as!(
         NoteDto,
         r#"
@@ -101,30 +103,32 @@ pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<NoteDto> {
 		"#,
         id
     )
-    .fetch_one(db)
+    .fetch_one(executor)
     .await?;
 
     Ok(users)
 }
 
 pub async fn add(db: &MySqlPool, note: &NoteInsert) -> sqlx::Result<NoteDto> {
+    let mut transaction = db.begin().await?;
+
     // Insert the new note with the computed index
-    let users = sqlx::query!(
+    let result = sqlx::query!(
         r#"
 INSERT INTO notes (text, owner, state, predecessor_id)
 VALUES (
-    COALESCE(?, ""), 
-    ?, 
-    ?, 
+    COALESCE(?, ""),
+    ?,
+    ?,
     (SELECT id FROM (
         SELECT id, state FROM notes
     ) AS n1
-    WHERE state = ? 
+    WHERE state = ?
     AND NOT EXISTS (
         SELECT 1 FROM (
             SELECT predecessor_id, state FROM notes
         ) AS n2
-        WHERE n2.predecessor_id = n1.id 
+        WHERE n2.predecessor_id = n1.id
         AND n2.state = n1.state
     ))
 )
@@ -134,11 +138,13 @@ VALUES (
         note.state,
         note.state
     )
-    .execute(db)
+    .execute(&mut *transaction)
     .await?;
 
-    // Retrieve the inserted note
-    let note = read_by_id(db, users.last_insert_id() as u32).await?;
+    // Retrieve the inserted note within the same transaction
+    let note = read_by_id(&mut *transaction, result.last_insert_id() as u32).await?;
+
+    transaction.commit().await?;
 
     Ok(note)
 }
@@ -185,7 +191,10 @@ pub async fn clear_tag(db: &MySqlPool, id: u32) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn get_last_id(db: &MySqlPool, state: &str) -> sqlx::Result<Option<u32>> {
+pub async fn get_last_id<'c, E>(executor: E, state: &str) -> sqlx::Result<Option<u32>>
+where
+    E: sqlx::Executor<'c, Database = MySql>,
+{
     let id = sqlx::query!(
         r#"
 					SELECT n1.id as id FROM notes as n1
@@ -194,7 +203,7 @@ pub async fn get_last_id(db: &MySqlPool, state: &str) -> sqlx::Result<Option<u32
 					"#,
         state
     )
-    .fetch_optional(db)
+    .fetch_optional(executor)
     .await?;
 
     Ok(id.map(|i| i.id as u32))
@@ -226,19 +235,20 @@ pub async fn transfer(
 ) -> sqlx::Result<Vec<MoveTargetDto>> {
     match over_id {
         MoveTarget::Before { id } => transfer_before(db, moved_item_id, id as u32).await,
-        MoveTarget::Last { state } => transfer_last(db, moved_item_id, &state).await,
+        MoveTarget::Last { state } => transfer_last(db, moved_item_id, state).await,
     }
 }
 
 pub async fn transfer_last(
     db: &MySqlPool,
     moved_item_id: u32,
-    target_state: &str,
+    target_state: NoteState,
 ) -> sqlx::Result<Vec<MoveTargetDto>> {
     let mut transaction = db.begin().await?;
     let change_set = uuid::Uuid::new_v4().to_string();
+    let target_state_str = target_state.as_ref();
 
-    let last_id = get_last_id(db, target_state).await?;
+    let last_id = get_last_id(&mut *transaction, target_state_str).await?;
 
     if let Some(last_id) = last_id {
         if last_id == moved_item_id {
@@ -253,14 +263,14 @@ pub async fn transfer_last(
     // Update our note to point to the last note
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					state = ?,
 					change_set = ?
 			WHERE id = ?
 			"#,
         last_id,
-        target_state,
+        target_state_str,
         change_set,
         moved_item_id,
     )
@@ -294,10 +304,10 @@ async fn remove_from_chain(
     // to point to whatever the removed note was pointing to
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = (
-					SELECT predecessor_id 
-					FROM (SELECT * FROM notes) AS n2 
+					SELECT predecessor_id
+					FROM (SELECT * FROM notes) AS n2
 					WHERE n2.id = ?
 			),
 			change_set = ?
@@ -343,7 +353,7 @@ pub async fn transfer_before(
     // Make moved note point to what target was pointing to and update its state
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					state = ?,
 					change_set = ?
@@ -360,7 +370,7 @@ pub async fn transfer_before(
     // Make target point to moved note
     sqlx::query!(
         r#"
-			UPDATE notes 
+			UPDATE notes
 			SET predecessor_id = ?,
 					change_set = ?
 			WHERE id = ?
@@ -393,8 +403,8 @@ pub async fn delete_by(
         (None, None) => read_all_notes_ids(&mut transaction).await,
     }?;
 
-    // Fix chains for each deleted note
-    for id in note_ids.clone() {
+    // Fix chains for each deleted note (revert to working implementation)
+    for &id in &note_ids {
         remove_from_chain(&mut transaction, id as u32, &change_set).await?;
     }
 
@@ -502,4 +512,78 @@ pub async fn delete_bulk(
     query_builder.execute(&mut **transaction).await?;
 
     Ok(())
+}
+
+pub async fn split_note(
+    db: &MySqlPool,
+    original_id: u32,
+    original_text: &str,
+    new_text: &str,
+    new_state: Option<&str>,
+    new_owner: Option<u32>,
+) -> sqlx::Result<(NoteDto, NoteDto)> {
+    let mut transaction = db.begin().await?;
+
+    // First, read the original note to get its current state and owner
+    let original_note = sqlx::query!(
+        r#"
+        SELECT id, text, owner, state, predecessor_id, tag, updated, created
+        FROM notes
+        WHERE id = ?
+        "#,
+        original_id
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+
+    // Update the original note with new text
+    sqlx::query!(
+        r#"
+        UPDATE notes SET text = ? WHERE id = ?
+        "#,
+        original_text,
+        original_id
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    // Use provided new_state and new_owner, or fall back to original values
+    let target_state = new_state.unwrap_or(&original_note.state);
+    let target_owner = new_owner.unwrap_or(original_note.owner as u32);
+
+    // Find the last note in the target state for proper ordering
+    let last_id = sqlx::query!(
+        r#"
+        SELECT n1.id as id FROM notes as n1
+        LEFT JOIN notes as n2 ON n1.id = n2.predecessor_id
+        WHERE n1.state = ? AND n2.id IS NULL
+        "#,
+        target_state
+    )
+    .fetch_optional(&mut *transaction)
+    .await?;
+
+    // Create the new note
+    let new_note_result = sqlx::query!(
+        r#"
+        INSERT INTO notes (text, owner, state, predecessor_id, tag)
+        VALUES (?, ?, ?, ?, ?)
+        "#,
+        new_text,
+        target_owner,
+        target_state,
+        last_id.map(|row| row.id),
+        original_note.tag
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    // Read back both notes within the same transaction
+    let updated_original = read_by_id(&mut *transaction, original_id).await?;
+    let new_note = read_by_id(&mut *transaction, new_note_result.last_insert_id() as u32).await?;
+
+    // Commit the transaction
+    transaction.commit().await?;
+
+    Ok((updated_original, new_note))
 }

@@ -1,7 +1,7 @@
 import type { BaseSyntheticEvent, KeyboardEvent } from "react"
 import { format, formatDistanceToNow } from "date-fns"
 import { TThemeMode } from "@/utils/types"
-import { ErrorWithCode, INote, IRawNote } from "./interfaces"
+import { ErrorWithCode, Note, IRawNote } from "./interfaces"
 
 const PROJECT_PREFIX = "funban-"
 
@@ -38,6 +38,7 @@ export function isThemeMode(value: unknown): value is TThemeMode {
  * @returns The color value (e.g., a hex code) if a match is found, otherwise undefined.
  */
 export function matchColorName(color: string, availableColors: readonly { name: string; value: string }[]) {
+	if (!color) return undefined
 	const normalizedColor = color.toLowerCase().replace(/ /g, "_")
 
 	const matchedColor = availableColors.find((c) => {
@@ -49,17 +50,17 @@ export function matchColorName(color: string, availableColors: readonly { name: 
 }
 
 /**
- * Normalizes an array of notes by converting them into the INote interface structure.
+ * Normalizes an array of notes by converting them into the Note interface structure.
  *
  * This function takes an array of raw note objects (which may have a different structure)
- * and converts them to match the INote interface. It ensures that the note IDs and owner IDs
+ * and converts them to match the Note interface. It ensures that the note IDs and owner IDs
  * are numbers, and that the owner details (name and color) are directly accessible in the resulting
- * INote objects.
+ * Note objects.
  *
- * @param notes - An array of raw note objects that may not conform to the INote interface.
- * @returns An array of normalized notes conforming to the INote interface.
+ * @param notes - An array of raw note objects that may not conform to the Note interface.
+ * @returns An array of normalized notes conforming to the Note interface.
  */
-export function normalizeNotes(notes: IRawNote[]): INote[] {
+export function normalizeNotes(notes: IRawNote[]): Note[] {
 	return notes.map((note) => ({
 		id: Number(note.id),
 		text: note.text,
@@ -70,7 +71,7 @@ export function normalizeNotes(notes: IRawNote[]): INote[] {
 		predecessor_id: note.predecessor_id ? Number(note.predecessor_id) : null,
 		updated: note.updated,
 		created: note.created,
-		tag: note.tag || null,
+		tag: (note.tag || null) as Note['tag'],
 	}))
 }
 

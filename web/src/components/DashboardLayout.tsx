@@ -5,6 +5,7 @@ import { AccountCircle, Logout, Settings } from "@mui/icons-material"
 import DashboardIcon from "@mui/icons-material/Dashboard"
 import HistoryIcon from "@mui/icons-material/History"
 import MenuIcon from "@mui/icons-material/Menu"
+import StarIcon from "@mui/icons-material/Star"
 import {
   AppBar,
   Box,
@@ -21,7 +22,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import getConfig from "next/config"
 import Link from "next/link"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { ERoutes } from "@/utils/enums"
@@ -134,6 +134,14 @@ export function DashboardLayout({ children, userEmail }: Props) {
                 <HistoryIcon />
               </ListItemIcon>
               <ListItemText primary="History" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem sx={{ p: 0 }}>
+            <ListItemButton component={Link} href={ERoutes.UserMarks}>
+              <ListItemIcon>
+                <StarIcon />
+              </ListItemIcon>
+              <ListItemText primary="User Marks" />
             </ListItemButton>
           </ListItem>
           <ListItem sx={{ p: 0 }}>

@@ -1,169 +1,182 @@
-import {
-	IAddNote,
-	IAddUser,
-	ICloneNote,
-	IRemoveNote,
-	IRemoveNoteBulk,
-	IRemoveUser,
-	IUpdateNote,
-	IUpdateNoteTag,
-	IUpdateNoteText,
-	IUpdateReorderNote,
-	IUpdateUserColor,
-	IUpdateUserName,
-} from "@/utils/interfaces"
+import typia from "typia"
+import type { WsAction, WsNoteTag, WsNoteUpdate, WsMoveTarget, WsNoteState } from "@/schemas/websocket"
+
+// Helper to create and validate a WsAction message
+// Uses typia to validate the complete action before sending to server
+function createAction<T extends WsAction>(action: T): string {
+	typia.assert<WsAction>(action)
+	return JSON.stringify(action)
+}
 
 export function createAddUserMessage(name: string, color: string): string {
-	const action: IAddUser = {
+	return createAction({
 		type: "AddUser",
+		uuid: null,
 		name,
 		color,
-	}
+	})
+}
 
-	return JSON.stringify(action)
+export function createAddUserMark(
+	userId: number,
+	markType: string,
+	expiresAfterStatusEnds: number | undefined,
+	customText?: string,
+	expiresAt?: string
+): string {
+	return createAction({
+		type: "AddUserMark",
+		uuid: null,
+		user_id: userId,
+		mark_type: markType,
+		custom_text: customText ?? null,
+		expires_after_status_ends: expiresAfterStatusEnds ?? null,
+		expires_at: expiresAt ?? null,
+	})
 }
 
 export function createUpdateUserNameMessage(id: number, name: string): string {
-	const action: IUpdateUserName = {
+	return createAction({
+		uuid: null,
 		type: "UpdateUserName",
 		id,
 		name,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateUserColorMessage(id: number, color: string): string {
-	const action: IUpdateUserColor = {
+	return createAction({
+		uuid: null,
 		type: "UpdateUserColor",
-		id: id,
-		color: color,
-	}
-
-	return JSON.stringify(action)
+		id,
+		color,
+	})
 }
 
 export function createDeleteUser(id: number): string {
-	const action: IRemoveUser = {
+	return createAction({
+		uuid: null,
 		type: "RemoveUser",
-		id: id,
-	}
-
-	return JSON.stringify(action)
+		id,
+	})
 }
 
 export function createNewNote(owner: string, text: string, state: string): string {
-	const action: IAddNote = {
+	return createAction({
+		uuid: null,
 		type: "AddNote",
 		owner: parseInt(owner),
 		state,
 		text,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateNote(id: string, text: string, destinationStatus: string): string {
-	const action: IUpdateNote = {
+	const updates: WsNoteUpdate[] = [
+		{
+			target: "Text",
+			text: text,
+		},
+		{
+			target: "Order",
+			over_id: {
+				type: "Last",
+				state: destinationStatus as WsNoteState,
+			},
+		},
+	]
+	return createAction({
+		uuid: null,
 		type: "NoteUpdate",
 		id: parseInt(id),
-		updates: [
-			{
-				target: "Text",
-				text: text,
-			},
-			{
-				target: "Order",
-				over_id: {
-					type: "Last",
-					state: destinationStatus,
-				},
-			},
-		],
-	}
-
-	return JSON.stringify(action)
+		updates,
+	})
 }
 
 export function createUpdateNoteText(id: string, text: string): string {
-	const action: IUpdateNoteText = {
+	return createAction({
+		uuid: null,
 		type: "UpdateNoteText",
 		id: parseInt(id),
 		text,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
-export function createUpdateNoteTag(id: string, tag: string | null): string {
-	const action: IUpdateNoteTag = {
+export function createUpdateNoteTag(id: string, tag: WsNoteTag | null): string {
+	return createAction({
+		uuid: null,
 		type: "UpdateNoteTag",
 		id: parseInt(id),
 		tag,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createUpdateNoteReorderBefore(id: string, over_id: number): string {
-	const action: IUpdateReorderNote = {
+	const moveTarget: WsMoveTarget = {
+		type: "Before",
+		id: over_id,
+	}
+	return createAction({
+		uuid: null,
 		type: "Reorder",
 		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Before",
-			id: over_id,
-		},
-	}
-
-	return JSON.stringify(action)
+		over_id: moveTarget,
+	})
 }
 
 export function createUpdateNoteReorderLast(id: string, state: string): string {
-	const action: IUpdateReorderNote = {
+	const moveTarget: WsMoveTarget = {
+		type: "Last",
+		state: state as WsNoteState,
+	}
+	return createAction({
+		uuid: null,
 		type: "Reorder",
 		moved_item_id: parseInt(id),
-		over_id: {
-			type: "Last",
-			state,
-		},
-	}
-
-	return JSON.stringify(action)
+		over_id: moveTarget,
+	})
 }
 
 export function createDeleteNote(id: string): string {
-	const action: IRemoveNote = {
+	return createAction({
+		uuid: null,
 		type: "RemoveNote",
 		id: parseInt(id),
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createDeleteNoteUserBulk(status: string, owner: number): string {
-	const action: IRemoveNoteBulk = {
+	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
 		owner,
 		status,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
 export function createDeleteNoteBulk(status: string): string {
-	const action: IRemoveNoteBulk = {
+	return createAction({
+		uuid: null,
 		type: "DeleteNotes",
+		owner: null,
 		status,
-	}
-
-	return JSON.stringify(action)
+	})
 }
 
-export function createCloneNote(id: string): string {
-	const action: ICloneNote = {
-		type: "CloneNote",
-		id: parseInt(id),
-	}
-
-	return JSON.stringify(action)
+export function createSplitNote(
+	originalId: string,
+	originalText: string,
+	newText: string,
+	newState?: string,
+	newOwner?: string
+): string {
+	return createAction({
+		uuid: null,
+		type: "SplitNote",
+		original_id: parseInt(originalId),
+		original_text: originalText,
+		new_text: newText,
+		new_state: newState ?? null,
+		new_owner: newOwner ? parseInt(newOwner) : null,
+	})
 }

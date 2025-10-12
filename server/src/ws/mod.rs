@@ -3,7 +3,7 @@ use serde::Serialize;
 use sqlx::MySqlPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use tracing::warn;
+use tracing::{info, warn};
 
 use axum::{
     extract::ws::{Message, Utf8Bytes, WebSocket},
@@ -26,8 +26,6 @@ use crate::{
 pub enum OperationResult {
     Broadcast(Vec<WsOperation>),
     ClientOnly(Vec<WsOperation>),
-    #[allow(dead_code)]
-    Mixed(Vec<WsOperation>, Vec<WsOperation>), // (broadcast, client_only)
 }
 
 #[derive(Debug, Clone)]
@@ -97,22 +95,20 @@ impl WsContext {
         Ok(())
     }
 
-    async fn broadcast(&self, ops: Vec<WsOperation>) -> anyhow::Result<()> {
+    pub async fn broadcast(&self, ops: Vec<WsOperation>) -> anyhow::Result<()> {
         if ops.is_empty() {
             return Ok(());
         }
 
         let message = serde_json::to_string(&ServerMessage::Patch { ops })?;
+        let message_bytes = Utf8Bytes::from(message);
         let mut txs = self.txs.lock().await;
 
         // Collect disconnected clients
         let mut to_remove = Vec::new();
 
         for (client_id, tx) in txs.iter_mut() {
-            if let Err(err) = tx
-                .send(Message::Text(Utf8Bytes::from(message.clone())))
-                .await
-            {
+            if let Err(err) = tx.send(Message::Text(message_bytes.clone())).await {
                 warn!("Client {} disconnected: {}", client_id, err);
                 to_remove.push(client_id.clone());
             }
@@ -142,6 +138,45 @@ impl WsContext {
         }
 
         Ok(())
+    }
+
+    #[allow(dead_code)]
+    /// Remove a WebSocket session
+    pub async fn remove_session(&self, client_id: &str) {
+        let mut txs = self.txs.lock().await;
+        if txs.remove(client_id).is_some() {
+            info!("Removed WebSocket session: {}", client_id);
+        }
+    }
+
+    #[allow(dead_code)]
+    /// Get count of active WebSocket connections
+    pub async fn connection_count(&self) -> usize {
+        let txs = self.txs.lock().await;
+        txs.len()
+    }
+
+    #[allow(dead_code)]
+    /// Gracefully close all WebSocket connections
+    pub async fn shutdown_all_connections(&self) {
+        let mut txs = self.txs.lock().await;
+        let connection_count = txs.len();
+
+        if connection_count > 0 {
+            info!("Closing {} WebSocket connection(s)...", connection_count);
+
+            for (client_id, tx) in txs.iter_mut() {
+                if let Err(err) = tx.send(Message::Close(None)).await {
+                    warn!(
+                        "Failed to close connection for client {}: {}",
+                        client_id, err
+                    );
+                }
+            }
+        }
+
+        txs.clear();
+        info!("All WebSocket connections closed");
     }
 }
 

@@ -3,15 +3,17 @@ use serde::Serialize;
 use sqlx::FromRow;
 use sqlx::MySqlPool;
 
+use super::common;
 use crate::model::history::History;
 
 #[cfg(test)]
 pub mod tests;
 
 pub struct HistoryEntity {
-    pub id: i64,
+    pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
 }
 
@@ -21,6 +23,7 @@ impl From<History> for HistoryEntity {
             id: history.id,
             label: history.label,
             snapshot: history.snapshot,
+            version: history.version,
             created_at: history.created_at,
         }
     }
@@ -32,6 +35,7 @@ impl From<HistoryEntity> for History {
             id: history.id,
             label: history.label,
             snapshot: history.snapshot,
+            version: history.version,
             created_at: history.created_at,
         }
     }
@@ -41,7 +45,7 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<HistoryEntity>> {
     let users = sqlx::query_as!(
         HistoryEntity,
         r#"
-				SELECT id, label, snapshot, created_at
+				SELECT id, label, snapshot, version, created_at
 				FROM history
 				ORDER BY created_at DESC
 				"#,
@@ -56,7 +60,7 @@ pub async fn read_by_id(db: &MySqlPool, id: u32) -> sqlx::Result<Option<HistoryE
     let users = sqlx::query_as!(
         HistoryEntity,
         r#"
-			SELECT id, label, snapshot, created_at
+			SELECT id, label, snapshot, version, created_at
 			FROM history
 			WHERE id = ?
 			"#,
@@ -82,26 +86,21 @@ pub async fn rename(db: &MySqlPool, id: u32, new_name: &str) -> sqlx::Result<Opt
     .await?;
 
     match result.rows_affected() {
-        1 => Ok(Some(id.try_into().unwrap())),
+        1 => Ok(Some(id.try_into().map_err(|_| {
+            sqlx::Error::Protocol("ID conversion failed".into())
+        })?)),
         _ => Ok(None),
     }
 }
 
 pub async fn delete(db: &MySqlPool, id: u32) -> sqlx::Result<Option<i32>> {
-    let result = sqlx::query_as!(
-        HistoryEntity,
-        r#"
-				DELETE FROM history 
-				WHERE id = ?
-				"#,
-        id
-    )
-    .execute(db)
-    .await?;
+    let deleted = common::execute_delete(db, "history", "id", id).await?;
 
-    match result.rows_affected() {
-        1 => Ok(Some(id.try_into().unwrap())),
-        _ => Ok(None),
+    match deleted {
+        true => Ok(Some(id.try_into().map_err(|_| {
+            sqlx::Error::Protocol("ID conversion failed".into())
+        })?)),
+        false => Ok(None),
     }
 }
 
@@ -109,7 +108,7 @@ pub async fn read_last(db: &MySqlPool) -> sqlx::Result<Option<HistoryEntity>> {
     let user = sqlx::query_as!(
         HistoryEntity,
         r#"
-					SELECT id, label, snapshot, created_at
+					SELECT id, label, snapshot, version, created_at
 					FROM history
 					WHERE created_at = (SELECT MAX(created_at) FROM history)
 				"#,
@@ -124,31 +123,36 @@ pub async fn create(
     db: &MySqlPool,
     label: Option<String>,
     snapshot: &str,
+    version: i32,
 ) -> sqlx::Result<HistoryEntity> {
-    let insert = sqlx::query_as!(
-        HistoryDto,
+    let mut transaction = db.begin().await?;
+
+    let insert = sqlx::query!(
         r#"
-					INSERT INTO history (label, snapshot)
-					VALUES (?, ?)
+					INSERT INTO history (label, snapshot, version)
+					VALUES (?, ?, ?)
 				"#,
         label,
-        snapshot
+        snapshot,
+        version
     )
-    .execute(db)
+    .execute(&mut *transaction)
     .await?
-    .last_insert_id() as i64;
+    .last_insert_id() as i32;
 
     let history = sqlx::query_as!(
         HistoryEntity,
         r#"
-				SELECT id, label, snapshot, created_at
+				SELECT id, label, snapshot, version, created_at
 				FROM history
 				WHERE id = ?
 				"#,
         insert
     )
-    .fetch_one(db)
+    .fetch_one(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     Ok(history)
 }
@@ -158,6 +162,7 @@ pub struct BrowserInfoEntity {
     pub id: String,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: chrono::DateTime<Utc>,
     pub previous_id: Option<u32>,
     pub previous_label: Option<String>,
@@ -166,40 +171,42 @@ pub struct BrowserInfoEntity {
 }
 
 pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<BrowserInfoEntity> {
+    let mut transaction = db.begin().await?;
+
     let result = if let Some(current_id) = id {
         let row = sqlx::query!(
             r#"
-						  SELECT snapshot, label, created_at, id
+						  SELECT snapshot, label, created_at, id, version
     					FROM history
     					WHERE id = ?;
 						"#,
             current_id
         )
-        .fetch_one(db)
+        .fetch_one(&mut *transaction)
         .await?;
 
-        (row.snapshot, row.label, row.created_at, row.id)
+        (row.snapshot, row.label, row.created_at, row.id, row.version)
     } else {
         // Fetch the most recent entry when no ID is provided
         let row = sqlx::query!(
             r#"
-						  SELECT snapshot, label, created_at, id
+						  SELECT snapshot, label, created_at, id, version
     					FROM history
     					WHERE created_at = (SELECT MAX(created_at) FROM history);
 				"#,
         )
-        .fetch_optional(db)
+        .fetch_optional(&mut *transaction)
         .await?;
 
         if let Some(row) = row {
-            (row.snapshot, row.label, row.created_at, row.id)
+            (row.snapshot, row.label, row.created_at, row.id, row.version)
         } else {
             return Err(sqlx::Error::RowNotFound);
         }
     };
 
     let previous = sqlx::query!(
-        r#"    
+        r#"
 						SELECT id, label
 						FROM history
 						WHERE created_at < ?
@@ -208,11 +215,11 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
 						"#,
         result.2
     )
-    .fetch_optional(db)
+    .fetch_optional(&mut *transaction)
     .await?;
 
     let next = sqlx::query!(
-        r#" 
+        r#"
 					SELECT id, label
 					FROM history
 					WHERE created_at > ?
@@ -221,13 +228,16 @@ pub async fn read_browser(db: &MySqlPool, id: Option<&str>) -> sqlx::Result<Brow
 					"#,
         result.2
     )
-    .fetch_optional(db)
+    .fetch_optional(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     Ok(BrowserInfoEntity {
         id: result.3.to_string(),
         label: result.1,
         snapshot: result.0,
+        version: result.4,
         created_at: result.2,
         previous_id: previous.as_ref().map(|s| s.id as u32),
         previous_label: previous.and_then(|s| s.label),

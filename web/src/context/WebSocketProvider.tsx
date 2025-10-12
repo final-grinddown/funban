@@ -1,14 +1,47 @@
+/**
+ * WebSocket Provider with Type-Safe Message Validation
+ *
+ * This provider implements runtime validation of WebSocket messages using typia.
+ * All incoming messages are validated against TypeScript contracts to ensure type safety
+ * and catch compatibility issues between frontend and backend.
+ *
+ * Architecture:
+ * - typia validates messages against generated TypeScript contracts from Rust types
+ * - WsOperation types from contracts define all possible operations
+ * - Runtime validation happens at compile-time with typia transformation
+ */
 "use client"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
+import typia from "typia"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
-import { IExtendedSession, INote, IUser } from "@/utils/interfaces"
+import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
+import type { User, Note } from "@/utils/interfaces"
 import { useActionStateStore } from "@/utils/store"
 
+// WebSocket message types
+type PatchMessage = {
+  type: "Patch"
+  ops: WsOperation[]
+}
+
+type UsersMessage = {
+  type: "Users"
+  items: WsUser[]
+}
+
+type NotesMessage = {
+  type: "Notes"
+  items: WsNote[]
+}
+
+type WebSocketMessage = PatchMessage | UsersMessage | NotesMessage
+
 interface WebSocketContextType {
-  users: IUser[]
-  notes: INote[]
+  users: User[]
+  notes: Note[]
   sendMessage: (message: string) => void
   sendMessageAsync: (message: string, successNotification: string) => void
   connectionStatus: string
@@ -19,24 +52,44 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
+// Reconnection configuration
+const INITIAL_RECONNECT_DELAY = 1000 // 1 second
+const MAX_RECONNECT_DELAY = 30000 // 30 seconds
+const RECONNECT_BACKOFF_MULTIPLIER = 1.5
+
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
-  const [users, setUsers] = useState<IUser[]>([])
-  const [notes, setNotes] = useState<INote[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  ///const lastUUIDRef = useRef<string | null>(null)
+  const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const shouldReconnectRef = useRef(true)
   const { startAsync, finishAsync } = useActionStateStore()
 
   useEffect(() => {
     if (status === "authenticated" && session) {
-      const extendedSession = session as IExtendedSession
+      const extendedSession = session as Session
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
+        shouldReconnectRef.current = true
+      } else {
+        console.error('WebSocket: No accessToken in session', session)
       }
     } else {
+      // Disable reconnection when unauthenticated
+      shouldReconnectRef.current = false
+
+      // Clear any pending reconnection
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+
       if (socketRef.current) {
+        socketRef.current.onclose = null // Prevent reconnection
         socketRef.current.close()
         socketRef.current = null
       }
@@ -46,12 +99,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status])
 
+  // Transform contract types to app types
+  const transformNote = (note: WsNote): Note => note  // No transformation needed
+  const transformUser = (user: WsUser): User => user  // No transformation needed
+
   const handlePatchMessage = useCallback(
-    (msg: any) => {
-      msg.ops.forEach((op: any) => {
+    (msg: PatchMessage) => {
+      msg.ops.forEach((op: WsOperation) => {
         switch (op.type) {
           case "UserAdded":
-            setUsers((prevUsers) => [...prevUsers, op.user])
+            setUsers((prevUsers) => [...prevUsers, transformUser(op.user)])
             break
           case "UserNameUpdated":
             setUsers((prevUsers) => prevUsers.map((user) => (user.id === op.id ? { ...user, name: op.name } : user)))
@@ -68,6 +125,63 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           case "UserRemoved":
             setUsers((prevUsers) => prevUsers.filter((user) => user.id !== op.id))
             setNotes((prevNotes) => prevNotes.filter((note) => note.owner_id !== op.id))
+            break
+          case "UserMarkAdded":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: [
+                        ...user.marks,
+                        {
+                          id: op.mark_id,
+                          user_id: op.user_id,
+                          mark_type: op.mark_type,
+                          custom_text: op.custom_text,
+                          expires_after_status_ends: op.expires_after_status_ends,
+                          expires_at: op.expires_at,
+                        },
+                      ],
+                    }
+                  : user
+              )
+            )
+            break
+          case "UserMarkUpdated":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: user.marks.map((mark) =>
+                        mark.id === op.mark_id
+                          ? {
+                              id: op.mark_id,
+                              user_id: op.user_id,
+                              mark_type: op.mark_type,
+                              custom_text: op.custom_text,
+                              expires_after_status_ends: op.expires_after_status_ends,
+                              expires_at: op.expires_at,
+                            }
+                          : mark
+                      ),
+                    }
+                  : user
+              )
+            )
+            break
+          case "UserMarkRemoved":
+            setUsers((prevUsers) =>
+              prevUsers.map((user) =>
+                user.id === op.user_id
+                  ? {
+                      ...user,
+                      marks: user.marks.filter((mark) => mark.id !== op.mark_id),
+                    }
+                  : user
+              )
+            )
             break
           case "NoteTextUpdated":
             setNotes((prevNotes) =>
@@ -101,14 +215,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             setNotes((prevNotes) => prevNotes.filter((note) => note.id !== op.id))
             break
           case "NoteAdded":
-            setNotes((prevNotes) => [...prevNotes, op.note])
+            setNotes((prevNotes) => [...prevNotes, transformNote(op.note)])
             break
           case "ActionFinished":
             finishAsync(op.uuid)
             setIsLoading(false)
             break
-          default:
-            console.error("Unknown operation", op)
+          case "SnapshotCreated":
+            // Handle snapshot creation notification
+            break
+          case "Error":
+            console.error("WebSocket error:", op.message)
+            if (op.uuid) {
+              finishAsync(op.uuid)
+            }
+            setIsLoading(false)
             break
         }
       })
@@ -118,28 +239,83 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   )
 
   const connectWebSocket = useCallback(() => {
+    // Close existing connection if any
+    if (socketRef.current) {
+      socketRef.current.onclose = null // Prevent reconnection
+      socketRef.current.close()
+    }
+
+    // Clear any pending reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+
     socketRef.current = new WebSocket(socketUrl!)
 
-    socketRef.current.onmessage = (event) => {
-      const msg = JSON.parse(event.data)
+    socketRef.current.onopen = () => {
+      // Reset reconnect delay on successful connection
+      reconnectDelayRef.current = INITIAL_RECONNECT_DELAY
+      shouldReconnectRef.current = true
+    }
 
-      if (msg.type === "Patch") {
-        handlePatchMessage(msg)
-      } else if (msg.type === "Users") {
-        setUsers(msg.items)
-      } else if (msg.type === "Notes") {
-        setNotes(msg.items)
+    socketRef.current.onmessage = (event) => {
+      try {
+        const rawMessage = JSON.parse(event.data)
+
+        // Validate incoming message against contract types using typia
+        const msg = typia.assert<WebSocketMessage>(rawMessage)
+
+        switch (msg.type) {
+          case "Patch":
+            handlePatchMessage(msg)
+            break
+          case "Users": {
+            const users = msg.items.map(transformUser)
+            setUsers(users)
+            break
+          }
+          case "Notes": {
+            const notes = msg.items.map(transformNote)
+            setNotes(notes)
+            break
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse or validate WebSocket message:', error)
       }
     }
 
     socketRef.current.onclose = (event) => {
-      setTimeout(() => {
-        connectWebSocket() // Attempt to reconnect
-      }, 1000)
+      console.log('WebSocket: Closed with code', event.code, 'reason:', event.reason)
+
+      // Auth failure (code 1008) - redirect to sign-in
+      if (event.code === 1008) {
+        console.log('WebSocket: Auth failure, redirecting to sign-in')
+        clearApp()
+        return
+      }
+
+      // Don't reconnect if it was a clean close or reconnection is disabled
+      if (!shouldReconnectRef.current || event.code === 1000) {
+        console.log('WebSocket: Not reconnecting (clean close)')
+        return
+      }
+
+      // Attempt to reconnect with exponential backoff
+      console.log('WebSocket: Reconnecting in', reconnectDelayRef.current, 'ms')
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connectWebSocket()
+        reconnectDelayRef.current = Math.min(
+          reconnectDelayRef.current * RECONNECT_BACKOFF_MULTIPLIER,
+          MAX_RECONNECT_DELAY
+        )
+      }, reconnectDelayRef.current)
     }
 
     socketRef.current.onerror = (error) => {
-      clearApp()
+      console.error('WebSocket error:', error)
+      // Let the close handler manage reconnection or auth redirect
     }
   }, [socketUrl, handlePatchMessage])
 
@@ -199,7 +375,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (socketUrl) {
       connectWebSocket()
     }
-  }, [socketUrl, connectWebSocket])
+
+    return () => {
+      // Cleanup: close socket when component unmounts or socketUrl changes
+      shouldReconnectRef.current = false
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+
+      if (socketRef.current) {
+        socketRef.current.onclose = null // Prevent reconnection
+        socketRef.current.close()
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketUrl])
 
   return (
     <WebSocketContext.Provider

@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation"
 import { AccountSettings } from "@/components/AccountSettings"
 import { BoardConfiguration } from "@/components/BoardConfiguration"
 import { TeamManagement } from "@/components/TeamManagement"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 
 interface Props {
-  users: IUser[]
+  users: User[]
 }
 
 const tabNames = ["account", "team-management", "board-configuration"]

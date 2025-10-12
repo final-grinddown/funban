@@ -1,0 +1,23 @@
+FROM lukemathwalker/cargo-chef:0.1.68-rust-latest as chef
+WORKDIR /app
+
+FROM chef AS planner
+COPY ./Cargo.toml ./Cargo.lock ./
+COPY ./src ./src
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+ENV SQLX_OFFLINE=true
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . .
+RUN cargo build --release --bin funban-server
+RUN mv ./target/release/funban-server ./app
+
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/app ./app
+# Add the -s flag to register Tini as a child subreaper
+ENTRYPOINT ["/usr/bin/tini", "-s", "--"]
+CMD ["./app"]

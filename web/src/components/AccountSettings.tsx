@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Box, Button, TextField, Typography } from "@mui/material"
+import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
-import { IExtendedSession } from "@/utils/interfaces"
 import { ChangeEmailModal } from "./ChangeEmailModal"
 import { ChangePasswordModal } from "./ChangePasswordModal"
 
@@ -9,7 +9,7 @@ export function AccountSettings() {
   const { data } = useSession()
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
-  const session = data as IExtendedSession
+  const session = data as Session
 
   return (
     <>

@@ -1,19 +1,11 @@
-"use client"
-import { useSession } from "next-auth/react"
-import { BackdropLoading } from "@/components/BackdropLoading"
-import { DashboardLayout } from "@/components/DashboardLayout"
-import { HistoryDetailScreen } from "@/screens/HistoryDetailScreen"
+import { HistoryDetailPageClient } from "./HistoryDetailPageClient"
 
-export default function HistoryItem({ params }: { params: { id: string } }) {
-  const { data } = useSession()
+export default async function HistoryItem({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params
 
-  if (!data?.user?.email) {
-    return <BackdropLoading />
-  }
-
-  return (
-    <DashboardLayout userEmail={data.user.email}>
-      <HistoryDetailScreen id={params.id} />
-    </DashboardLayout>
-  )
+  return <HistoryDetailPageClient id={id} />
 }

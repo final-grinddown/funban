@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import CloseIcon from "@mui/icons-material/Close"
 import {
   Button,
@@ -12,11 +12,11 @@ import {
 } from "@mui/material"
 import { createDeleteNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { INote } from "@/utils/interfaces"
+import { Note } from "@/utils/interfaces"
 
 interface Props {
   isOpen: boolean
-  noteId: INote["id"]
+  noteId: Note["id"]
   onClose: () => void
 }
 

@@ -9,7 +9,7 @@ import {
 } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { availableColors } from "@/utils/constants"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 import { AddNewTeamMemberModal } from "./AddNewTeamMemberModal"
 import { ColorEditModal } from "./ColorEditModal"
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal"
@@ -17,7 +17,7 @@ import { NameEditModal } from "./NameEditModal"
 import { TeamMemberCard } from "./TeamMemberCard"
 
 interface Props {
-  users: IUser[]
+  users: User[]
 }
 
 export function TeamManagement({ users }: Props) {

@@ -1,17 +1,14 @@
-import { DragEvent, SyntheticEvent, useCallback, useEffect, useState } from "react"
+import { DragEvent, useCallback, useEffect, useState } from "react"
 import AddLinkIcon from "@mui/icons-material/AddLink"
+import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
-import EditNoteIcon from "@mui/icons-material/EditNote"
-import FileCopyIcon from "@mui/icons-material/FileCopy"
 import {
   Card,
   CardContent,
   CardHeader,
   CardMedia,
-  CircularProgress,
   Divider,
-  IconButton,
   ListItemIcon,
   ListItemText,
   ListSubheader,
@@ -20,19 +17,22 @@ import {
   Typography,
 } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
-import { createCloneNote, createUpdateNoteTag } from "@/app/api/websocket"
+import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useSimpleModal } from "@/hooks/useSimpleModal"
+import type { WsNoteTag } from "@/schemas/websocket"
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
-import { DevSettings, INote } from "@/utils/interfaces"
+import { DevSettings, Note } from "@/utils/interfaces"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/storage"
 import { useFocusStateStore } from "@/utils/store"
 import { DeleteNoteModal } from "./DeleteNoteModal"
 import { EditNoteModal } from "./EditNoteModal"
+import { SplitNoteModal } from "./SplitNoteModal"
 
 const HEADER_CONFIG_KEY = "funban-header-config"
 
-interface Props extends INote {
+interface Props extends Note {
   isEditable: boolean
   predecessor_id: number | null
   onDragStart: (event: DragEvent<HTMLDivElement>, itemId: string) => void
@@ -56,23 +56,29 @@ export function BoardItemCard({
   updated,
   created,
   id,
+  owner_id,
   isEditable,
   predecessor_id,
   tag,
   onDragStart,
   onDragEnd,
 }: Props) {
-  const { sendMessage, sendMessageAsync, isLoading } = useWebSocketContext()
+  const { sendMessageAsync, isLoading, users } = useWebSocketContext()
   const { isFocus, currentUser } = useFocusStateStore()
   const theme = useTheme()
-  const matchedColor = matchColorName(color, availableColors) || "#000000"
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  // After migration, color should be a hex value, but fallback to color name matching for safety
+  const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
+  const [contextMenu, setContextMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+  } | null>(null)
+  const editModal = useSimpleModal()
+  const deleteModal = useSimpleModal()
+  const splitModal = useSimpleModal()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
-  const openMenu = Boolean(anchorEl)
+  const openMenu = contextMenu !== null
   const contrastColor = theme.palette.getContrastText(matchedColor)
   const { updatedDate, createdDate, updatedRelative, createdRelative } = formatDateToShow(created, updated)
   const dateToShow =
@@ -81,22 +87,24 @@ export function BoardItemCard({
       : `Created at ${isEditable ? createdRelative : createdDate}`
   const headerConfig = localStorage.getItem(HEADER_CONFIG_KEY) || "updated_only"
   const devSettings: DevSettings = { ids: getStoredDevIdsValue(), predecessors: getStoredDevPredecessorsValue() }
-  const handleMenu = useCallback(
-    (event: SyntheticEvent<HTMLButtonElement> | null) => {
-      setAnchorEl(event ? event.currentTarget : null)
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setContextMenu({
+      mouseX: event.clientX + 2,
+      mouseY: event.clientY - 6,
+    })
 
-      if (isSubmitting) setIsSubmitting(false)
-    },
-    [isSubmitting],
-  )
+    if (isSubmitting) setIsSubmitting(false)
+  }
 
-  const handleOpenMenu = (event: SyntheticEvent<HTMLButtonElement>) => handleMenu(event)
-
-  const handleCloseMenu = useCallback(() => handleMenu(null), [handleMenu])
+  const handleCloseMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
 
   const handleEditModal = (focusText: boolean = false) => {
     setTextFocus(focusText)
-    setIsEditModalOpen(true)
+    editModal.openModal()
     handleCloseMenu()
   }
 
@@ -109,7 +117,7 @@ export function BoardItemCard({
   }
 
   const handleEditCloseModal = () => {
-    setIsEditModalOpen(false)
+    editModal.closeModal()
   }
 
   const handleClearModifier = () => {
@@ -120,26 +128,22 @@ export function BoardItemCard({
   }
 
   const handleSet = (modifier: string) => {
-    const message = createUpdateNoteTag(id.toString(), modifier)
+    const message = createUpdateNoteTag(id.toString(), modifier as WsNoteTag)
     sendMessageAsync(message, "Modifier set to " + modifier)
     setIsSubmitting(true)
     handleCloseMenu()
   }
 
   const handleDeleteOpenModal = () => {
-    setIsDeleteModalOpen(true)
+    deleteModal.openModal()
     handleCloseMenu()
   }
 
-  const handleDeleteCloseModal = () => {
-    setIsDeleteModalOpen(false)
+  const handleSplitOpenModal = () => {
+    splitModal.openModal()
+    handleCloseMenu()
   }
 
-  const handleCloneNote = () => {
-    const message = createCloneNote(id.toString())
-    sendMessage(message)
-    setIsSubmitting(true)
-  }
 
   const handleDrag = (event: DragEvent<HTMLDivElement>, isStarting: boolean) => {
     if (isStarting) {
@@ -158,12 +162,31 @@ export function BoardItemCard({
     }
   }, [handleCloseMenu, isLoading, isSubmitting])
 
+  useEffect(() => {
+    const handleGlobalContextMenu = (event: MouseEvent) => {
+      if (openMenu && !(event.target as Element)?.closest('[data-context-menu-card]')) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    if (openMenu) {
+      document.addEventListener('contextmenu', handleGlobalContextMenu, true)
+    }
+
+    return () => {
+      document.removeEventListener('contextmenu', handleGlobalContextMenu, true)
+    }
+  }, [openMenu])
+
   return (
     <>
       <Card
         draggable={isEditable}
         onDragStart={(event) => handleDrag(event, true)}
         onDragEnd={(event) => handleDrag(event, false)}
+        onContextMenu={isEditable ? handleContextMenu : undefined}
+        data-context-menu-card={isEditable ? true : undefined}
         elevation={4}
         sx={{
           m: 2,
@@ -213,78 +236,7 @@ export function BoardItemCard({
               )}
             </>
           }
-          action={
-            isEditable &&
-            (!isFocus || (isFocus && name === currentUser)) && (
-              <>
-                <IconButton
-                  sx={{ color: contrastColor, border: `2px solid ${alpha(contrastColor, 0.75)}` }}
-                  onClick={handleOpenMenu}
-                  aria-controls={openMenu ? "basic-menu" : undefined}
-                  aria-haspopup="true"
-                  aria-expanded={openMenu ? "true" : undefined}
-                  size="small"
-                >
-                  <EditNoteIcon />
-                </IconButton>
-                <Menu
-                  anchorEl={anchorEl}
-                  open={openMenu}
-                  onClose={handleCloseMenu}
-                  MenuListProps={{
-                    "aria-labelledby": "open edit note menu",
-                  }}
-                >
-                  <MenuItem onClick={handleEditOpenModal}>
-                    <ListItemIcon>
-                      <EditIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Edit note</ListItemText>
-                  </MenuItem>
-                  <MenuItem onClick={handleCloneNote}>
-                    {isSubmitting ? (
-                      <CircularProgress size={24} sx={{ mx: "auto" }} />
-                    ) : (
-                      <>
-                        <ListItemIcon>
-                          <FileCopyIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>Clone note</ListItemText>
-                      </>
-                    )}
-                  </MenuItem>
-                  <Divider />
-                  <MenuItem onClick={handleDeleteOpenModal}>
-                    <ListItemIcon>
-                      <DeleteIcon fontSize="small" color="error" />
-                    </ListItemIcon>
-                    <ListItemText sx={{ color: theme.palette.error.main }}>Delete note</ListItemText>
-                  </MenuItem>
-                  <Divider />
-                  <ListSubheader>Modifier</ListSubheader>
-                  {tag !== null && (
-                    <MenuItem onClick={handleClearModifier}>
-                      <ListItemIcon>
-                        <AddLinkIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>None</ListItemText>
-                    </MenuItem>
-                  )}
-                  {allowedModifiers.map(
-                    (modifier) =>
-                      tag !== modifier && (
-                        <MenuItem key={modifier} onClick={() => handleSet(modifier)}>
-                          <ListItemIcon>
-                            <AddLinkIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText>{modifier}</ListItemText>
-                        </MenuItem>
-                      ),
-                  )}
-                </Menu>
-              </>
-            )
-          }
+          action={null}
           sx={{
             bgcolor: alpha(matchedColor, 0.75),
           }}
@@ -327,9 +279,66 @@ export function BoardItemCard({
       </Card>
 
       {isEditable && (
+        <Menu
+          open={openMenu}
+          onClose={handleCloseMenu}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+          MenuListProps={{
+            "aria-labelledby": "context-menu",
+          }}
+        >
+          <MenuItem onClick={handleEditOpenModal}>
+            <ListItemIcon>
+              <EditIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit note</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleSplitOpenModal}>
+            <ListItemIcon>
+              <CallSplitIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Split note</ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleDeleteOpenModal}>
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" color="error" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: theme.palette.error.main }}>Delete note</ListItemText>
+          </MenuItem>
+          <Divider />
+          <ListSubheader>Modifier</ListSubheader>
+          {tag !== null && (
+            <MenuItem onClick={handleClearModifier}>
+              <ListItemIcon>
+                <AddLinkIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>None</ListItemText>
+            </MenuItem>
+          )}
+          {allowedModifiers.map(
+            (modifier) =>
+              tag !== modifier && (
+                <MenuItem key={modifier} onClick={() => handleSet(modifier)}>
+                  <ListItemIcon>
+                    <AddLinkIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{modifier}</ListItemText>
+                </MenuItem>
+              ),
+          )}
+        </Menu>
+      )}
+
+      {isEditable && (
         <>
           <EditNoteModal
-            isOpen={isEditModalOpen}
+            isOpen={editModal.isOpen}
             noteId={id}
             noteState={state}
             noteText={text}
@@ -338,7 +347,15 @@ export function BoardItemCard({
             clearTextFocus={handleClearTextFocus}
           />
 
-          <DeleteNoteModal isOpen={isDeleteModalOpen} noteId={id} onClose={handleDeleteCloseModal} />
+          <SplitNoteModal
+            isOpen={splitModal.isOpen}
+            originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
+            users={users}
+            onClose={splitModal.closeModal}
+            selectedUserId={currentUser ? parseInt(currentUser) : undefined}
+          />
+
+          <DeleteNoteModal isOpen={deleteModal.isOpen} noteId={id} onClose={deleteModal.closeModal} />
         </>
       )}
     </>

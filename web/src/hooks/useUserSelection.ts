@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { SelectChangeEvent } from "@mui/material"
-import { IUser } from "@/utils/interfaces"
+import { User } from "@/utils/interfaces"
 import { useFocusStateStore } from "@/utils/store"
 
-export function useUserSelection(users: IUser[]) {
+export function useUserSelection(users: User[]) {
   const [user, setUser] = useState(String(users[0].id))
   const { currentUser, setCurrentUser } = useFocusStateStore()
 

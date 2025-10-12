@@ -1,8 +1,8 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use axum::{
-    http::{header, HeaderValue, Method},
+    http::{header, Method},
     Router,
 };
 use config::Configuration;
@@ -18,7 +18,10 @@ use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use ws::{ws_router, WsContext};
 
+use helpers::parse_origins;
+
 mod config;
+mod constants;
 
 mod http;
 mod sql;
@@ -27,7 +30,12 @@ mod ws;
 
 mod openapi;
 
+mod helpers;
+
 mod model;
+
+#[cfg(test)]
+mod contracts_test;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -72,7 +80,7 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             header::SET_COOKIE,
             header::COOKIE,
         ])
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_origin(origins)
         .allow_credentials(true)
         .expose_headers([
@@ -84,23 +92,22 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             header::COOKIE,
         ]);
 
-    // Create router for HTTP routes.
+    // Create shared WebSocket context
+    let ws_context = Arc::new(WsContext::new(db.clone(), config.clone()));
+
+    // Create router for HTTP routes with WsContext for broadcasting
     let api_router = api_router().layer(
         ServiceBuilder::new()
-            .layer(AddExtensionLayer::new(ApiContext::new(
-                config.clone(),
-                db.clone(),
-            )))
+            .layer(AddExtensionLayer::new(
+                ApiContext::new(config.clone(), db.clone()).with_ws_context(ws_context.clone()),
+            ))
             .layer(TraceLayer::new_for_http()),
     );
 
-    // Create router for WebSocket routes.
+    // Create router for WebSocket routes
     let ws_router = ws_router().layer(
         ServiceBuilder::new()
-            .layer(AddExtensionLayer::new(Arc::new(WsContext::new(
-                db,
-                config.clone(),
-            ))))
+            .layer(AddExtensionLayer::new(ws_context))
             .layer(TraceLayer::new_for_http()),
     );
 
@@ -115,44 +122,49 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
 
     info!("Server starting on port {}", config.port);
 
+    // Create server with graceful shutdown support
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await
     .context("Failed to serve the application")
 }
 
-fn parse_origins(config: &str) -> anyhow::Result<Vec<HeaderValue>> {
-    Ok(config
-        .split(';')
-        .filter(|origin| !origin.is_empty())
-        .map(|origin| origin.parse::<HeaderValue>().unwrap())
-        .collect())
-}
+/// Graceful shutdown signal handler
+/// Listens for SIGTERM, SIGINT, or SIGQUIT and initiates shutdown
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
 
-    #[test]
-    fn test_parse_origins_single() {
-        let origins = parse_origins("http://localhost:3000").unwrap();
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
 
-        assert_eq!(origins.len(), 1);
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, initiating graceful shutdown...");
+        },
+        _ = terminate => {
+            info!("Received SIGTERM, initiating graceful shutdown...");
+        }
     }
 
-    #[test]
-    fn test_parse_origins_extra_amper() {
-        let origins = parse_origins("http://localhost:3000;;").unwrap();
+    info!("Shutdown signal received, waiting for connections to close...");
 
-        assert_eq!(origins.len(), 1);
-    }
+    // Give connections time to close gracefully
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
-    #[test]
-    fn test_parse_origins_multiple() {
-        let origins = parse_origins("http://localhost:3000;http://localhost:3001").unwrap();
-
-        assert_eq!(origins.len(), 2);
-    }
+    info!("Graceful shutdown completed");
 }

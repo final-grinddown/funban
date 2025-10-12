@@ -44,3 +44,10 @@ export const availableColors = [
 ]
 
 export const MaxTextLength = 1000
+
+export const noteStateOptions = [
+  { value: "notes", label: "Notes" },
+  { value: "todo", label: "To Do" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "done", label: "Done" },
+] as const

@@ -1,33 +1,19 @@
-import { Session } from "next-auth"
-import { JWT } from "next-auth/jwt"
-import { TNoteState } from "./types"
+import type { WsNote, WsUser, WsNoteTag, WsNoteState } from "@/schemas/websocket"
 
-export interface IExtendedSession extends Session {
-	accessToken?: string
-}
+// App types - contracts now use number for IDs (Rust i32 → TS number)
+export type User = WsUser
+export type Note = WsNote
 
-export interface IExtendedJWT extends JWT {
-	accessToken?: string
-}
-
-export interface IUser {
-	id: number
-	name: string
-	color: string
-}
-
-export interface IUserAddedOperation {
-	type: "UserAdded"
-	user: IUser
-}
+// Re-export contract types for WebSocket message handling
+export type { WsNote, WsUser, WsNoteTag, WsNoteState, WsNoteUpdate, WsUserUpdate, WsMoveTarget } from "@/schemas/websocket"
 
 export interface IPatchOperation {
-	ops: IUserAddedOperation[]
+	ops: { type: "UserAdded"; user: User }[]
 }
 
 export interface IWebSocketMessage {
 	type: "Users" | "Notes" | "Patch"
-	items?: IUser[]
+	items?: User[]
 	ops?: IPatchOperation[]
 }
 
@@ -35,46 +21,10 @@ export interface IServerMessage {
 	type: "Users" | "Notes" | "Patch"
 }
 
-export interface IAddUser {
-	type: "AddUser"
-	name: string
-	color: string
-}
-
-export interface IUpdateUserName {
-	type: "UpdateUserName"
-	id: number
-	name: string
-}
-
-export interface IUpdateUserColor {
-	type: "UpdateUserColor"
-	id: number
-	color: string
-}
-
-export interface IRemoveUser {
-	type: "RemoveUser"
-	id: number
-}
-
-export interface INote {
-	id: number
-	text: string
-	name: string
-	owner_id: number
-	color: string
-	state: TNoteState
-	predecessor_id: number | null
-	updated: string
-	created: string
-	tag: string | null
-}
-
 export interface IRawNote {
 	id: string
 	text: string
-	state: TNoteState
+	state: WsNoteState
 	predecessor_id: string | null
 	owner: {
 		id: string
@@ -84,75 +34,6 @@ export interface IRawNote {
 	updated: string
 	created: string
 	tag: string | null
-}
-
-export interface IAddNote {
-	type: "AddNote"
-	owner: number
-	state: string
-	text: string
-}
-
-export interface IUpdateNote {
-	type: "NoteUpdate"
-	id: number
-	updates: NoteUpdate[]
-}
-
-export type NoteUpdate =
-	| {
-		target: "Text"
-		text: string
-	}
-	| {
-		target: "Order"
-		over_id: MoveTarget
-	}
-
-export interface IUpdateNoteText {
-	type: "UpdateNoteText"
-	id: number
-	text: string
-}
-
-export interface IUpdateNoteTag {
-	type: "UpdateNoteTag"
-	id: number
-	tag: string | null
-}
-
-export interface IRemoveNote {
-	type: "RemoveNote"
-	id: number
-}
-
-export interface IRemoveNoteBulk {
-	type: "DeleteNotes"
-	owner?: number,
-	status: string
-}
-
-export interface ICloneNote {
-	type: "CloneNote"
-	id: number
-}
-
-export interface IUpdateReorderNote {
-	type: "Reorder"
-	moved_item_id: number
-	over_id: MoveTarget
-}
-
-export type MoveTarget = MoveTargetBefore | MoveTargetLast
-
-export type MoveTargetBefore = {
-	type: "Before"
-	id: number
-}
-
-export type MoveTargetLast = {
-	type: "Last"
-	state: string
 }
 
 export type DevSettings = {
@@ -165,6 +46,7 @@ export interface IHistoryItem {
 	created_at: string
 	label: string
 	snapshot: string
+	version: number
 	previous: {
 		id: number
 		label: string
@@ -187,8 +69,8 @@ export interface IColumn {
 
 export interface IColumnData {
 	title: string
-	state: TNoteState
-	items: INote[]
+	state: WsNoteState
+	items: Note[]
 	orderKey: number
 }
 

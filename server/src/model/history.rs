@@ -4,16 +4,16 @@ use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Default)]
 pub struct History {
-    pub id: i64,
+    pub id: i32,
     pub label: Option<String>,
     pub snapshot: String,
+    pub version: i32,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Deserialize, ToSchema)]
 pub struct HistoryInsert {
     pub label: Option<String>,
-    pub snapshot: String,
 }
 
 #[derive(Deserialize, ToSchema)]
