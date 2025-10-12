@@ -9,6 +9,7 @@ Backend API for Funban - a real-time collaborative note and task management syst
 - **Workflow-based organization**: Notes flow through customizable workflow states
 - **User-defined ordering**: Maintain custom note order within each workflow state
 - **Execution context tags**: `IMPORTANT`, `DEADLINE`, `WAITING`, `QUICK` tags provide context without affecting priority
+- **Flexible user marks**: Visual indicators (⚫, ⭐, 🕐, 🩺, 🌴, etc.) with multiple expiration options (standup-based, date-based, dual, or permanent)
 - **Real-time collaboration**: WebSocket-based synchronization with authenticated client tracking
 - **Robust error handling**: Graceful degradation and comprehensive structured logging
 

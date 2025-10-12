@@ -66,6 +66,22 @@ Key directories:
 - **Position-based priority**: Order within workflow states determines priority
 - **Real-time collaboration**: WebSocket synchronization with authenticated client tracking
 - **Defensive programming**: Graceful error handling and fallback values
+- **Flexible user marks**: Visual indicators (⚫, ⭐, 🕐, 🩺, 🌴, etc.) with flexible expiration options
+
+## User Marks System
+
+User marks are visual indicators attached to users (e.g., ⚫ Black Mark, ⭐ Gold Star, 🌴 Vacation). Each mark supports flexible expiration:
+
+- **Standup-based expiration**: Mark expires after N standup/status changes (e.g., "expires after 5 standups")
+- **Date-based expiration**: Mark expires at a specific date/time (e.g., "expires on Oct 15, 2025 3:00 PM")
+- **Dual expiration**: Both types enabled - whichever expires first (e.g., "after 5 standups OR on Oct 15")
+- **Permanent marks**: No expiration set - remains until manually deleted
+
+Database fields:
+- `expires_after_status_ends` (nullable INT) - standup counter, NULL = no standup expiration
+- `expires_at` (nullable DATETIME) - expiration date, NULL = no date expiration
+
+UI uses checkboxes in both Add and Edit modals to toggle expiration types independently.
 
 ## Database Setup
 
