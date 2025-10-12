@@ -94,6 +94,7 @@ export const updateUserMark = async (
 	markType: string,
 	expiresAfterStatusEnds: number | null,
 	customText?: string,
+	expiresAt?: string,
 	accessToken?: string
 ): Promise<UserMark> => {
 	return fetchWithAuth<UserMark>(`${API_URL}/user-marks/${id}`, accessToken, {
@@ -103,6 +104,7 @@ export const updateUserMark = async (
 			mark_type: markType,
 			expires_after_status_ends: expiresAfterStatusEnds,
 			custom_text: customText,
+			expires_at: expiresAt,
 		},
 	})
 }
