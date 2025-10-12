@@ -48,6 +48,31 @@ const markTypeLabels: Record<string, string> = {
   "🔕": "Do Not Disturb",
 }
 
+function formatExpiration(mark: UserMark): string {
+  const hasCounter = mark.expires_after_status_ends != null && mark.expires_after_status_ends > 0
+  const hasDate = mark.expires_at != null
+
+  if (!hasCounter && !hasDate) {
+    return "Permanent (until deleted)"
+  }
+
+  if (hasCounter && hasDate) {
+    const dateStr = new Date(mark.expires_at!).toLocaleString()
+    return `Expires after ${mark.expires_after_status_ends} standup(s) OR on ${dateStr}`
+  }
+
+  if (hasCounter) {
+    return `Expires after ${mark.expires_after_status_ends} standup(s)`
+  }
+
+  if (hasDate) {
+    const dateStr = new Date(mark.expires_at!).toLocaleString()
+    return `Expires on ${dateStr}`
+  }
+
+  return ""
+}
+
 export function UserMarksScreen() {
   const { data: session } = useSession()
   const { users } = useWebSocketContext()
@@ -202,7 +227,7 @@ export function UserMarksScreen() {
   const handleSaveEdit = async (data: {
     userId: number
     markType: string
-    duration: number
+    duration?: number
     customText?: string
   }) => {
     if (!editingMark) return
@@ -212,14 +237,14 @@ export function UserMarksScreen() {
         editingMark.id,
         data.userId,
         data.markType,
-        data.duration,
+        data.duration ?? null,
         data.customText,
         session?.accessToken
       )
 
       // Update in local state
-      const wasExpired = editingMark.expires_after_status_ends <= 0
-      const isExpired = data.duration <= 0
+      const wasExpired = editingMark.expires_after_status_ends != null && editingMark.expires_after_status_ends <= 0
+      const isExpired = data.duration != null && data.duration <= 0
 
       if (wasExpired && !isExpired) {
         // Moving from expired to active
@@ -430,7 +455,7 @@ export function UserMarksScreen() {
                                 <br />
                               </>
                             )}
-                            Expires in {mark.expires_after_status_ends} status change(s)
+                            {formatExpiration(mark)}
                           </>
                         }
                       />

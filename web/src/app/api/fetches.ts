@@ -92,7 +92,7 @@ export const updateUserMark = async (
 	id: number,
 	userId: number,
 	markType: string,
-	expiresAfterStatusEnds: number,
+	expiresAfterStatusEnds: number | null,
 	customText?: string,
 	accessToken?: string
 ): Promise<UserMark> => {
