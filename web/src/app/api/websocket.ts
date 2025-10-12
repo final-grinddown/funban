@@ -20,8 +20,9 @@ export function createAddUserMessage(name: string, color: string): string {
 export function createAddUserMark(
 	userId: number,
 	markType: string,
-	expiresAfterStatusEnds: number,
-	customText?: string
+	expiresAfterStatusEnds: number | undefined,
+	customText?: string,
+	expiresAt?: string
 ): string {
 	return createAction({
 		type: "AddUserMark",
@@ -29,7 +30,8 @@ export function createAddUserMark(
 		user_id: userId,
 		mark_type: markType,
 		custom_text: customText ?? null,
-		expires_after_status_ends: expiresAfterStatusEnds,
+		expires_after_status_ends: expiresAfterStatusEnds ?? null,
+		expires_at: expiresAt ?? null,
 	})
 }
 

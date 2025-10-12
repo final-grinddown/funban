@@ -1,14 +1,26 @@
-.PHONY: dev-web dev-server build build-web build-server test test-web test-server check check-web check-server precommit precommit-web precommit-server clean docker-up docker-down docker-build kill-dev
+.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server scripts format contracts sqlx-prepare precommit precommit-web precommit-server docker-up docker-down docker-build clean kill-dev
 
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Development
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Start development servers
 dev-web:
 	cd web && yarn install --silent && yarn dev
 
 dev-server:
 	cd server && cargo run
 
+# Kill any running dev processes
+kill-dev:
+	@pkill -f "funban-server" || true
+	@pkill -f "yarn dev" || true
+
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Build
-build: build-web build-server
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+build: build-server build-web
 
 build-web:
 	cd web && yarn install --silent && yarn build
@@ -16,8 +28,11 @@ build-web:
 build-server:
 	cd server && cargo build --release
 
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Test
-test: test-web test-server
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+test: test-server test-web
 
 test-web:
 	cd web && yarn install --silent && yarn test
@@ -25,13 +40,43 @@ test-web:
 test-server:
 	cd server && cargo test
 
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Check/Lint (read-only verification)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+check: check-server check-web
+
+check-web:
+	cd web && yarn check:ts && yarn check:lint
+
+check-server:
+	cd server && cargo clippy -- -D warnings && cargo fmt --check
+
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Scripts (make active changes - run before precommit)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Run all server scripts: formatting, contracts generation, SQLx prepare
+# Use this before committing to ensure all generated files are up to date
+scripts: format contracts sqlx-prepare
+
+# Format Rust code
+format:
+	cd server && cargo fmt
+
+# Generate TypeScript contracts from Rust types
+contracts:
+	cd server && cargo test export_bindings
+
+# Prepare SQLx offline data (run after changing migrations or database queries)
 sqlx-prepare:
-	cd server && cargo sqlx prepare --workspace -- --all-targets  --all-features --bins --tests
+	cd server && cargo sqlx prepare --workspace -- --all-targets --all-features --bins --tests
 
-# Check/Lint
-check: check-web check-server
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Precommit (comprehensive validation - run before committing)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Precommit checks - run before committing, server first because it generates contracts
+# Run all precommit checks (server first because it generates contracts)
 precommit: precommit-server precommit-web
 	@echo "✅ All precommit checks passed!"
 
@@ -49,13 +94,10 @@ precommit-server:
 		exit 1; \
 	fi
 
-check-web:
-	cd web && yarn check:ts && yarn check:lint
-
-check-server:
-	cd server && cargo clippy -- -D warnings && cargo fmt --check
-
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Docker
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 docker-up:
 	docker compose up --build
 
@@ -65,12 +107,10 @@ docker-down:
 docker-build:
 	docker compose build
 
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Clean
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 clean:
 	cd web && rm -rf .next node_modules
 	cd server && cargo clean
-
-# Kill any running dev processes
-kill-dev:
-	@pkill -f "funban-server" || true
-	@pkill -f "yarn dev" || true

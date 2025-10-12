@@ -6,6 +6,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::http::ApiContext;
@@ -16,7 +17,8 @@ pub struct UserMark {
     user_id: i32,
     mark_type: String,
     custom_text: Option<String>,
-    expires_after_status_ends: i32,
+    expires_after_status_ends: Option<i32>,
+    expires_at: Option<NaiveDateTime>,
 }
 
 impl From<UserMarkDto> for UserMark {
@@ -27,6 +29,7 @@ impl From<UserMarkDto> for UserMark {
             mark_type: user_mark.mark_type,
             custom_text: user_mark.custom_text,
             expires_after_status_ends: user_mark.expires_after_status_ends,
+            expires_at: user_mark.expires_at,
         }
     }
 }
@@ -37,6 +40,7 @@ pub struct CreateUserMarkRequest {
     mark_type: String,
     custom_text: Option<String>,
     expires_after_status_ends: Option<i32>,
+    expires_at: Option<String>,
 }
 
 impl CreateUserMarkRequest {
@@ -128,11 +132,20 @@ async fn create(
 ) -> Result<Json<UserMark>> {
     payload.validate()?;
 
+    // Parse expires_at if provided
+    let expires_at_datetime = payload.expires_at.as_ref().and_then(|s| {
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.fZ")
+            .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
+            .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S"))
+            .ok()
+    });
+
     let user_mark_insert = UserMarkInsert {
         user_id: payload.user_id,
         mark_type: payload.mark_type.clone(),
         custom_text: payload.custom_text.clone(),
         expires_after_status_ends: payload.expires_after_status_ends,
+        expires_at: expires_at_datetime,
     };
 
     match sql::user_mark::add(&ctx.db, &user_mark_insert).await {
@@ -146,7 +159,11 @@ async fn create(
                     user_id: user_mark.user_id as u32,
                     mark_type: user_mark.mark_type.clone(),
                     custom_text: user_mark.custom_text.clone(),
-                    expires_after_status_ends: user_mark.expires_after_status_ends as u32,
+                    expires_after_status_ends: user_mark.expires_after_status_ends.unwrap_or(0)
+                        as u32,
+                    expires_at: user_mark
+                        .expires_at
+                        .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string()),
                 };
 
                 tracing::info!(
@@ -194,7 +211,9 @@ async fn delete_mark(
         Ok(deleted) => {
             if deleted {
                 // Broadcast WebSocket message to all clients (only if mark was active)
-                if mark.expires_after_status_ends > 0 {
+                if mark.expires_after_status_ends.is_none()
+                    || mark.expires_after_status_ends.unwrap_or(0) > 0
+                {
                     if let Some(ws_ctx) = &ctx.ws_context {
                         use crate::state::WsOperation;
 
@@ -258,11 +277,20 @@ async fn update_mark(
         }
     };
 
+    // Parse expires_at if provided
+    let expires_at_datetime = payload.expires_at.as_ref().and_then(|s| {
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.fZ")
+            .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
+            .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S"))
+            .ok()
+    });
+
     let user_mark_update = UserMarkInsert {
         user_id: payload.user_id,
         mark_type: payload.mark_type.clone(),
         custom_text: payload.custom_text.clone(),
         expires_after_status_ends: payload.expires_after_status_ends,
+        expires_at: expires_at_datetime,
     };
 
     match sql::user_mark::update(&ctx.db, id, &user_mark_update).await {
@@ -271,8 +299,10 @@ async fn update_mark(
             if let Some(ws_ctx) = &ctx.ws_context {
                 use crate::state::WsOperation;
 
-                let was_active = old_mark.expires_after_status_ends > 0;
-                let is_active = updated_mark.expires_after_status_ends > 0;
+                let was_active = old_mark.expires_after_status_ends.is_none()
+                    || old_mark.expires_after_status_ends.unwrap_or(0) > 0;
+                let is_active = updated_mark.expires_after_status_ends.is_none()
+                    || updated_mark.expires_after_status_ends.unwrap_or(0) > 0;
 
                 let ws_op = match (was_active, is_active) {
                     (true, false) => {
@@ -289,8 +319,13 @@ async fn update_mark(
                             user_id: updated_mark.user_id as u32,
                             mark_type: updated_mark.mark_type.clone(),
                             custom_text: updated_mark.custom_text.clone(),
-                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                            expires_after_status_ends: updated_mark
+                                .expires_after_status_ends
+                                .unwrap_or(0)
                                 as u32,
+                            expires_at: updated_mark
+                                .expires_at
+                                .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string()),
                         }
                     }
                     (true, true) | (false, false) => {
@@ -300,8 +335,13 @@ async fn update_mark(
                             user_id: updated_mark.user_id as u32,
                             mark_type: updated_mark.mark_type.clone(),
                             custom_text: updated_mark.custom_text.clone(),
-                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                            expires_after_status_ends: updated_mark
+                                .expires_after_status_ends
+                                .unwrap_or(0)
                                 as u32,
+                            expires_at: updated_mark
+                                .expires_at
+                                .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string()),
                         }
                     }
                 };

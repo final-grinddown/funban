@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -8,7 +9,8 @@ pub struct UserMark {
     pub user_id: i32,
     pub mark_type: String,
     pub custom_text: Option<String>,
-    pub expires_after_status_ends: i32,
+    pub expires_after_status_ends: Option<i32>,
+    pub expires_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
@@ -18,6 +20,7 @@ pub struct UserMarkInsert {
     pub mark_type: String,
     pub custom_text: Option<String>,
     pub expires_after_status_ends: Option<i32>,
+    pub expires_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]

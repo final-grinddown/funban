@@ -317,6 +317,13 @@ describe('AddNewNoteModal', () => {
     it('shows loading state during submission', async () => {
       const user = userEvent.setup()
       
+      // Create a promise that we can control
+      let resolvePromise: () => void
+      const delayedPromise = new Promise<void>((resolve) => {
+        resolvePromise = resolve
+      })
+      mockWebSocketContext.sendMessageAsync = jest.fn().mockReturnValue(delayedPromise)
+      
       render(<AddNewNoteModal {...defaultProps} />)
       
       // Wait for React Hook Form initialization
@@ -340,7 +347,14 @@ describe('AddNewNoteModal', () => {
       await user.click(createButton)
       
       // Check that the button shows loading state (progress bar appears)
-      expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      })
+      
+      // Resolve the promise to clean up
+      await act(async () => {
+        resolvePromise!()
+      })
     })
 
     it('closes modal after successful submission (without save and create next)', async () => {

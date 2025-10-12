@@ -17,7 +17,7 @@ interface Props {
   onClose: () => void
   mark: UserMark
   users: User[]
-  onSubmit: (data: { userId: number; markType: string; duration: number; customText?: string }) => void
+  onSubmit: (data: { userId: number; markType: string; duration?: number; customText?: string }) => void
 }
 
 interface FormInputs {
@@ -39,6 +39,7 @@ const markTypeOptions = [
 ]
 
 const durationOptions = [
+  { value: "null", label: "Permanent (until deleted)" },
   { value: "0", label: "Expired (0)" },
   { value: "1", label: "Current status (1)" },
   { value: "2", label: "Until next (2)" },
@@ -59,7 +60,7 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
     defaultValues: {
       userId: mark.user_id.toString(),
       markType: mark.mark_type,
-      duration: mark.expires_after_status_ends.toString(),
+      duration: mark.expires_after_status_ends == null ? "null" : mark.expires_after_status_ends.toString(),
       customDuration: "",
       customText: mark.custom_text || "",
     },
@@ -72,9 +73,15 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
   const handleFormSubmit = (data: FormInputs) => {
     setIsSubmitting(true)
 
-    const finalDuration = data.duration === "custom"
-      ? parseInt(data.customDuration, 10)
-      : parseInt(data.duration, 10)
+    let finalDuration: number | undefined
+
+    if (data.duration === "null") {
+      finalDuration = undefined
+    } else if (data.duration === "custom") {
+      finalDuration = parseInt(data.customDuration, 10)
+    } else {
+      finalDuration = parseInt(data.duration, 10)
+    }
 
     onSubmit({
       userId: parseInt(data.userId, 10),
@@ -90,14 +97,14 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
   useEffect(() => {
     if (isOpen) {
       // Check if duration matches a preset
-      const durationStr = mark.expires_after_status_ends.toString()
+      const durationStr = mark.expires_after_status_ends == null ? "null" : mark.expires_after_status_ends.toString()
       const hasPreset = durationOptions.some(opt => opt.value === durationStr)
 
       reset({
         userId: mark.user_id.toString(),
         markType: mark.mark_type,
         duration: hasPreset ? durationStr : "custom",
-        customDuration: hasPreset ? "" : durationStr,
+        customDuration: hasPreset ? "" : (mark.expires_after_status_ends?.toString() || ""),
         customText: mark.custom_text || "",
       })
     }

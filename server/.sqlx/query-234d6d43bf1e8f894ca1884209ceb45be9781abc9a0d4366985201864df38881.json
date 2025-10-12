@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT id, user_id, mark_type, custom_text, expires_after_status_ends\n        FROM user_marks\n        WHERE user_id = ? AND expires_after_status_ends > 0\n        ",
+  "query": "\n        SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at\n        FROM user_marks\n        WHERE user_id = ?\n        AND (expires_after_status_ends IS NULL OR expires_after_status_ends > 0)\n        AND (expires_at IS NULL OR expires_at > NOW())\n        ORDER BY id DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -44,8 +44,17 @@
         "name": "expires_after_status_ends",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL",
+          "flags": "",
           "max_size": 11
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": {
+          "type": "Datetime",
+          "flags": "BINARY",
+          "max_size": 19
         }
       }
     ],
@@ -57,8 +66,9 @@
       false,
       false,
       true,
-      false
+      true,
+      true
     ]
   },
-  "hash": "edff2eac6f026dd7698669446117c2f3686e709db0396c4d1a95f9b81a0b2427"
+  "hash": "234d6d43bf1e8f894ca1884209ceb45be9781abc9a0d4366985201864df38881"
 }
