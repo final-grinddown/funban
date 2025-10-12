@@ -169,6 +169,7 @@ export function UserMarksScreen() {
         mark.mark_type,
         0, // Set to 0 to expire
         mark.custom_text || undefined,
+        undefined, // expiresAt - don't change date expiration
         session?.accessToken
       )
       setAllMarks(prev => prev.filter(m => m.id !== mark.id))
