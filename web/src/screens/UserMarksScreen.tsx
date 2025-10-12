@@ -229,6 +229,7 @@ export function UserMarksScreen() {
     markType: string
     duration?: number
     customText?: string
+    expiresAt?: string
   }) => {
     if (!editingMark) return
 
@@ -239,6 +240,7 @@ export function UserMarksScreen() {
         data.markType,
         data.duration ?? null,
         data.customText,
+        data.expiresAt,
         session?.accessToken
       )
 
