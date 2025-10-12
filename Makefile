@@ -28,6 +28,11 @@ test-server:
 sqlx-prepare:
 	cd server && cargo sqlx prepare --workspace -- --all-targets  --all-features --bins --tests
 
+format-server:
+	cd server && cargo fmt
+
+scripts-server: sqlx-prepare format-server
+
 # Check/Lint
 check: check-web check-server
 

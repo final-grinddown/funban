@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import {
+  Checkbox,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
@@ -16,15 +18,16 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   selectedUserId?: number
-  onSubmit: (data: { userId: number; markType: string; duration: number; customText?: string; expiresAt?: string }) => void
+  onSubmit: (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => void
 }
 
 interface FormInputs {
   userId: string
   markType: string
-  durationType: string
+  useStandupExpiration: boolean
   duration: string
   customDuration: string
+  useDateExpiration: boolean
   expirationDate: string
   customText: string
 }
@@ -46,11 +49,6 @@ const durationOptions = [
   { value: "custom", label: "Custom count" },
 ]
 
-const durationTypeOptions = [
-  { value: "count", label: "Number of Standups" },
-  { value: "date", label: "Specific Date" },
-]
-
 export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSubmit }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -64,35 +62,35 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
     defaultValues: {
       userId: "",
       markType: "",
-      durationType: "count",
+      useStandupExpiration: false,
       duration: "",
       customDuration: "",
+      useDateExpiration: false,
       expirationDate: "",
       customText: "",
     },
     mode: "onChange",
   })
 
-  const durationType = watch("durationType")
+  const useStandupExpiration = watch("useStandupExpiration")
+  const useDateExpiration = watch("useDateExpiration")
   const duration = watch("duration")
-  const showCustomDuration = durationType === "count" && duration === "custom"
-  const showDatePicker = durationType === "date"
+  const showCustomDuration = useStandupExpiration && duration === "custom"
 
   const handleFormSubmit = (data: FormInputs) => {
     setIsSubmitting(true)
 
-    let finalDuration = 1
+    let finalDuration: number | undefined
     let expiresAt: string | undefined
 
-    if (data.durationType === "count") {
+    if (data.useStandupExpiration) {
       finalDuration = data.duration === "custom"
         ? parseInt(data.customDuration, 10)
         : parseInt(data.duration, 10)
-    } else if (data.durationType === "date") {
-      // For date-based expiration, set counter to a large number (e.g., 999)
-      // The date will be the primary expiration mechanism
-      finalDuration = 999
-      expiresAt = data.expirationDate ? new Date(data.expirationDate).toISOString() : undefined
+    }
+
+    if (data.useDateExpiration && data.expirationDate) {
+      expiresAt = new Date(data.expirationDate).toISOString()
     }
 
     onSubmit({
@@ -114,9 +112,10 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
       reset({
         userId: selectedUserId.toString(),
         markType: "",
-        durationType: "count",
+        useStandupExpiration: false,
         duration: "",
         customDuration: "",
+        useDateExpiration: false,
         expirationDate: "",
         customText: "",
       })
@@ -172,30 +171,24 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
         />
 
         <Controller
-          name="durationType"
+          name="useStandupExpiration"
           control={control}
-          rules={requiredSelectRules}
           render={({ field }) => (
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel id="duration-type-label">Duration Type</InputLabel>
-              <Select {...field} labelId="duration-type-label" label="Duration Type" error={!!errors.durationType}>
-                {durationTypeOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <FormControlLabel
+              control={<Checkbox {...field} checked={field.value} />}
+              label="Expires after standups"
+              sx={{ mt: 2 }}
+            />
           )}
         />
 
-        {durationType === "count" && (
+        {useStandupExpiration && (
           <Controller
             name="duration"
             control={control}
-            rules={requiredSelectRules}
+            rules={{ required: "Duration is required when expiration by standups is enabled" }}
             render={({ field }) => (
-              <FormControl fullWidth sx={{ mt: 2 }}>
+              <FormControl fullWidth sx={{ mt: 1 }}>
                 <InputLabel id="duration-label">Duration</InputLabel>
                 <Select {...field} labelId="duration-label" label="Duration" error={!!errors.duration}>
                   {durationOptions.map((option) => (
@@ -225,18 +218,30 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
                 label="Custom Duration (status ends)"
                 error={!!errors.customDuration}
                 helperText={errors.customDuration?.message}
-                sx={{ mt: 2 }}
+                sx={{ mt: 1 }}
               />
             )}
           />
         )}
 
-        {showDatePicker && (
+        <Controller
+          name="useDateExpiration"
+          control={control}
+          render={({ field }) => (
+            <FormControlLabel
+              control={<Checkbox {...field} checked={field.value} />}
+              label="Expires on specific date"
+              sx={{ mt: 2 }}
+            />
+          )}
+        />
+
+        {useDateExpiration && (
           <Controller
             name="expirationDate"
             control={control}
             rules={{
-              required: "Expiration date is required",
+              required: "Expiration date is required when date expiration is enabled",
               validate: (value) => {
                 const selectedDate = new Date(value)
                 const now = new Date()
@@ -252,7 +257,7 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
                 error={!!errors.expirationDate}
                 helperText={errors.expirationDate?.message || "Select when this mark should expire"}
                 InputLabelProps={{ shrink: true }}
-                sx={{ mt: 2 }}
+                sx={{ mt: 1 }}
               />
             )}
           />

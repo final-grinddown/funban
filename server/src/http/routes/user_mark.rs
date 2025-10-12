@@ -17,7 +17,7 @@ pub struct UserMark {
     user_id: i32,
     mark_type: String,
     custom_text: Option<String>,
-    expires_after_status_ends: i32,
+    expires_after_status_ends: Option<i32>,
     expires_at: Option<NaiveDateTime>,
 }
 
@@ -159,7 +159,8 @@ async fn create(
                     user_id: user_mark.user_id as u32,
                     mark_type: user_mark.mark_type.clone(),
                     custom_text: user_mark.custom_text.clone(),
-                    expires_after_status_ends: user_mark.expires_after_status_ends as u32,
+                    expires_after_status_ends: user_mark.expires_after_status_ends.unwrap_or(0)
+                        as u32,
                     expires_at: user_mark
                         .expires_at
                         .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string()),
@@ -210,7 +211,9 @@ async fn delete_mark(
         Ok(deleted) => {
             if deleted {
                 // Broadcast WebSocket message to all clients (only if mark was active)
-                if mark.expires_after_status_ends > 0 {
+                if mark.expires_after_status_ends.is_none()
+                    || mark.expires_after_status_ends.unwrap_or(0) > 0
+                {
                     if let Some(ws_ctx) = &ctx.ws_context {
                         use crate::state::WsOperation;
 
@@ -296,8 +299,10 @@ async fn update_mark(
             if let Some(ws_ctx) = &ctx.ws_context {
                 use crate::state::WsOperation;
 
-                let was_active = old_mark.expires_after_status_ends > 0;
-                let is_active = updated_mark.expires_after_status_ends > 0;
+                let was_active = old_mark.expires_after_status_ends.is_none()
+                    || old_mark.expires_after_status_ends.unwrap_or(0) > 0;
+                let is_active = updated_mark.expires_after_status_ends.is_none()
+                    || updated_mark.expires_after_status_ends.unwrap_or(0) > 0;
 
                 let ws_op = match (was_active, is_active) {
                     (true, false) => {
@@ -314,7 +319,9 @@ async fn update_mark(
                             user_id: updated_mark.user_id as u32,
                             mark_type: updated_mark.mark_type.clone(),
                             custom_text: updated_mark.custom_text.clone(),
-                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                            expires_after_status_ends: updated_mark
+                                .expires_after_status_ends
+                                .unwrap_or(0)
                                 as u32,
                             expires_at: updated_mark
                                 .expires_at
@@ -328,7 +335,9 @@ async fn update_mark(
                             user_id: updated_mark.user_id as u32,
                             mark_type: updated_mark.mark_type.clone(),
                             custom_text: updated_mark.custom_text.clone(),
-                            expires_after_status_ends: updated_mark.expires_after_status_ends
+                            expires_after_status_ends: updated_mark
+                                .expires_after_status_ends
+                                .unwrap_or(0)
                                 as u32,
                             expires_at: updated_mark
                                 .expires_at

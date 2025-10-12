@@ -18,7 +18,7 @@ async fn add_user_mark(db: MySqlPool) -> sqlx::Result<()> {
     assert_eq!(added_mark.user_id, 1);
     assert_eq!(added_mark.mark_type, "gold_star");
     assert_eq!(added_mark.custom_text, Some("Great work!".to_string()));
-    assert_eq!(added_mark.expires_after_status_ends, 2);
+    assert_eq!(added_mark.expires_after_status_ends, Some(2));
 
     Ok(())
 }
@@ -66,7 +66,7 @@ async fn decrement_and_cleanup(db: MySqlPool) -> sqlx::Result<()> {
 
     let marks = user_mark::read_by_user_id(&db, 1).await?;
     assert_eq!(marks.len(), 1);
-    assert_eq!(marks[0].expires_after_status_ends, 1);
+    assert_eq!(marks[0].expires_after_status_ends, Some(1));
 
     // Decrement again - should be removed
     user_mark::decrement_expires_and_cleanup(&db).await?;
@@ -153,7 +153,7 @@ async fn update_user_mark(db: MySqlPool) -> sqlx::Result<()> {
     let updated = updated.unwrap();
     assert_eq!(updated.mark_type, "black_mark");
     assert_eq!(updated.custom_text, Some("Updated".to_string()));
-    assert_eq!(updated.expires_after_status_ends, 5);
+    assert_eq!(updated.expires_after_status_ends, Some(5));
 
     Ok(())
 }
@@ -184,7 +184,7 @@ async fn read_expired_user_marks(db: MySqlPool) -> sqlx::Result<()> {
     let expired = user_mark::read_expired_by_user_id(&db, 1).await?;
     assert_eq!(expired.len(), 1);
     assert_eq!(expired[0].mark_type, "black_mark");
-    assert_eq!(expired[0].expires_after_status_ends, 0);
+    assert_eq!(expired[0].expires_after_status_ends, Some(0));
 
     // Read active marks
     let active = user_mark::read_by_user_id(&db, 1).await?;

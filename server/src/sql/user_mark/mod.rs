@@ -14,7 +14,7 @@ pub struct UserMarkDto {
     pub user_id: i32,
     pub mark_type: String,
     pub custom_text: Option<String>,
-    pub expires_after_status_ends: i32,
+    pub expires_after_status_ends: Option<i32>,
     pub expires_at: Option<NaiveDateTime>,
 }
 
@@ -50,7 +50,7 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<UserMarkDto>> {
         r#"
         SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at
         FROM user_marks
-        WHERE expires_after_status_ends > 0
+        WHERE (expires_after_status_ends IS NULL OR expires_after_status_ends > 0)
         AND (expires_at IS NULL OR expires_at > NOW())
         ORDER BY id DESC
         "#,
@@ -84,7 +84,7 @@ pub async fn read_by_user_id(db: &MySqlPool, user_id: i32) -> sqlx::Result<Vec<U
         SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at
         FROM user_marks
         WHERE user_id = ?
-        AND expires_after_status_ends > 0
+        AND (expires_after_status_ends IS NULL OR expires_after_status_ends > 0)
         AND (expires_at IS NULL OR expires_at > NOW())
         ORDER BY id DESC
         "#,
@@ -106,7 +106,8 @@ pub async fn read_expired_by_user_id(
         SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at
         FROM user_marks
         WHERE user_id = ?
-        AND (expires_after_status_ends <= 0 OR (expires_at IS NOT NULL AND expires_at <= NOW()))
+        AND (expires_after_status_ends IS NOT NULL AND expires_after_status_ends <= 0)
+        OR (expires_at IS NOT NULL AND expires_at <= NOW())
         ORDER BY id DESC
         "#,
         user_id
@@ -118,8 +119,6 @@ pub async fn read_expired_by_user_id(
 }
 
 pub async fn add(db: &MySqlPool, user_mark: &UserMarkInsert) -> sqlx::Result<UserMarkDto> {
-    let expires_after = user_mark.expires_after_status_ends.unwrap_or(1);
-
     let result = sqlx::query!(
         r#"
         INSERT INTO user_marks (user_id, mark_type, custom_text, expires_after_status_ends, expires_at)
@@ -128,7 +127,7 @@ pub async fn add(db: &MySqlPool, user_mark: &UserMarkInsert) -> sqlx::Result<Use
         user_mark.user_id,
         user_mark.mark_type,
         user_mark.custom_text,
-        expires_after,
+        user_mark.expires_after_status_ends,
         user_mark.expires_at,
     )
     .execute(db)
@@ -156,8 +155,6 @@ pub async fn update(
     id: i32,
     user_mark: &UserMarkInsert,
 ) -> sqlx::Result<Option<UserMarkDto>> {
-    let expires_after = user_mark.expires_after_status_ends.unwrap_or(0);
-
     let result = sqlx::query!(
         r#"
         UPDATE user_marks
@@ -166,7 +163,7 @@ pub async fn update(
         "#,
         user_mark.mark_type,
         user_mark.custom_text,
-        expires_after,
+        user_mark.expires_after_status_ends,
         user_mark.expires_at,
         id
     )
@@ -203,19 +200,22 @@ pub async fn expire_all_by_user_id(db: &MySqlPool, user_id: i32) -> sqlx::Result
         r#"
         SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at
         FROM user_marks
-        WHERE user_id = ? AND expires_after_status_ends > 0
+        WHERE user_id = ?
+        AND (expires_after_status_ends IS NULL OR expires_after_status_ends > 0)
         "#,
         user_id
     )
     .fetch_all(db)
     .await?;
 
-    // Expire all active marks for this user
+    // Expire all active marks for this user (set counter to 0, keep date-only marks as NULL)
     sqlx::query!(
         r#"
         UPDATE user_marks
         SET expires_after_status_ends = 0
-        WHERE user_id = ? AND expires_after_status_ends > 0
+        WHERE user_id = ?
+        AND expires_after_status_ends IS NOT NULL
+        AND expires_after_status_ends > 0
         "#,
         user_id
     )
@@ -230,7 +230,8 @@ pub async fn delete_expired_by_user_id(db: &MySqlPool, user_id: i32) -> sqlx::Re
         r#"
         DELETE FROM user_marks
         WHERE user_id = ?
-        AND (expires_after_status_ends <= 0 OR (expires_at IS NOT NULL AND expires_at <= NOW()))
+        AND ((expires_after_status_ends IS NOT NULL AND expires_after_status_ends <= 0)
+        OR (expires_at IS NOT NULL AND expires_at <= NOW()))
         "#,
         user_id
     )
@@ -247,19 +248,19 @@ pub async fn decrement_expires_and_cleanup(db: &MySqlPool) -> sqlx::Result<Vec<U
         r#"
         SELECT id, user_id, mark_type, custom_text, expires_after_status_ends, expires_at
         FROM user_marks
-        WHERE expires_after_status_ends > 0
+        WHERE (expires_after_status_ends IS NOT NULL AND expires_after_status_ends > 0)
         AND (expires_after_status_ends <= 1 OR (expires_at IS NOT NULL AND expires_at <= NOW()))
         "#,
     )
     .fetch_all(db)
     .await?;
 
-    // Decrement counter for all active marks
+    // Decrement counter ONLY for marks that have a counter set (not NULL)
     sqlx::query!(
         r#"
         UPDATE user_marks
         SET expires_after_status_ends = expires_after_status_ends - 1
-        WHERE expires_after_status_ends > 0
+        WHERE expires_after_status_ends IS NOT NULL AND expires_after_status_ends > 0
         "#,
     )
     .execute(db)

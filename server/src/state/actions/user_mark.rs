@@ -53,7 +53,7 @@ impl AppState {
                 user_id: params.user_id,
                 mark_type: params.mark_type,
                 custom_text: params.custom_text,
-                expires_after_status_ends: params.expires_after_status_ends,
+                expires_after_status_ends: mark_dto.expires_after_status_ends.unwrap_or(0) as u32,
                 expires_at: mark_dto
                     .expires_at
                     .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string()),
