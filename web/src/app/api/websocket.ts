@@ -30,7 +30,7 @@ export function createAddUserMark(
 		user_id: userId,
 		mark_type: markType,
 		custom_text: customText ?? null,
-		expires_after_status_ends: expiresAfterStatusEnds ?? 0,
+		expires_after_status_ends: expiresAfterStatusEnds ?? null,
 		expires_at: expiresAt ?? null,
 	})
 }

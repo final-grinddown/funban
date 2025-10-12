@@ -264,7 +264,7 @@ export function UserMarksScreen() {
       await addUserMark(
         data.userId,
         data.markType,
-        data.duration ?? 0,
+        data.duration ?? null,
         data.customText,
         data.expiresAt,
         session?.accessToken

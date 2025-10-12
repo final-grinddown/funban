@@ -231,7 +231,7 @@ pub enum WsAction {
         user_id: u32,
         mark_type: String,
         custom_text: Option<String>,
-        expires_after_status_ends: u32,
+        expires_after_status_ends: Option<u32>,
         expires_at: Option<String>,
     },
     SplitNote {

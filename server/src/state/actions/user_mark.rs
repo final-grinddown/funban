@@ -11,7 +11,7 @@ pub(crate) struct AddUserMarkParams {
     pub user_id: u32,
     pub mark_type: String,
     pub custom_text: Option<String>,
-    pub expires_after_status_ends: u32,
+    pub expires_after_status_ends: Option<u32>,
     pub expires_at: Option<String>,
 }
 
@@ -43,7 +43,7 @@ impl AppState {
             user_id: params.user_id as i32,
             mark_type: params.mark_type.clone(),
             custom_text: params.custom_text.clone(),
-            expires_after_status_ends: Some(params.expires_after_status_ends as i32),
+            expires_after_status_ends: params.expires_after_status_ends.map(|v| v as i32),
             expires_at: expires_at_datetime,
         };
 

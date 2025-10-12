@@ -50,7 +50,7 @@ export const changeEmail = async (new_email: string, accessToken?: string): Prom
 export const addUserMark = async (
 	userId: number,
 	markType: string,
-	expiresAfterStatusEnds: number,
+	expiresAfterStatusEnds: number | null,
 	customText?: string,
 	expiresAt?: string,
 	accessToken?: string
