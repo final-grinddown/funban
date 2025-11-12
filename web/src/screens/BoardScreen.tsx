@@ -14,18 +14,19 @@ import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useBoardModalManagement } from "@/hooks/useBoardModalManagement"
 import { useFocusManagement } from "@/hooks/useFocusManagement"
 import { useUserSelection } from "@/hooks/useUserSelection"
-import { Note, User } from "@/utils/interfaces"
-import { useFocusStateStore } from "@/utils/store"
+import { useAppStore, selectUsers, selectNotes } from "@/store"
 
 interface Props {
-  users: User[]
-  notes: Note[]
   accessToken?: string
 }
 
-export function BoardScreen({ users, notes, accessToken }: Props) {
+export function BoardScreen({ accessToken }: Props) {
+  // Read users and notes from Zustand store
+  const users = useAppStore(selectUsers)
+  const notes = useAppStore(selectNotes)
+
   const { user, handleChange, handlePrevUser, handleNextUser } = useUserSelection(users)
-  const { currentUser, setCurrentUser } = useFocusStateStore()
+  const { currentUser, setCurrentUser } = useAppStore((state) => state.focus)
   const { isFocus, shouldRenderFocus, handleStartFocus, handleEndFocus } = useFocusManagement(users)
   const { sendMessageAsync } = useWebSocketContext()
   const {

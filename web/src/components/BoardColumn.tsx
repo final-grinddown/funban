@@ -4,7 +4,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert"
 import { Box, IconButton, List, Typography, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material"
 import { useTheme } from "@mui/material/styles"
 import { useHotkeys } from "react-hotkeys-hook"
-import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useAppStore, selectUsers } from "@/store"
 import { Note } from "@/utils/interfaces"
 import { AddNewNoteModal } from "./AddNewNoteModal"
 import { BoardItemCard } from "./BoardItemCard"
@@ -46,7 +46,7 @@ export function BoardColumn({
   isFocus,
   currentUser,
 }: Props) {
-  const { users } = useWebSocketContext()
+  const users = useAppStore(selectUsers)
   const theme = useTheme()
   const [draggedOverId, setDraggedOverId] = useState<number | "last" | null>(null)
   const lastHoveredRef = useRef<string | null>(null)

@@ -21,11 +21,11 @@ import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useSimpleModal } from "@/hooks/useSimpleModal"
 import type { WsNoteTag } from "@/schemas/websocket"
+import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/store"
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, Note } from "@/utils/interfaces"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/storage"
-import { useFocusStateStore } from "@/utils/store"
 import { DeleteNoteModal } from "./DeleteNoteModal"
 import { EditNoteModal } from "./EditNoteModal"
 import { SplitNoteModal } from "./SplitNoteModal"
@@ -63,8 +63,10 @@ export function BoardItemCard({
   onDragStart,
   onDragEnd,
 }: Props) {
-  const { sendMessageAsync, isLoading, users } = useWebSocketContext()
-  const { isFocus, currentUser } = useFocusStateStore()
+  const { sendMessageAsync, isLoading } = useWebSocketContext()
+  const users = useAppStore(selectUsers)
+  const isFocus = useAppStore(selectIsFocus)
+  const currentUser = useAppStore(selectCurrentUser)
   const theme = useTheme()
   // After migration, color should be a hex value, but fallback to color name matching for safety
   const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
