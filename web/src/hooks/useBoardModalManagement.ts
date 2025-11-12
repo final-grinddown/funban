@@ -1,43 +1,35 @@
 import { SyntheticEvent, useState } from "react"
+import { useAppStore } from "@/store"
 
 export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => void) {
-  const [isAddNewNoteModalOpen, setIsAddNewNoteModalOpen] = useState(false)
-  const [isEndStatusModalOpen, setIsEndStatusModalOpen] = useState(false)
-  const [isAddUserMarkModalOpen, setIsAddUserMarkModalOpen] = useState(false)
-  const [isAnyModalOpen, setIsAnyModalOpen] = useState(false)
+  const { openModal, closeModal, modals } = useAppStore((state) => state.modals)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleOpenAddNewNoteModal = () => {
-    setIsAddNewNoteModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("addNewNote")
   }
 
   const handleCloseAddNewNoteModal = () => {
-    setIsAddNewNoteModalOpen(false)
-    setIsAnyModalOpen(false)
+    closeModal("addNewNote")
   }
 
   const handleOpenEndStatusModal = () => {
-    setIsEndStatusModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("endStatus")
 
     if (isFocus) {
       handleEndFocus()
     }
   }
   const handleCloseEndStatusModal = () => {
-    setIsEndStatusModalOpen(false)
-    setIsAnyModalOpen(false)
+    closeModal("endStatus")
   }
 
   const handleOpenAddUserMarkModal = () => {
-    setIsAddUserMarkModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("addUserMark")
   }
 
   const handleCloseAddUserMarkModal = () => {
-    setIsAddUserMarkModalOpen(false)
-    setIsAnyModalOpen(false)
+    closeModal("addUserMark")
   }
 
   const handleOpenMenu = (event: SyntheticEvent<HTMLButtonElement>) => {
@@ -50,9 +42,9 @@ export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => 
   const handleCloseMenu = () => setAnchorEl(null)
 
   return {
-    isEndStatusModalOpen,
-    isAddNewNoteModalOpen,
-    isAddUserMarkModalOpen,
+    isEndStatusModalOpen: modals.endStatus.isOpen,
+    isAddNewNoteModalOpen: modals.addNewNote.isOpen,
+    isAddUserMarkModalOpen: modals.addUserMark.isOpen,
     anchorEl,
     openMenu: Boolean(anchorEl),
     handleOpenAddNewNoteModal,
@@ -63,7 +55,6 @@ export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => 
     handleCloseAddUserMarkModal,
     handleOpenMenu,
     handleCloseMenu,
-    isAnyModalOpen,
-    setIsAnyModalOpen,
+    isAnyModalOpen: modals.isAnyModalOpen(),
   }
 }

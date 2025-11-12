@@ -7,7 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { client } from "@/app/api/client"
 import { darkTheme, lightTheme } from "@/styles/theme"
-import { useThemeStore } from "@/utils/store"
+import { useAppStore } from "@/store"
 import { TThemeMode } from "@/utils/types"
 
 interface Props {
@@ -22,7 +22,7 @@ const themeMap: Record<Exclude<TThemeMode, "system">, Theme> = {
 const getSystemTheme = () => (window.matchMedia("(prefers-color-scheme: dark)").matches ? darkTheme : lightTheme)
 
 export default function Provider({ children }: Props) {
-  const { mode, initializeTheme } = useThemeStore()
+  const { mode, initializeTheme } = useAppStore((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
   const theme = mode === "system" ? getSystemTheme() : themeMap[mode]
 

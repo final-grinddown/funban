@@ -44,7 +44,6 @@ export function BoardScreen({ accessToken }: Props) {
     handleOpenMenu,
     handleCloseMenu,
     isAnyModalOpen,
-    setIsAnyModalOpen,
   } = useBoardModalManagement(isFocus, handleEndFocus)
 
   const snapshot = useMemo(
@@ -133,8 +132,6 @@ export function BoardScreen({ accessToken }: Props) {
         notes={notes}
         isEditable={true}
         selectedUserId={parseInt(user)}
-        isAnyModalOpen={isAnyModalOpen}
-        setIsAnyModalOpen={setIsAnyModalOpen}
         isFocus={isFocus}
         currentUser={currentUser}
       />
