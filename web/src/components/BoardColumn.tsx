@@ -4,7 +4,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert"
 import { Box, IconButton, List, Typography, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material"
 import { useTheme } from "@mui/material/styles"
 import { useHotkeys } from "react-hotkeys-hook"
-import { useAppStore, selectUsers } from "@/store"
+import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/store"
 import { Note } from "@/utils/interfaces"
 import { AddNewNoteModal } from "./AddNewNoteModal"
 import { BoardItemCard } from "./BoardItemCard"
@@ -16,15 +16,10 @@ interface Props {
   items: Note[]
   state: Note["state"]
   isEditable: boolean
-  hoveredColumn: string | null
-  setHoveredColumn: (columnId: string | null) => void
   onDragStart: (event: DragEvent<HTMLDivElement>, itemId: string) => void
   onDrop: (event: DragEvent<HTMLDivElement>, columnId: string, index: number | null) => void
   onDragEnd: () => void
   columnIndex: number
-  selectedUserId?: number
-  isFocus: boolean
-  currentUser: string
 }
 
 export function BoardColumn({
@@ -32,17 +27,17 @@ export function BoardColumn({
   items,
   state,
   isEditable,
-  hoveredColumn,
-  setHoveredColumn,
   onDragStart,
   onDragEnd,
   onDrop,
-  selectedUserId,
   columnIndex,
-  isFocus,
-  currentUser,
 }: Props) {
   const users = useAppStore(selectUsers)
+  const isFocus = useAppStore(selectIsFocus)
+  const currentUser = useAppStore(selectCurrentUser)
+  const selectedUserId = useAppStore((state) => state.ui.selectedUserId)
+  const hoveredColumn = useAppStore((state) => state.ui.hoveredColumn)
+  const setHoveredColumn = useAppStore((state) => state.ui.setHoveredColumn)
   const { openModal, closeModal, modals, isAnyModalOpen } = useAppStore((state) => state.modals)
   const theme = useTheme()
   const [draggedOverId, setDraggedOverId] = useState<number | "last" | null>(null)
