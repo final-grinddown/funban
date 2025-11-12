@@ -2,7 +2,7 @@
 
 **Project:** Funban - Collaborative Kanban Board
 **Date:** 2025-11-12
-**Status:** Phase 1A Complete ✅ - In Progress (Phase 1B Next)
+**Status:** Phase 1B Complete ✅ - Ready for Phase 1C (Performance)
 
 ## Overview
 
@@ -394,6 +394,105 @@ web/src/utils/
 
 **Files:**
 - `web/src/screens/BoardScreen.tsx` (refactor)
+
+---
+
+**STATUS: ✅ PHASE 1B COMPLETE (2025-11-12)**
+
+**Completion Summary:**
+
+All component decomposition tasks successfully completed!
+
+**Board.tsx Refactoring:**
+- ✅ Extracted `useNoteSorting()` hook (55 lines)
+- ✅ Created `BoardLoadingState` component (16 lines)
+- ✅ Created `BoardErrorState` component (40 lines)
+- ✅ Refactored Board.tsx: **142 → 123 lines** (19 lines saved)
+
+**BoardColumn.tsx Refactoring:**
+- ✅ Extracted `BoardColumnHeader` component (39 lines)
+- ✅ Extracted `BoardColumnList` component (68 lines)
+- ✅ Extracted `BoardColumnMenu` component (66 lines)
+- ✅ Created `useBoardColumnModals()` hook (20 lines)
+- ✅ Refactored BoardColumn.tsx: **292 → 227 lines** (65 lines saved)
+- Total with subcomponents: 401 lines (109 lines added, but much better organized)
+
+**BoardItemCard.tsx Refactoring:**
+- ✅ Extracted `NoteCardHeader` component (91 lines)
+- ✅ Extracted `NoteCardTags` component (28 lines)
+- ✅ Extracted `NoteCardMenu` component (99 lines)
+- ✅ Created `useNoteCardModals()` hook (42 lines)
+- ✅ Created `noteConstants.ts` utility (20 lines)
+- ✅ Refactored BoardItemCard.tsx: **370 → 249 lines** (121 lines saved)
+- Total with subcomponents: 468 lines (98 lines added, but much better organized)
+
+**Key Achievements:**
+- **Total line reduction in main files:** 205 lines saved
+- **New reusable components:** 9 components created
+- **New hooks:** 3 hooks created (117 lines)
+- **New utilities:** 1 utility file (20 lines)
+- **Build status:** ✅ All builds passing
+- **Type safety:** ✅ No TypeScript errors
+- **Linting:** ✅ All ESLint rules satisfied
+
+**Component Size Goals:**
+- Board.tsx: 123 lines ✅ (target: < 150)
+- BoardColumn.tsx: 227 lines ⚠️ (target: < 150, will improve in Phase 2 after DnD migration)
+- BoardItemCard.tsx: 249 lines ⚠️ (target: < 150, will improve after modal extraction in Phase 4)
+
+**Architecture Benefits:**
+```
+BEFORE:
+❌ Board.tsx: 142 lines with inline O(n²) sorting
+❌ BoardColumn.tsx: 292 lines with mixed concerns
+❌ BoardItemCard.tsx: 370 lines with hardcoded constants
+❌ Complex logic buried in components
+
+AFTER:
+✅ Board.tsx: 123 lines, clean and focused
+✅ BoardColumn/: Modular directory with 4 focused components
+✅ BoardItemCard/: Modular directory with 4 focused components
+✅ Reusable hooks for sorting and modal management
+✅ Centralized constants in noteConstants.ts
+✅ Better testability and maintainability
+```
+
+**Files Created in Phase 1B:**
+```
+web/src/hooks/
+├── useNoteSorting.ts (55 lines)
+├── useBoardColumnModals.ts (20 lines)
+└── useNoteCardModals.ts (42 lines)
+
+web/src/utils/
+└── noteConstants.ts (20 lines)
+
+web/src/components/
+├── BoardLoadingState.tsx (16 lines)
+├── BoardErrorState.tsx (40 lines)
+├── BoardColumn/
+│   ├── index.tsx (1 line)
+│   ├── BoardColumn.tsx (227 lines)
+│   ├── BoardColumnHeader.tsx (39 lines)
+│   ├── BoardColumnList.tsx (68 lines)
+│   └── BoardColumnMenu.tsx (66 lines)
+└── BoardItemCard/
+    ├── index.tsx (1 line)
+    ├── BoardItemCard.tsx (249 lines)
+    ├── NoteCardHeader.tsx (91 lines)
+    ├── NoteCardTags.tsx (28 lines)
+    └── NoteCardMenu.tsx (99 lines)
+```
+
+**Files Modified in Phase 1B:**
+- `web/src/components/Board.tsx` (refactored)
+- `web/src/components/BoardColumn.tsx` → `web/src/components/BoardColumn/` (converted to directory)
+- `web/src/components/BoardItemCard.tsx` → `web/src/components/BoardItemCard/` (converted to directory)
+
+**Next Steps:**
+- Phase 1C: Add memoization and performance optimizations
+- Phase 2: Migrate to @dnd-kit (will further reduce BoardColumn.tsx size)
+- Phase 4: Extract modal patterns (will further reduce BoardItemCard.tsx size)
 
 ---
 

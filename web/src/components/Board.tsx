@@ -2,11 +2,12 @@ import { DragEvent, useMemo, useRef } from "react"
 import { Box, Divider, Stack } from "@mui/material"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useNoteSorting } from "@/hooks/useNoteSorting"
 import { useAppStore, selectNotes } from "@/store"
-import { IColumnData, Note } from "@/utils/interfaces"
+import { IColumnData } from "@/utils/interfaces"
 import { getStoredColumnOrder } from "@/utils/storage"
-import { BackdropLoading } from "./BackdropLoading"
 import { BoardColumn } from "./BoardColumn"
+import { BoardLoadingState } from "./BoardLoadingState"
 
 interface Props {
   isEditable: boolean
@@ -19,55 +20,36 @@ export function Board({ isEditable }: Props) {
   const draggingItemIdRef = useRef<string | null>(null)
   const columnOrder = getStoredColumnOrder()
 
+  // Filter and sort notes by state
+  const notesNotes = useNoteSorting(notes.filter((note) => note.state === "notes"))
+  const todoNotes = useNoteSorting(notes.filter((note) => note.state === "todo"))
+  const inProgressNotes = useNoteSorting(notes.filter((note) => note.state === "in_progress"))
+  const doneNotes = useNoteSorting(notes.filter((note) => note.state === "done"))
+
   const columns = useMemo(() => {
-    const sortNotes = (notes: Note[]) => {
-      const idToNote = new Map<number, Note>()
-      const sorted: Note[] = []
-      const visited = new Set<number>()
-
-      notes.forEach((note) => idToNote.set(note.id, note))
-
-      // Find roots (notes with no predecessor)
-      const roots = notes.filter((note) => note.predecessor_id === null)
-
-      // Traverse linked list
-      roots.forEach((root) => {
-        let current: Note | undefined = root
-        while (current && !visited.has(current.id)) {
-          sorted.push(current)
-          visited.add(current.id)
-          current = idToNote.get(notes.find((note) => note.predecessor_id === current!.id)?.id ?? NaN)
-        }
-      })
-
-      // Add any orphaned notes (not in a valid chain)
-      const orphaned = notes.filter((note) => !visited.has(note.id))
-      return [...sorted, ...orphaned]
-    }
-
     const columnData: IColumnData[] = [
       {
         title: "NOTES",
         state: "notes",
-        items: sortNotes(notes.filter((note) => note.state === "notes")),
+        items: notesNotes,
         orderKey: 0,
       },
       {
         title: "TODO",
         state: "todo",
-        items: sortNotes(notes.filter((note) => note.state === "todo")),
+        items: todoNotes,
         orderKey: 1,
       },
       {
         title: "IN PROGRESS",
         state: "in_progress",
-        items: sortNotes(notes.filter((note) => note.state === "in_progress")),
+        items: inProgressNotes,
         orderKey: 2,
       },
       {
         title: "DONE",
         state: "done",
-        items: sortNotes(notes.filter((note) => note.state === "done")),
+        items: doneNotes,
         orderKey: 3,
       },
     ]
@@ -78,7 +60,7 @@ export function Board({ isEditable }: Props) {
         return { ...col, orderKey }
       })
       .sort((a, b) => a.orderKey - b.orderKey)
-  }, [notes, columnOrder])
+  }, [notesNotes, todoNotes, inProgressNotes, doneNotes, columnOrder])
 
   const handleDragStart = (event: DragEvent<HTMLDivElement>, itemId: string) => {
     draggingItemIdRef.current = itemId
@@ -135,7 +117,7 @@ export function Board({ isEditable }: Props) {
           />
         ))}
       </Stack>
-      {isLoading && <BackdropLoading isInDashboard={true} />}
+      <BoardLoadingState isLoading={isLoading} />
     </Box>
   )
 }
