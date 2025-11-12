@@ -23,8 +23,6 @@ interface Props {
   onDragEnd: () => void
   columnIndex: number
   selectedUserId?: number
-  isAnyModalOpen: boolean
-  setIsAnyModalOpen: (isOpen: boolean) => void
   isFocus: boolean
   currentUser: string
 }
@@ -41,12 +39,11 @@ export function BoardColumn({
   onDrop,
   selectedUserId,
   columnIndex,
-  isAnyModalOpen,
-  setIsAnyModalOpen,
   isFocus,
   currentUser,
 }: Props) {
   const users = useAppStore(selectUsers)
+  const { openModal, closeModal, modals, isAnyModalOpen } = useAppStore((state) => state.modals)
   const theme = useTheme()
   const [draggedOverId, setDraggedOverId] = useState<number | "last" | null>(null)
   const lastHoveredRef = useRef<string | null>(null)
@@ -54,8 +51,6 @@ export function BoardColumn({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const openMenu = Boolean(anchorEl)
   const [textFocus, setTextFocus] = useState(false)
-  const [isAddNewNoteModalOpen, setIsAddNewNoteModalOpen] = useState(false)
-  const [isDeleteNoteBulkModalOpen, setIsDeleteNoteBulkModalOpen] = useState(false)
   const [newNoteDefaultValues, setNewNoteDefaultValues] = useState({ state: "", ownerId: "" })
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -69,7 +64,7 @@ export function BoardColumn({
   useHotkeys(
     "shift+" + (columnIndex + 1),
     (event) => {
-      if (isAnyModalOpen) {
+      if (isAnyModalOpen()) {
         // Prevent opening another modal if any modal is already open globally
         return
       }
@@ -78,34 +73,29 @@ export function BoardColumn({
       handleOpenAddNewNoteModal(true)
     },
     {},
-    [columnIndex, selectedUserId, state, isAnyModalOpen, setIsAnyModalOpen],
+    [columnIndex, selectedUserId, state, isAnyModalOpen],
   )
 
   const handleOpenAddNewNoteModal = (focusText: boolean = false) => {
     handleCloseMenu()
     setTextFocus(focusText)
     setNewNoteDefaultValues({ state: state, ownerId: String(selectedUserId) })
-    setIsAddNewNoteModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("addNewNote", { state, ownerId: String(selectedUserId), focusText })
   }
   const handleCloseAddNewNoteModal = () => {
-    setIsAddNewNoteModalOpen(false)
     setNewNoteDefaultValues({ state: "", ownerId: "" })
-    setIsAnyModalOpen(false)
+    closeModal("addNewNote")
   }
   const handleDeleteAllNotes = () => {
     handleCloseMenu()
-    setIsDeleteNoteBulkModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("deleteNoteBulk", { state, userId: selectedUserId, isFocus: false })
   }
   const handleDeleteAllUserNotes = () => {
     handleCloseMenu()
-    setIsDeleteNoteBulkModalOpen(true)
-    setIsAnyModalOpen(true)
+    openModal("deleteNoteBulk", { state, userId: selectedUserId, userName: currentUser, isFocus: true })
   }
   const handleCloseDeleteNoteBulkModal = () => {
-    setIsDeleteNoteBulkModalOpen(false)
-    setIsAnyModalOpen(false)
+    closeModal("deleteNoteBulk")
   }
   // Calculate the position based on Y-coordinate
   const handleDragOver = (event: DragEvent<HTMLDivElement>, index: number, element: HTMLElement) => {
@@ -281,7 +271,7 @@ export function BoardColumn({
       </List>
 
       <AddNewNoteModal
-        isOpen={isAddNewNoteModalOpen}
+        isOpen={modals.addNewNote.isOpen}
         onClose={handleCloseAddNewNoteModal}
         users={users}
         defaultValues={newNoteDefaultValues}
@@ -290,7 +280,7 @@ export function BoardColumn({
       />
       {selectedUserId && (
         <DeleteNoteBulkModal
-          isOpen={isDeleteNoteBulkModalOpen}
+          isOpen={modals.deleteNoteBulk.isOpen}
           onClose={handleCloseDeleteNoteBulkModal}
           state={state}
           userId={selectedUserId}

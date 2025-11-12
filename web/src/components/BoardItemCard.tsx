@@ -19,7 +19,6 @@ import {
 import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { useSimpleModal } from "@/hooks/useSimpleModal"
 import type { WsNoteTag } from "@/schemas/websocket"
 import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/store"
 import { availableColors } from "@/utils/constants"
@@ -67,6 +66,7 @@ export function BoardItemCard({
   const users = useAppStore(selectUsers)
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
+  const { openModal, closeModal, modals } = useAppStore((state) => state.modals)
   const theme = useTheme()
   // After migration, color should be a hex value, but fallback to color name matching for safety
   const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
@@ -74,9 +74,6 @@ export function BoardItemCard({
     mouseX: number;
     mouseY: number;
   } | null>(null)
-  const editModal = useSimpleModal()
-  const deleteModal = useSimpleModal()
-  const splitModal = useSimpleModal()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [textFocus, setTextFocus] = useState(false)
@@ -106,7 +103,7 @@ export function BoardItemCard({
 
   const handleEditModal = (focusText: boolean = false) => {
     setTextFocus(focusText)
-    editModal.openModal()
+    openModal("editNote", { noteId: id, noteState: state, noteText: text, focusText })
     handleCloseMenu()
   }
 
@@ -119,7 +116,7 @@ export function BoardItemCard({
   }
 
   const handleEditCloseModal = () => {
-    editModal.closeModal()
+    closeModal("editNote")
   }
 
   const handleClearModifier = () => {
@@ -137,12 +134,16 @@ export function BoardItemCard({
   }
 
   const handleDeleteOpenModal = () => {
-    deleteModal.openModal()
+    openModal("deleteNote", { noteId: id })
     handleCloseMenu()
   }
 
   const handleSplitOpenModal = () => {
-    splitModal.openModal()
+    openModal("splitNote", {
+      originalNote: { id, text, name, owner_id, color, state, predecessor_id, updated, created, tag },
+      users,
+      selectedUserId: currentUser ? parseInt(currentUser) : undefined
+    })
     handleCloseMenu()
   }
 
@@ -340,7 +341,7 @@ export function BoardItemCard({
       {isEditable && (
         <>
           <EditNoteModal
-            isOpen={editModal.isOpen}
+            isOpen={modals.editNote.isOpen}
             noteId={id}
             noteState={state}
             noteText={text}
@@ -350,14 +351,14 @@ export function BoardItemCard({
           />
 
           <SplitNoteModal
-            isOpen={splitModal.isOpen}
+            isOpen={modals.splitNote.isOpen}
             originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
             users={users}
-            onClose={splitModal.closeModal}
+            onClose={() => closeModal("splitNote")}
             selectedUserId={currentUser ? parseInt(currentUser) : undefined}
           />
 
-          <DeleteNoteModal isOpen={deleteModal.isOpen} noteId={id} onClose={deleteModal.closeModal} />
+          <DeleteNoteModal isOpen={modals.deleteNote.isOpen} noteId={id} onClose={() => closeModal("deleteNote")} />
         </>
       )}
     </>
