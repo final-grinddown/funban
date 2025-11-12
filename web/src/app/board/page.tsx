@@ -3,8 +3,8 @@ import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { DashboardLayout } from "@/components/DashboardLayout"
-import { useAppStore, selectUsers, selectNotes } from "@/store"
 import { BoardScreen } from "@/screens/BoardScreen"
+import { useAppStore, selectUsers, selectNotes } from "@/store"
 
 export default function Board() {
   const { data, status } = useSession()

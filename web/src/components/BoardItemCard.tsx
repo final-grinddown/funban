@@ -66,7 +66,11 @@ export function BoardItemCard({
   const users = useAppStore(selectUsers)
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
-  const { openModal, closeModal, modals } = useAppStore((state) => state.modals)
+  const openModal = useAppStore((state) => state.modals.openModal)
+  const closeModal = useAppStore((state) => state.modals.closeModal)
+  const editNoteModalOpen = useAppStore((state) => state.modals.editNote.isOpen)
+  const splitNoteModalOpen = useAppStore((state) => state.modals.splitNote.isOpen)
+  const deleteNoteModalOpen = useAppStore((state) => state.modals.deleteNote.isOpen)
   const theme = useTheme()
   // After migration, color should be a hex value, but fallback to color name matching for safety
   const matchedColor = color?.startsWith("#") ? color : (matchColorName(color || "Black", availableColors) || "#000000")
@@ -341,7 +345,7 @@ export function BoardItemCard({
       {isEditable && (
         <>
           <EditNoteModal
-            isOpen={modals.editNote.isOpen}
+            isOpen={editNoteModalOpen}
             noteId={id}
             noteState={state}
             noteText={text}
@@ -351,14 +355,14 @@ export function BoardItemCard({
           />
 
           <SplitNoteModal
-            isOpen={modals.splitNote.isOpen}
+            isOpen={splitNoteModalOpen}
             originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
             users={users}
             onClose={() => closeModal("splitNote")}
             selectedUserId={currentUser ? parseInt(currentUser) : undefined}
           />
 
-          <DeleteNoteModal isOpen={modals.deleteNote.isOpen} noteId={id} onClose={() => closeModal("deleteNote")} />
+          <DeleteNoteModal isOpen={deleteNoteModalOpen} noteId={id} onClose={() => closeModal("deleteNote")} />
         </>
       )}
     </>

@@ -38,7 +38,11 @@ export function BoardColumn({
   const selectedUserId = useAppStore((state) => state.ui.selectedUserId)
   const hoveredColumn = useAppStore((state) => state.ui.hoveredColumn)
   const setHoveredColumn = useAppStore((state) => state.ui.setHoveredColumn)
-  const { openModal, closeModal, modals, isAnyModalOpen } = useAppStore((state) => state.modals)
+  const openModal = useAppStore((state) => state.modals.openModal)
+  const closeModal = useAppStore((state) => state.modals.closeModal)
+  const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
+  const addNewNoteModalOpen = useAppStore((state) => state.modals.addNewNote.isOpen)
+  const deleteNoteBulkModalOpen = useAppStore((state) => state.modals.deleteNoteBulk.isOpen)
   const theme = useTheme()
   const [draggedOverId, setDraggedOverId] = useState<number | "last" | null>(null)
   const lastHoveredRef = useRef<string | null>(null)
@@ -266,7 +270,7 @@ export function BoardColumn({
       </List>
 
       <AddNewNoteModal
-        isOpen={modals.addNewNote.isOpen}
+        isOpen={addNewNoteModalOpen}
         onClose={handleCloseAddNewNoteModal}
         users={users}
         defaultValues={newNoteDefaultValues}
@@ -275,7 +279,7 @@ export function BoardColumn({
       />
       {selectedUserId && (
         <DeleteNoteBulkModal
-          isOpen={modals.deleteNoteBulk.isOpen}
+          isOpen={deleteNoteBulkModalOpen}
           onClose={handleCloseDeleteNoteBulkModal}
           state={state}
           userId={selectedUserId}

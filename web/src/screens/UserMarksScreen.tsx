@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -86,11 +86,7 @@ export function UserMarksScreen() {
   const [editingMark, setEditingMark] = useState<UserMark | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
 
-  useEffect(() => {
-    loadMarks()
-  }, [session?.accessToken])
-
-  const loadMarks = async () => {
+  const loadMarks = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -102,7 +98,11 @@ export function UserMarksScreen() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
+
+  useEffect(() => {
+    loadMarks()
+  }, [loadMarks])
 
   const loadExpiredMarks = async (userId: number) => {
     if (expiredMarks.has(userId)) {

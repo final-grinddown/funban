@@ -32,6 +32,20 @@ jest.mock('@/utils/storage', () => ({
   getStoredColumnOrder: jest.fn(() => mockColumnOrder),
 }))
 
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: [], users: [] },
+  focus: { isFocus: false, currentUser: 'User 1' },
+  ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
+}
+
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectNotes: (state: any) => state.board.notes,
+  selectIsFocus: (state: any) => state.focus.isFocus,
+  selectCurrentUser: (state: any) => state.focus.currentUser,
+}))
+
 // Store handlers globally for testing
 let testHandlers: any = {}
 
@@ -132,13 +146,7 @@ const mockNotes: Note[] = [
 ]
 
 const defaultProps = {
-  notes: mockNotes,
   isEditable: true,
-  isAnyModalOpen: false,
-  setIsAnyModalOpen: jest.fn(),
-  selectedUserId: 1,
-  isFocus: false,
-  currentUser: 'User 1',
 }
 
 describe('Board', () => {
@@ -147,6 +155,13 @@ describe('Board', () => {
     testHandlers = {} // Clear stored handlers
     mockWebSocketContext.isLoading = false
     mockWebSocketContext.sendMessageAsync = jest.fn().mockResolvedValue(undefined)
+
+    // Reset store state
+    mockStoreState = {
+      board: { notes: mockNotes, users: [] },
+      focus: { isFocus: false, currentUser: 'User 1' },
+      ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
+    }
   })
 
   // Column Organization (4 tests)
@@ -239,7 +254,8 @@ describe('Board', () => {
     })
 
     it('handles empty note arrays gracefully', () => {
-      render(<Board {...defaultProps} notes={[]} />)
+      mockStoreState.board.notes = []
+      render(<Board {...defaultProps} />)
 
       // All columns should be rendered but empty
       expect(screen.getByTestId('column-notes')).toHaveAttribute('data-items-count', '0')
@@ -277,7 +293,8 @@ describe('Board', () => {
         },
       ]
 
-      render(<Board {...defaultProps} notes={circularNotes} />)
+      mockStoreState.board.notes = circularNotes
+      render(<Board {...defaultProps} />)
 
       // Should not crash and should render both notes
       expect(screen.getByText('Note 1')).toBeInTheDocument()
@@ -399,19 +416,15 @@ describe('Board', () => {
     })
 
     it('passes focus and modal state to columns correctly', () => {
-      render(
-        <Board 
-          {...defaultProps} 
-          isFocus={true} 
-          isAnyModalOpen={true}
-          currentUser="Test User"
-        />
-      )
+      mockStoreState.focus.isFocus = true
+      mockStoreState.focus.currentUser = "Test User"
+
+      render(<Board {...defaultProps} />)
 
       // All columns should receive the focus/modal props
       expect(screen.getByTestId('column-notes')).toBeInTheDocument()
       expect(screen.getByTestId('column-todo')).toBeInTheDocument()
-      expect(screen.getByTestId('column-in_progress')).toBeInTheDocument()  
+      expect(screen.getByTestId('column-in_progress')).toBeInTheDocument()
       expect(screen.getByTestId('column-done')).toBeInTheDocument()
     })
   })

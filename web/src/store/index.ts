@@ -1,10 +1,10 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
-import { createBoardSlice, type BoardSlice } from "./slices/boardSlice"
-import { createModalSlice, type ModalSlice } from "./slices/modalSlice"
-import { createFocusSlice, type FocusSlice } from "./slices/focusSlice"
-import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice"
 import { createActionSlice, type ActionSlice } from "./slices/actionSlice"
+import { createBoardSlice, type BoardSlice } from "./slices/boardSlice"
+import { createFocusSlice, type FocusSlice } from "./slices/focusSlice"
+import { createModalSlice, type ModalSlice } from "./slices/modalSlice"
+import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice"
 import { createUiSlice, type UiSlice } from "./slices/uiSlice"
 
 // Combined app state type

@@ -6,8 +6,8 @@ import { GlobalStyles, Theme } from "@mui/system"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { client } from "@/app/api/client"
-import { darkTheme, lightTheme } from "@/styles/theme"
 import { useAppStore } from "@/store"
+import { darkTheme, lightTheme } from "@/styles/theme"
 import { TThemeMode } from "@/utils/types"
 
 interface Props {

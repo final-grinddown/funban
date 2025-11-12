@@ -18,8 +18,8 @@ import typia from "typia"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
-import type { User, Note } from "@/utils/interfaces"
 import { useAppStore } from "@/store"
+import type { User, Note } from "@/utils/interfaces"
 
 // WebSocket message types
 type PatchMessage = {
@@ -273,7 +273,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       console.error('WebSocket error:', error)
       // Let the close handler manage reconnection or auth redirect
     }
-  }, [socketUrl, handlePatchMessage])
+  }, [socketUrl, handlePatchMessage, setNotes, setUsers])
 
   function sendMessage(message: string) {
     try {

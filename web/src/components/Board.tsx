@@ -2,7 +2,7 @@ import { DragEvent, useMemo, useRef } from "react"
 import { Box, Divider, Stack } from "@mui/material"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
-import { useAppStore, selectIsFocus, selectCurrentUser, selectNotes } from "@/store"
+import { useAppStore, selectNotes } from "@/store"
 import { IColumnData, Note } from "@/utils/interfaces"
 import { getStoredColumnOrder } from "@/utils/storage"
 import { BackdropLoading } from "./BackdropLoading"
@@ -15,10 +15,6 @@ interface Props {
 export function Board({ isEditable }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const notes = useAppStore(selectNotes)
-  const isFocus = useAppStore(selectIsFocus)
-  const currentUser = useAppStore(selectCurrentUser)
-  const selectedUserId = useAppStore((state) => state.ui.selectedUserId)
-  const hoveredColumn = useAppStore((state) => state.ui.hoveredColumn)
   const setHoveredColumn = useAppStore((state) => state.ui.setHoveredColumn)
   const draggingItemIdRef = useRef<string | null>(null)
   const columnOrder = getStoredColumnOrder()
