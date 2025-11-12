@@ -2,12 +2,12 @@
 import { useSession } from "next-auth/react"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { DashboardLayout } from "@/components/DashboardLayout"
-import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useAppStore, selectUsers } from "@/store"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 
 export default function Settings() {
   const { data } = useSession()
-  const { users } = useWebSocketContext()
+  const users = useAppStore(selectUsers)
 
   if (!data?.user?.email) {
     return <BackdropLoading />

@@ -19,7 +19,7 @@ import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import type { User, Note } from "@/utils/interfaces"
-import { useActionStateStore } from "@/utils/store"
+import { useAppStore } from "@/store"
 
 // WebSocket message types
 type PatchMessage = {
@@ -40,8 +40,6 @@ type NotesMessage = {
 type WebSocketMessage = PatchMessage | UsersMessage | NotesMessage
 
 interface WebSocketContextType {
-  users: User[]
-  notes: Note[]
   sendMessage: (message: string) => void
   sendMessageAsync: (message: string, successNotification: string) => void
   connectionStatus: string
@@ -59,15 +57,28 @@ const RECONNECT_BACKOFF_MULTIPLIER = 1.5
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
-  const [users, setUsers] = useState<User[]>([])
-  const [notes, setNotes] = useState<Note[]>([])
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shouldReconnectRef = useRef(true)
-  const { startAsync, finishAsync } = useActionStateStore()
+
+  // Get actions from unified store
+  const { startAsync, finishAsync } = useAppStore((state) => state.actions)
+
+  // Get board actions from unified store
+  const setUsers = useAppStore((state) => state.board.setUsers)
+  const setNotes = useAppStore((state) => state.board.setNotes)
+  const addUser = useAppStore((state) => state.board.addUser)
+  const updateUser = useAppStore((state) => state.board.updateUser)
+  const removeUser = useAppStore((state) => state.board.removeUser)
+  const addUserMark = useAppStore((state) => state.board.addUserMark)
+  const updateUserMark = useAppStore((state) => state.board.updateUserMark)
+  const removeUserMark = useAppStore((state) => state.board.removeUserMark)
+  const addNote = useAppStore((state) => state.board.addNote)
+  const updateNote = useAppStore((state) => state.board.updateNote)
+  const removeNote = useAppStore((state) => state.board.removeNote)
 
   useEffect(() => {
     if (status === "authenticated" && session) {
@@ -94,10 +105,11 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         socketRef.current = null
       }
       setSocketUrl(null)
+      // Clear board data from Zustand
       setUsers([])
       setNotes([])
     }
-  }, [session, status])
+  }, [session, status, setUsers, setNotes])
 
   // Transform contract types to app types
   const transformNote = (note: WsNote): Note => note  // No transformation needed
@@ -108,114 +120,58 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       msg.ops.forEach((op: WsOperation) => {
         switch (op.type) {
           case "UserAdded":
-            setUsers((prevUsers) => [...prevUsers, transformUser(op.user)])
+            addUser(transformUser(op.user))
             break
           case "UserNameUpdated":
-            setUsers((prevUsers) => prevUsers.map((user) => (user.id === op.id ? { ...user, name: op.name } : user)))
-            setNotes((prevNotes) =>
-              prevNotes.map((note) => (note.owner_id === op.id ? { ...note, name: op.name } : note)),
-            )
+            updateUser(op.id, { name: op.name })
             break
           case "UserColorUpdated":
-            setUsers((prevUsers) => prevUsers.map((user) => (user.id === op.id ? { ...user, color: op.color } : user)))
-            setNotes((prevNotes) =>
-              prevNotes.map((note) => (note.owner_id === op.id ? { ...note, color: op.color } : note)),
-            )
+            updateUser(op.id, { color: op.color })
             break
           case "UserRemoved":
-            setUsers((prevUsers) => prevUsers.filter((user) => user.id !== op.id))
-            setNotes((prevNotes) => prevNotes.filter((note) => note.owner_id !== op.id))
+            removeUser(op.id)
             break
           case "UserMarkAdded":
-            setUsers((prevUsers) =>
-              prevUsers.map((user) =>
-                user.id === op.user_id
-                  ? {
-                      ...user,
-                      marks: [
-                        ...user.marks,
-                        {
-                          id: op.mark_id,
-                          user_id: op.user_id,
-                          mark_type: op.mark_type,
-                          custom_text: op.custom_text,
-                          expires_after_status_ends: op.expires_after_status_ends,
-                          expires_at: op.expires_at,
-                        },
-                      ],
-                    }
-                  : user
-              )
-            )
+            addUserMark(op.user_id, {
+              id: op.mark_id,
+              user_id: op.user_id,
+              mark_type: op.mark_type,
+              custom_text: op.custom_text,
+              expires_after_status_ends: op.expires_after_status_ends,
+              expires_at: op.expires_at,
+            })
             break
           case "UserMarkUpdated":
-            setUsers((prevUsers) =>
-              prevUsers.map((user) =>
-                user.id === op.user_id
-                  ? {
-                      ...user,
-                      marks: user.marks.map((mark) =>
-                        mark.id === op.mark_id
-                          ? {
-                              id: op.mark_id,
-                              user_id: op.user_id,
-                              mark_type: op.mark_type,
-                              custom_text: op.custom_text,
-                              expires_after_status_ends: op.expires_after_status_ends,
-                              expires_at: op.expires_at,
-                            }
-                          : mark
-                      ),
-                    }
-                  : user
-              )
-            )
+            updateUserMark(op.user_id, op.mark_id, {
+              id: op.mark_id,
+              user_id: op.user_id,
+              mark_type: op.mark_type,
+              custom_text: op.custom_text,
+              expires_after_status_ends: op.expires_after_status_ends,
+              expires_at: op.expires_at,
+            })
             break
           case "UserMarkRemoved":
-            setUsers((prevUsers) =>
-              prevUsers.map((user) =>
-                user.id === op.user_id
-                  ? {
-                      ...user,
-                      marks: user.marks.filter((mark) => mark.id !== op.mark_id),
-                    }
-                  : user
-              )
-            )
+            removeUserMark(op.user_id, op.mark_id)
             break
           case "NoteTextUpdated":
-            setNotes((prevNotes) =>
-              prevNotes.map((note) =>
-                note.id === op.id ? { ...note, text: op.text, updated: new Date().toISOString() } : note,
-              ),
-            )
+            updateNote(op.id, { text: op.text, updated: new Date().toISOString() })
             break
           case "NoteTagChanged":
-            setNotes((prevNotes) =>
-              prevNotes.map((note) =>
-                note.id === op.id ? { ...note, tag: op.tag, updated: new Date().toISOString() } : note,
-              ),
-            )
+            updateNote(op.id, { tag: op.tag, updated: new Date().toISOString() })
             break
           case "NoteOrderChanged":
-            setNotes((prevNotes) =>
-              prevNotes.map((note) =>
-                note.id === op.id
-                  ? {
-                      ...note,
-                      state: op.state,
-                      predecessor_id: op.predecessor_id,
-                      updated: new Date().toISOString(),
-                    }
-                  : note,
-              ),
-            )
+            updateNote(op.id, {
+              state: op.state,
+              predecessor_id: op.predecessor_id,
+              updated: new Date().toISOString(),
+            })
             break
           case "NoteRemoved":
-            setNotes((prevNotes) => prevNotes.filter((note) => note.id !== op.id))
+            removeNote(op.id)
             break
           case "NoteAdded":
-            setNotes((prevNotes) => [...prevNotes, transformNote(op.note)])
+            addNote(transformNote(op.note))
             break
           case "ActionFinished":
             finishAsync(op.uuid)
@@ -235,7 +191,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       })
     },
 
-    [setUsers, setNotes, finishAsync, setIsLoading],
+    [addUser, updateUser, removeUser, addUserMark, updateUserMark, removeUserMark, addNote, updateNote, removeNote, finishAsync],
   )
 
   const connectWebSocket = useCallback(() => {
@@ -395,7 +351,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   return (
     <WebSocketContext.Provider
-      value={{ users, notes, sendMessage, sendMessageAsync, connectionStatus: getConnectionStatus(), isLoading }}
+      value={{ sendMessage, sendMessageAsync, connectionStatus: getConnectionStatus(), isLoading }}
     >
       <Alerts />
       {children}

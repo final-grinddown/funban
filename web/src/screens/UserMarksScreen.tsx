@@ -36,7 +36,7 @@ import {
 } from "@/app/api/fetches"
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { EditUserMarkModal } from "@/components/EditUserMarkModal"
-import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useAppStore, selectUsers } from "@/store"
 
 const markTypeLabels: Record<string, string> = {
   "⚫": "Black Mark",
@@ -75,7 +75,7 @@ function formatExpiration(mark: UserMark): string {
 
 export function UserMarksScreen() {
   const { data: session } = useSession()
-  const { users } = useWebSocketContext()
+  const users = useAppStore(selectUsers)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [allMarks, setAllMarks] = useState<UserMark[]>([])
   const [expiredMarks, setExpiredMarks] = useState<Map<number, UserMark[]>>(new Map())
