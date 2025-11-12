@@ -1,30 +1,26 @@
-import { DragEvent, useMemo, useRef, useState } from "react"
+import { DragEvent, useMemo, useRef } from "react"
 import { Box, Divider, Stack } from "@mui/material"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useAppStore, selectIsFocus, selectCurrentUser, selectNotes } from "@/store"
 import { IColumnData, Note } from "@/utils/interfaces"
 import { getStoredColumnOrder } from "@/utils/storage"
 import { BackdropLoading } from "./BackdropLoading"
 import { BoardColumn } from "./BoardColumn"
 
 interface Props {
-  notes: Note[]
   isEditable: boolean
-  selectedUserId?: number
-  isFocus: boolean
-  currentUser: string
 }
 
-export function Board({
-  notes,
-  isEditable,
-  selectedUserId,
-  isFocus,
-  currentUser,
-}: Props) {
+export function Board({ isEditable }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
+  const notes = useAppStore(selectNotes)
+  const isFocus = useAppStore(selectIsFocus)
+  const currentUser = useAppStore(selectCurrentUser)
+  const selectedUserId = useAppStore((state) => state.ui.selectedUserId)
+  const hoveredColumn = useAppStore((state) => state.ui.hoveredColumn)
+  const setHoveredColumn = useAppStore((state) => state.ui.setHoveredColumn)
   const draggingItemIdRef = useRef<string | null>(null)
-  const [hoveredColumn, setHoveredColumn] = useState<string | null>(null)
   const columnOrder = getStoredColumnOrder()
 
   const columns = useMemo(() => {
@@ -136,15 +132,10 @@ export function Board({
             items={items}
             state={state}
             isEditable={isEditable}
-            hoveredColumn={hoveredColumn}
-            setHoveredColumn={setHoveredColumn}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onDragEnd={handleDragEnd}
-            selectedUserId={selectedUserId}
             columnIndex={orderKey}
-            isFocus={isFocus}
-            currentUser={currentUser}
           />
         ))}
       </Stack>

@@ -128,13 +128,7 @@ export function BoardScreen({ accessToken }: Props) {
         </ButtonGroup>
       </Box>
 
-      <Board
-        notes={notes}
-        isEditable={true}
-        selectedUserId={parseInt(user)}
-        isFocus={isFocus}
-        currentUser={currentUser}
-      />
+      <Board isEditable={true} />
 
       <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} users={users} />
 
