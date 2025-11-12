@@ -2,7 +2,12 @@ import { SyntheticEvent, useState } from "react"
 import { useAppStore } from "@/store"
 
 export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => void) {
-  const { openModal, closeModal, modals } = useAppStore((state) => state.modals)
+  const openModal = useAppStore((state) => state.modals.openModal)
+  const closeModal = useAppStore((state) => state.modals.closeModal)
+  const endStatusIsOpen = useAppStore((state) => state.modals.endStatus.isOpen)
+  const addNewNoteIsOpen = useAppStore((state) => state.modals.addNewNote.isOpen)
+  const addUserMarkIsOpen = useAppStore((state) => state.modals.addUserMark.isOpen)
+  const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleOpenAddNewNoteModal = () => {
@@ -42,9 +47,9 @@ export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => 
   const handleCloseMenu = () => setAnchorEl(null)
 
   return {
-    isEndStatusModalOpen: modals.endStatus.isOpen,
-    isAddNewNoteModalOpen: modals.addNewNote.isOpen,
-    isAddUserMarkModalOpen: modals.addUserMark.isOpen,
+    isEndStatusModalOpen: endStatusIsOpen,
+    isAddNewNoteModalOpen: addNewNoteIsOpen,
+    isAddUserMarkModalOpen: addUserMarkIsOpen,
     anchorEl,
     openMenu: Boolean(anchorEl),
     handleOpenAddNewNoteModal,
@@ -55,6 +60,6 @@ export function useBoardModalManagement(isFocus: boolean, handleEndFocus: () => 
     handleCloseAddUserMarkModal,
     handleOpenMenu,
     handleCloseMenu,
-    isAnyModalOpen: modals.isAnyModalOpen(),
+    isAnyModalOpen: isAnyModalOpen(),
   }
 }

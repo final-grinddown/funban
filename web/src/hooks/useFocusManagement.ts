@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { User } from "@/utils/interfaces"
 import { useAppStore } from "@/store"
+import { User } from "@/utils/interfaces"
 
 export function useFocusManagement(users: User[]) {
   const { isFocus, setIsFocus, currentUser, setCurrentUser } = useAppStore((state) => state.focus)

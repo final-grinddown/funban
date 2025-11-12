@@ -1,4 +1,4 @@
-import type { WsNote, WsUser, WsNoteTag, WsNoteState } from "@/schemas/websocket"
+import type { WsNote, WsUser, WsNoteState } from "@/schemas/websocket"
 
 // App types - contracts now use number for IDs (Rust i32 → TS number)
 export type User = WsUser

@@ -13,26 +13,43 @@ jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
 }))
 
+// Mock data
+const mockUsers = [
+  { id: 1, index: 1, name: 'Test User', color: '#ff0000', email: 'Test User@example.com', marks: [] }
+]
+
+const mockNotes = [
+  {
+    id: 1,
+    text: 'Test note',
+    state: 'todo',
+    owner_id: 1,
+    name: 'Test User',
+    color: '#ff0000',
+    predecessor_id: null,
+    updated: '2024-01-01T10:00:00Z',
+    created: '2024-01-01T10:00:00Z',
+    tag: null,
+  }
+]
+
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: mockNotes, users: mockUsers },
+  focus: { isFocus: false, currentUser: '' },
+}
+
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectUsers: (state: any) => state.board.users,
+  selectNotes: (state: any) => state.board.notes,
+}))
+
 // Mock WebSocket context
 jest.mock('@/context/WebSocketProvider', () => ({
   useWebSocketContext: jest.fn(() => ({
-    users: [
-      { id: 1, index: 1, name: 'Test User', color: '#ff0000', email: 'Test User@example.com' }
-    ],
-    notes: [
-      { 
-        id: 1, 
-        text: 'Test note', 
-        state: 'todo', 
-        owner_id: 1, 
-        name: 'Test User',
-        color: '#ff0000',
-        predecessor_id: null,
-        updated: '2024-01-01T10:00:00Z',
-        created: '2024-01-01T10:00:00Z',
-        tag: null,
-      }
-    ],
+    users: mockUsers,
+    notes: mockNotes,
     isLoading: false,
     isConnected: true,
   })),
@@ -50,9 +67,7 @@ jest.mock('@/components/BackdropLoading', () => ({
 }))
 
 jest.mock('@/screens/BoardScreen', () => ({
-  BoardScreen: ({ users, notes }: any) => (
-    <div data-testid="board-screen" data-users-count={users.length} data-notes-count={notes.length} />
-  ),
+  BoardScreen: () => <div data-testid="board-screen" />,
 }))
 
 jest.mock('@/screens/HistoryScreen', () => ({

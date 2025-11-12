@@ -26,7 +26,7 @@ export function BoardScreen({ accessToken }: Props) {
   const notes = useAppStore(selectNotes)
 
   const { user, handleChange, handlePrevUser, handleNextUser } = useUserSelection(users)
-  const { currentUser, setCurrentUser } = useAppStore((state) => state.focus)
+  const setCurrentUser = useAppStore((state) => state.focus.setCurrentUser)
   const { isFocus, shouldRenderFocus, handleStartFocus, handleEndFocus } = useFocusManagement(users)
   const { sendMessageAsync } = useWebSocketContext()
   const {
@@ -43,7 +43,6 @@ export function BoardScreen({ accessToken }: Props) {
     handleCloseAddUserMarkModal,
     handleOpenMenu,
     handleCloseMenu,
-    isAnyModalOpen,
   } = useBoardModalManagement(isFocus, handleEndFocus)
 
   const snapshot = useMemo(

@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { SelectChangeEvent } from "@mui/material"
-import { User } from "@/utils/interfaces"
 import { useAppStore } from "@/store"
+import { User } from "@/utils/interfaces"
 
 export function useUserSelection(users: User[]) {
   const selectedUserId = useAppStore((state) => state.ui.selectedUserId)

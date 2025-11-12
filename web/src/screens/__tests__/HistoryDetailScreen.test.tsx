@@ -53,11 +53,11 @@ jest.mock('@/components/BackdropLoading', () => ({
 
 // Mock HistoryRenderer component since we now use versioned rendering
 jest.mock('@/components/history/HistoryRenderer', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const React = require('react')
 
   return {
-    HistoryRenderer: ({ snapshot, version }: { snapshot: string; version: number }) => {
+    HistoryRenderer: ({ snapshot }: { snapshot: string; version: number }) => {
       const [selectedUser, setSelectedUser] = React.useState(null as string | null)
 
       const handleUserChange = (event: any) => {

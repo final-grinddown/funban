@@ -2,8 +2,8 @@
 import { useSession } from "next-auth/react"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { DashboardLayout } from "@/components/DashboardLayout"
-import { useAppStore, selectUsers } from "@/store"
 import { SettingsScreen } from "@/screens/SettingsScreen"
+import { useAppStore, selectUsers } from "@/store"
 
 export default function Settings() {
   const { data } = useSession()

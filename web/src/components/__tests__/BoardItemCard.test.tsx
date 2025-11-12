@@ -17,14 +17,28 @@ jest.mock('@/context/WebSocketProvider', () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
-// Mock focus state store
-const mockUseFocusStateStore = {
-  isFocus: false,
-  currentUser: 'User 1',
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: [], users: mockWebSocketContext.users },
+  focus: { isFocus: false, currentUser: 'User 1' },
+  modals: {
+    editNote: { isOpen: false },
+    splitNote: { isOpen: false },
+    deleteNote: { isOpen: false },
+    openModal: jest.fn((modalName: string) => {
+      mockStoreState.modals[modalName] = { isOpen: true }
+    }),
+    closeModal: jest.fn((modalName: string) => {
+      mockStoreState.modals[modalName] = { isOpen: false }
+    }),
+  },
 }
 
-jest.mock('@/utils/store', () => ({
-  useFocusStateStore: () => mockUseFocusStateStore,
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectUsers: (state: any) => state.board.users,
+  selectIsFocus: (state: any) => state.focus.isFocus,
+  selectCurrentUser: (state: any) => state.focus.currentUser,
 }))
 
 // Mock websocket functions
@@ -98,8 +112,8 @@ describe('BoardItemCard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockWebSocketContext.isLoading = false
-    mockUseFocusStateStore.isFocus = false
-    mockUseFocusStateStore.currentUser = 'User 1'
+    mockStoreState.focus.isFocus = false
+    mockStoreState.focus.currentUser = 'User 1'
     
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
@@ -382,8 +396,8 @@ describe('BoardItemCard', () => {
     })
 
     it('handles focus mode correctly', () => {
-      mockUseFocusStateStore.isFocus = true
-      mockUseFocusStateStore.currentUser = 'User 1'
+      mockStoreState.focus.isFocus = true
+      mockStoreState.focus.currentUser = 'User 1'
       
       render(<BoardItemCard {...defaultProps} />)
 
