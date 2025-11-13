@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { forwardRef, useCallback, useState } from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Box } from "@mui/material"
@@ -20,7 +20,7 @@ interface Props {
   columnIndex: number
 }
 
-export function BoardColumn({ title, items, state, isEditable, columnIndex }: Props) {
+export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColumn({ title, items, state, isEditable, columnIndex }, ref) {
   const users = useAppStore(selectUsers)
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
@@ -92,9 +92,19 @@ export function BoardColumn({ title, items, state, isEditable, columnIndex }: Pr
     closeModal("deleteNoteBulk")
   }, [closeModal])
 
+  // Merge droppable ref with forwarded ref
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node)
+    if (typeof ref === 'function') {
+      ref(node)
+    } else if (ref) {
+      ref.current = node
+    }
+  }, [setNodeRef, ref])
+
   return (
     <Box
-      ref={setNodeRef}
+      ref={mergedRef}
       bgcolor="background.paper"
       width="100%"
       minWidth={300}
@@ -142,4 +152,4 @@ export function BoardColumn({ title, items, state, isEditable, columnIndex }: Pr
       )}
     </Box>
   )
-}
+})

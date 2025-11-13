@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core"
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { Box, Divider, Stack } from "@mui/material"
+import { useHotkeys } from "react-hotkeys-hook"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useNoteSorting } from "@/hooks/useNoteSorting"
@@ -31,9 +32,16 @@ export function Board({ isEditable }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const notes = useAppStore(selectNotes)
   const asyncQueue = useAppStore((state) => state.actions.asyncQueue)
+  const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
   const [activeId, setActiveId] = useState<number | null>(null) // Currently dragging
   const pendingDragUuidRef = useRef<string | null>(null) // UUID of pending drag operation
   const columnOrder = getStoredColumnOrder()
+
+  // Refs to access first note in each column for keyboard navigation
+  const notesColumnRef = useRef<HTMLDivElement | null>(null)
+  const todoColumnRef = useRef<HTMLDivElement | null>(null)
+  const inProgressColumnRef = useRef<HTMLDivElement | null>(null)
+  const doneColumnRef = useRef<HTMLDivElement | null>(null)
 
   // Filter and sort notes by state - these are the source of truth from the store
   const storeNotesNotes = useNoteSorting(notes.filter((note) => note.state === "notes"))
@@ -117,6 +125,42 @@ export function Board({ isEditable }: Props) {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
+
+  // Helper to focus first note in a column
+  const focusFirstNoteInColumn = useCallback((columnRef: React.RefObject<HTMLDivElement | null>) => {
+    if (!columnRef.current) return
+    // @dnd-kit adds tabIndex and role="button" to sortable items via attributes spread
+    // Find first Card element with these attributes (skip the header button)
+    const firstCard = columnRef.current.querySelector('.MuiCard-root[tabindex="0"]') as HTMLElement
+    if (firstCard) {
+      firstCard.focus()
+    }
+  }, [])
+
+  // Keyboard shortcuts to focus first note in each column (1-4)
+  useHotkeys('1', (e) => {
+    if (isAnyModalOpen()) return
+    e.preventDefault()
+    focusFirstNoteInColumn(notesColumnRef)
+  }, [focusFirstNoteInColumn])
+
+  useHotkeys('2', (e) => {
+    if (isAnyModalOpen()) return
+    e.preventDefault()
+    focusFirstNoteInColumn(todoColumnRef)
+  }, [focusFirstNoteInColumn])
+
+  useHotkeys('3', (e) => {
+    if (isAnyModalOpen()) return
+    e.preventDefault()
+    focusFirstNoteInColumn(inProgressColumnRef)
+  }, [focusFirstNoteInColumn])
+
+  useHotkeys('4', (e) => {
+    if (isAnyModalOpen()) return
+    e.preventDefault()
+    focusFirstNoteInColumn(doneColumnRef)
+  }, [focusFirstNoteInColumn])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as number)
@@ -293,16 +337,27 @@ export function Board({ isEditable }: Props) {
           minHeight="calc(100vh - 250px)"
           sx={{ overflowX: "auto" }}
         >
-          {columns.map(({ title, items, state, orderKey }) => (
-            <BoardColumn
-              key={state}
-              title={title}
-              items={items}
-              state={state}
-              isEditable={isEditable}
-              columnIndex={orderKey}
-            />
-          ))}
+          {columns.map(({ title, items, state, orderKey }) => {
+            // Assign correct ref based on column state
+            const columnRef =
+              state === 'notes' ? notesColumnRef :
+              state === 'todo' ? todoColumnRef :
+              state === 'in_progress' ? inProgressColumnRef :
+              state === 'done' ? doneColumnRef :
+              undefined
+
+            return (
+              <BoardColumn
+                key={state}
+                ref={columnRef}
+                title={title}
+                items={items}
+                state={state}
+                isEditable={isEditable}
+                columnIndex={orderKey}
+              />
+            )
+          })}
         </Stack>
 
         <DragOverlay>
