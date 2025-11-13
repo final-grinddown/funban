@@ -1,4 +1,4 @@
-import { DragEvent } from "react"
+import { DragEvent, memo } from "react"
 import { List } from "@mui/material"
 import { Note } from "@/utils/interfaces"
 import { BoardItemCard } from "../BoardItemCard"
@@ -20,8 +20,10 @@ interface Props {
 /**
  * List component for rendering notes within a board column.
  * Handles drag-and-drop functionality and placeholder rendering.
+ *
+ * Memoized to prevent re-renders when items array or drag state hasn't changed.
  */
-export function BoardColumnList({
+export const BoardColumnList = memo(function BoardColumnList({
   items,
   isFocus,
   currentUser,
@@ -65,4 +67,4 @@ export function BoardColumnList({
       )}
     </List>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { DragEvent, useRef, useState } from "react"
+import { DragEvent, useCallback, useRef, useState } from "react"
 import { Box } from "@mui/material"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useBoardColumnModals } from "@/hooks/useBoardColumnModals"
@@ -52,13 +52,13 @@ export function BoardColumn({
   const { textFocus, setTextFocus, newNoteDefaultValues, setNewNoteDefaultValues, clearTextFocus } =
     useBoardColumnModals()
 
-  const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget)
-  }
+  }, [])
 
-  const handleCloseMenu = () => {
+  const handleCloseMenu = useCallback(() => {
     setAnchorEl(null)
-  }
+  }, [])
 
   useHotkeys(
     "shift+" + (columnIndex + 1),
@@ -73,94 +73,106 @@ export function BoardColumn({
     [columnIndex, selectedUserId, state, isAnyModalOpen],
   )
 
-  const handleOpenAddNewNoteModal = (focusText: boolean = false) => {
-    handleCloseMenu()
-    setTextFocus(focusText)
-    setNewNoteDefaultValues({ state: state, ownerId: String(selectedUserId) })
-    openModal("addNewNote", { state, ownerId: String(selectedUserId), focusText })
-  }
+  const handleOpenAddNewNoteModal = useCallback(
+    (focusText: boolean = false) => {
+      handleCloseMenu()
+      setTextFocus(focusText)
+      setNewNoteDefaultValues({ state: state, ownerId: String(selectedUserId) })
+      openModal("addNewNote", { state, ownerId: String(selectedUserId), focusText })
+    },
+    [handleCloseMenu, setTextFocus, setNewNoteDefaultValues, state, selectedUserId, openModal],
+  )
 
-  const handleCloseAddNewNoteModal = () => {
+  const handleCloseAddNewNoteModal = useCallback(() => {
     setNewNoteDefaultValues({ state: "", ownerId: "" })
     closeModal("addNewNote")
-  }
+  }, [setNewNoteDefaultValues, closeModal])
 
-  const handleDeleteAllNotes = () => {
+  const handleDeleteAllNotes = useCallback(() => {
     handleCloseMenu()
     openModal("deleteNoteBulk", { state, userId: selectedUserId, isFocus: false })
-  }
+  }, [handleCloseMenu, openModal, state, selectedUserId])
 
-  const handleDeleteAllUserNotes = () => {
+  const handleDeleteAllUserNotes = useCallback(() => {
     handleCloseMenu()
     openModal("deleteNoteBulk", { state, userId: selectedUserId, userName: currentUser, isFocus: true })
-  }
+  }, [handleCloseMenu, openModal, state, selectedUserId, currentUser])
 
-  const handleCloseDeleteNoteBulkModal = () => {
+  const handleCloseDeleteNoteBulkModal = useCallback(() => {
     closeModal("deleteNoteBulk")
-  }
+  }, [closeModal])
 
-  const handleDragOver = (event: DragEvent<HTMLDivElement>, index: number, element: HTMLElement) => {
-    event.preventDefault()
+  const handleDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>, index: number, element: HTMLElement) => {
+      event.preventDefault()
 
-    if (lastHoveredRef.current !== title) {
-      lastHoveredRef.current = title
-      setHoveredColumn(title)
-    }
-
-    const boundingRect = element.getBoundingClientRect()
-    const midpoint = (boundingRect.top + boundingRect.bottom) / 2
-    let curr_id = element.dataset.id
-
-    if (event.clientY < midpoint) {
-      if (draggedOverId !== curr_id) {
-        setDraggedOverId(element.dataset.id === "last" ? "last" : Number(element.dataset.id))
+      if (lastHoveredRef.current !== title) {
+        lastHoveredRef.current = title
+        setHoveredColumn(title)
       }
-    } else {
-      let curr_next = element.nextElementSibling as HTMLElement
 
-      if (curr_next) {
-        let curr_next_id = curr_next.dataset.id
+      const boundingRect = element.getBoundingClientRect()
+      const midpoint = (boundingRect.top + boundingRect.bottom) / 2
+      let curr_id = element.dataset.id
 
-        if (curr_next_id !== undefined && draggedOverId !== curr_next_id) {
-          setDraggedOverId(curr_next_id === "last" ? "last" : Number(curr_next_id))
+      if (event.clientY < midpoint) {
+        if (draggedOverId !== curr_id) {
+          setDraggedOverId(element.dataset.id === "last" ? "last" : Number(element.dataset.id))
         }
       } else {
+        let curr_next = element.nextElementSibling as HTMLElement
+
+        if (curr_next) {
+          let curr_next_id = curr_next.dataset.id
+
+          if (curr_next_id !== undefined && draggedOverId !== curr_next_id) {
+            setDraggedOverId(curr_next_id === "last" ? "last" : Number(curr_next_id))
+          }
+        } else {
+          setDraggedOverId("last")
+        }
+      }
+    },
+    [title, setHoveredColumn, draggedOverId],
+  )
+
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+
+      if (draggedOverId === null) {
         setDraggedOverId("last")
       }
-    }
-  }
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
+      onDrop(event, title, draggedOverId === "last" ? null : draggedOverId)
 
-    if (draggedOverId === null) {
-      setDraggedOverId("last")
-    }
+      setDraggedOverId(null)
+      setIsDraggingOver(false)
+      lastHoveredRef.current = null
+      setHoveredColumn(null)
+    },
+    [draggedOverId, onDrop, title, setHoveredColumn],
+  )
 
-    onDrop(event, title, draggedOverId === "last" ? null : draggedOverId)
+  const handleDragLeave = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      const relatedTarget = event.relatedTarget as HTMLElement
 
-    setDraggedOverId(null)
-    setIsDraggingOver(false)
-    lastHoveredRef.current = null
-    setHoveredColumn(null)
-  }
+      if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
+        return
+      }
 
-  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
-    const relatedTarget = event.relatedTarget as HTMLElement
+      setDraggedOverId(null)
+      setIsDraggingOver(false)
+      lastHoveredRef.current = null
+      setHoveredColumn(null)
+    },
+    [setHoveredColumn],
+  )
 
-    if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
-      return
-    }
-
-    setDraggedOverId(null)
-    setIsDraggingOver(false)
-    lastHoveredRef.current = null
-    setHoveredColumn(null)
-  }
-
-  const handleDragEnter = () => {
+  const handleDragEnter = useCallback(() => {
     setIsDraggingOver(true)
-  }
+  }, [])
 
   return (
     <Box

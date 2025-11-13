@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { CardMedia, Typography } from "@mui/material"
 import { alpha } from "@mui/material/styles"
 import { tagColor } from "@/utils/noteConstants"
@@ -8,8 +9,10 @@ interface Props {
 
 /**
  * Component for displaying note tags (modifiers like Important, Deadline, etc.)
+ *
+ * Memoized to prevent re-renders when tag hasn't changed.
  */
-export function NoteCardTags({ tag }: Props) {
+export const NoteCardTags = memo(function NoteCardTags({ tag }: Props) {
   if (!tag) return null
 
   return (
@@ -25,4 +28,4 @@ export function NoteCardTags({ tag }: Props) {
       <Typography>{tag}</Typography>
     </CardMedia>
   )
-}
+})

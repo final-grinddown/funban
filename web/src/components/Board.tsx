@@ -1,4 +1,4 @@
-import { DragEvent, useMemo, useRef } from "react"
+import { DragEvent, useCallback, useMemo, useRef } from "react"
 import { Box, Divider, Stack } from "@mui/material"
 import { createUpdateNoteReorderBefore, createUpdateNoteReorderLast } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
@@ -62,37 +62,40 @@ export function Board({ isEditable }: Props) {
       .sort((a, b) => a.orderKey - b.orderKey)
   }, [notesNotes, todoNotes, inProgressNotes, doneNotes, columnOrder])
 
-  const handleDragStart = (event: DragEvent<HTMLDivElement>, itemId: string) => {
+  const handleDragStart = useCallback((event: DragEvent<HTMLDivElement>, itemId: string) => {
     draggingItemIdRef.current = itemId
     event.stopPropagation()
-  }
+  }, [])
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>, columnId: string, over_id: number | null) => {
-    event.preventDefault()
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>, columnId: string, over_id: number | null) => {
+      event.preventDefault()
 
-    if (!draggingItemIdRef.current) return
+      if (!draggingItemIdRef.current) return
 
-    const draggedNote = notes.find((note) => String(note.id) === draggingItemIdRef.current)
+      const draggedNote = notes.find((note) => String(note.id) === draggingItemIdRef.current)
 
-    if (!draggedNote) return
+      if (!draggedNote) return
 
-    const newState = columnId.toLowerCase().replace(" ", "_")
+      const newState = columnId.toLowerCase().replace(" ", "_")
 
-    const message =
-      over_id != null && over_id != undefined
-        ? createUpdateNoteReorderBefore(draggedNote.id.toString(), over_id)
-        : createUpdateNoteReorderLast(draggedNote.id.toString(), newState)
+      const message =
+        over_id != null && over_id != undefined
+          ? createUpdateNoteReorderBefore(draggedNote.id.toString(), over_id)
+          : createUpdateNoteReorderLast(draggedNote.id.toString(), newState)
 
-    sendMessageAsync(message, "(Id: " + draggedNote.id + ") Note successfully moved!")
+      sendMessageAsync(message, "(Id: " + draggedNote.id + ") Note successfully moved!")
 
+      draggingItemIdRef.current = null
+      setHoveredColumn(null)
+    },
+    [notes, sendMessageAsync, setHoveredColumn],
+  )
+
+  const handleDragEnd = useCallback(() => {
     draggingItemIdRef.current = null
     setHoveredColumn(null)
-  }
-
-  const handleDragEnd = () => {
-    draggingItemIdRef.current = null
-    setHoveredColumn(null)
-  }
+  }, [setHoveredColumn])
 
   return (
     <Box py={4}>

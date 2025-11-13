@@ -1,3 +1,4 @@
+import { memo } from "react"
 import MoreVertIcon from "@mui/icons-material/MoreVert"
 import { Box, IconButton, Typography } from "@mui/material"
 import { useTheme } from "@mui/material/styles"
@@ -11,8 +12,10 @@ interface Props {
 /**
  * Header component for a board column.
  * Displays the column title and a menu button for column actions.
+ *
+ * Memoized to prevent re-renders when title and menuOpen state haven't changed.
  */
-export function BoardColumnHeader({ title, onMenuClick, menuOpen }: Props) {
+export const BoardColumnHeader = memo(function BoardColumnHeader({ title, onMenuClick, menuOpen }: Props) {
   const theme = useTheme()
 
   return (
@@ -36,4 +39,4 @@ export function BoardColumnHeader({ title, onMenuClick, menuOpen }: Props) {
       </IconButton>
     </Box>
   )
-}
+})

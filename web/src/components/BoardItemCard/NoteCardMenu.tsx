@@ -1,3 +1,4 @@
+import { memo } from "react"
 import AddLinkIcon from "@mui/icons-material/AddLink"
 import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
@@ -28,8 +29,10 @@ interface Props {
 /**
  * Context menu for note card actions.
  * Provides options to edit, split, delete notes, and manage modifiers.
+ *
+ * Memoized to prevent re-renders when menu is closed or props haven't changed.
  */
-export function NoteCardMenu({
+export const NoteCardMenu = memo(function NoteCardMenu({
   open,
   contextMenu,
   tag,
@@ -96,4 +99,4 @@ export function NoteCardMenu({
       )}
     </Menu>
   )
-}
+})
