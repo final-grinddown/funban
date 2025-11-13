@@ -1944,7 +1944,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ryoppippi/unplugin-typia@npm:^2.6.5":
+"@ryoppippi/unplugin-typia@npm:2.6.5":
   version: 2.6.5
   resolution: "@ryoppippi/unplugin-typia@npm:2.6.5"
   dependencies:
@@ -4780,7 +4780,7 @@ __metadata:
     "@mui/icons-material": "npm:7.3.2"
     "@mui/material": "npm:7.3.2"
     "@mui/material-nextjs": "npm:7.3.2"
-    "@ryoppippi/unplugin-typia": "npm:^2.6.5"
+    "@ryoppippi/unplugin-typia": "npm:2.6.5"
     "@tanstack/react-query": "npm:^5.51.23"
     "@tanstack/react-query-devtools": "npm:^5.51.23"
     "@testing-library/dom": "npm:^10.4.1"
@@ -4806,7 +4806,7 @@ __metadata:
     react-hook-form: "npm:^7.52.2"
     react-hotkeys-hook: "npm:^5.0.1"
     typescript: "npm:^5"
-    typia: "npm:^9.7.2"
+    typia: "npm:9.7.2"
     zod: "npm:^4.1.11"
     zustand: "npm:^4.5.5"
   languageName: unknown
@@ -8844,7 +8844,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typia@npm:^9.7.2":
+"typia@npm:9.7.2":
   version: 9.7.2
   resolution: "typia@npm:9.7.2"
   dependencies:
