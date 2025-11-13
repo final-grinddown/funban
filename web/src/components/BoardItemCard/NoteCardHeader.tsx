@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { CardHeader, Typography } from "@mui/material"
 import { alpha } from "@mui/material/styles"
 import { DevSettings } from "@/utils/interfaces"
@@ -23,8 +24,10 @@ interface Props {
 /**
  * Header component for note cards.
  * Displays the note owner's name and timestamp information.
+ *
+ * Memoized to prevent re-renders when note metadata hasn't changed.
  */
-export function NoteCardHeader({
+export const NoteCardHeader = memo(function NoteCardHeader({
   name,
   id,
   predecessor_id,
@@ -88,4 +91,4 @@ export function NoteCardHeader({
       }}
     />
   )
-}
+})

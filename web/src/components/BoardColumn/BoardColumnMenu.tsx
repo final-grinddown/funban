@@ -1,3 +1,4 @@
+import { memo } from "react"
 import AddIcon from "@mui/icons-material/Add"
 import { Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material"
 
@@ -16,8 +17,10 @@ interface Props {
 /**
  * Context menu for board column actions.
  * Provides options to add notes, delete all notes, or delete all notes for a specific user.
+ *
+ * Memoized to prevent re-renders when menu is closed or props haven't changed.
  */
-export function BoardColumnMenu({
+export const BoardColumnMenu = memo(function BoardColumnMenu({
   anchorEl,
   open,
   title,
@@ -63,4 +66,4 @@ export function BoardColumnMenu({
       )}
     </Menu>
   )
-}
+})
