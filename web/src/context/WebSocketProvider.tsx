@@ -41,7 +41,7 @@ type WebSocketMessage = PatchMessage | UsersMessage | NotesMessage
 
 interface WebSocketContextType {
   sendMessage: (message: string) => void
-  sendMessageAsync: (message: string, successNotification: string) => void
+  sendMessageAsync: (message: string, successNotification: string) => string // Returns UUID
   connectionStatus: string
   isLoading: boolean
 }
@@ -287,7 +287,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function sendMessageAsync(message: string, successNotification: string) {
+  function sendMessageAsync(message: string, successNotification: string): string {
     const uuid = crypto.randomUUID()
     startAsync(uuid, successNotification)
 
@@ -308,6 +308,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
       finishAsync(uuid)
     }
+
+    return uuid
   }
 
   function getConnectionStatus(): string {
