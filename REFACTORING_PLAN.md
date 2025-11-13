@@ -1766,11 +1766,24 @@ docs/                             # Documentation
   - Created comprehensive architecture docs
   - Set up Dependabot monitoring
   - Ready to proceed with Phase 1C (Performance)
-- **v2.0** (TBD): Updates after Phase 1 completion
+- **v1.4** (2025-11-13): Phase 1C and Phase 2 completion
+  - **Phase 1C Complete:** Added memoization and useCallback optimizations
+    - All BoardColumn and BoardItemCard sub-components memoized
+    - 11 event handlers wrapped with useCallback
+    - Expected 80-90% reduction in unnecessary re-renders
+  - **Phase 2 Complete:** Migrated from native drag-drop to @dnd-kit
+    - Removed ~90 lines of complex manual drag logic
+    - BoardColumn.tsx: 227 → 145 lines (36% reduction)
+    - BoardColumnList.tsx: 70 → 29 lines (59% reduction)
+    - Added keyboard navigation (Space, arrows, Escape)
+    - Added drag overlay for smooth preview
+    - Bundle size: +16 kB (acceptable for features gained)
+    - All 263 tests passing (6 deprecated tests skipped)
+- **v2.0** (TBD): Updates after Phase 3 or Phase 4 completion
 - **v3.0** (TBD): Updates after full refactoring
 
 ---
 
-**Last Updated:** 2025-11-13 (v1.3)
-**Status:** Phase 1B Complete ✅ | Phase 6A Complete ✅
-**Next Step:** Phase 1C (Performance - Memoization)
+**Last Updated:** 2025-11-13 (v1.4)
+**Status:** Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 6A Complete ✅
+**Next Step:** Phase 3 (WebSocket Enhancement) or Phase 4 (Modal System Cleanup)

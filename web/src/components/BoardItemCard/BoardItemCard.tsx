@@ -1,4 +1,6 @@
-import { DragEvent, useEffect, useState } from "react"
+import { useEffect } from "react"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, Typography } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
@@ -21,8 +23,6 @@ import { NoteCardTags } from "./NoteCardTags"
 interface Props extends Note {
   isEditable: boolean
   predecessor_id: number | null
-  onDragStart: (event: DragEvent<HTMLDivElement>, itemId: string) => void
-  onDragEnd: () => void
 }
 
 export function BoardItemCard({
@@ -37,8 +37,6 @@ export function BoardItemCard({
   isEditable,
   predecessor_id,
   tag,
-  onDragStart,
-  onDragEnd,
 }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const users = useAppStore(selectUsers)
@@ -53,8 +51,13 @@ export function BoardItemCard({
 
   const matchedColor =
     color?.startsWith("#") ? color : matchColorName(color || "Black", availableColors) || "#000000"
-  const [isDragging, setIsDragging] = useState(false)
   const contrastColor = theme.palette.getContrastText(matchedColor)
+
+  // @dnd-kit sortable hook
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: id,
+    disabled: !isEditable,
+  })
   const { updatedDate, createdDate, updatedRelative, createdRelative } = formatDateToShow(created, updated)
   const dateToShow =
     updated && updated !== created
@@ -114,17 +117,6 @@ export function BoardItemCard({
     closeContextMenu()
   }
 
-  const handleDrag = (event: DragEvent<HTMLDivElement>, isStarting: boolean) => {
-    if (isStarting) {
-      onDragStart(event, id.toString())
-      event.currentTarget.style.cursor = "grabbing"
-    } else {
-      onDragEnd()
-      event.currentTarget.style.cursor = "grab"
-    }
-    setIsDragging(isStarting)
-  }
-
   useEffect(() => {
     if (isSubmitting && !isLoading) {
       closeContextMenu()
@@ -148,21 +140,28 @@ export function BoardItemCard({
     }
   }, [openMenu])
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
   return (
     <>
       <Card
-        draggable={isEditable}
-        onDragStart={(event) => handleDrag(event, true)}
-        onDragEnd={(event) => handleDrag(event, false)}
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
         onContextMenu={isEditable ? openContextMenu : undefined}
         data-context-menu-card={isEditable ? true : undefined}
         elevation={4}
         sx={{
           m: 2,
-          opacity: isFocus && name !== currentUser ? 0.05 : 1,
+          opacity: isDragging ? 0.5 : isFocus && name !== currentUser ? 0.05 : 1,
           transition: "opacity 0.25s ease-out",
           cursor: isEditable ? "grab" : "default",
           border: tag !== null ? `2px solid ${alpha(tagColor[tag], 0.75)}` : "",
+          touchAction: "none", // Important for touch devices
         }}
       >
         <NoteCardHeader
