@@ -1257,6 +1257,329 @@ yarn test
 
 ---
 
+## Phase 6: Typia Migration & Cleanup
+
+**Goal:** Replace archived unplugin-typia with maintained alternative or official Typia setup
+
+### Current Situation
+
+**Problem:** The `@ryoppippi/unplugin-typia` package was **archived on June 14, 2025** and is now read-only.
+
+**Why it was archived:**
+1. **Technical concerns**: TypeScript's migration to `tsgo` (Go-based compiler) creates uncertainty for transformation tools
+2. **Architectural changes**: New Go compiler uses IPC-based APIs instead of direct compiler internals access
+3. **Maintenance burden**: Maintainer shifted focus to other projects
+
+**Current usage in Funban:**
+- Used in 2 locations for runtime validation:
+  - `web/src/context/WebSocketProvider.tsx:223` - `typia.assert<WebSocketMessage>(rawMessage)`
+  - `web/src/app/api/websocket.ts:7` - `typia.assert<WsAction>(action)`
+- Configured in `web/next.config.mjs` via `unTypiaNext()`
+- Types are re-exported from contracts in `web/src/schemas/websocket.ts`
+
+### Investigation Tasks
+
+1. **Research Typia alternatives**
+   - Investigate Zod (already in dependencies at v4.1.11)
+   - Compare with Valibot, ArkType, TypeBox
+   - Evaluate official Typia setup without unplugin
+   - Consider Typia's "generation mode" approach
+   - Document findings: `docs/typia-migration-research.md`
+
+2. **Analyze validation requirements**
+   - Audit all `typia.assert()` calls
+   - Determine if runtime validation is critical or can be relaxed
+   - Check if contracts from Rust backend guarantee type safety
+   - Evaluate trade-offs: performance vs maintainability
+   - Document: `docs/validation-requirements.md`
+
+3. **Benchmark alternatives**
+   - Create test cases for WebSocket message validation
+   - Benchmark Typia vs Zod vs Valibot
+   - Measure bundle size impact
+   - Measure runtime performance
+   - Document results: `docs/validation-benchmark.md`
+
+### Migration Options
+
+#### Option A: Switch to Zod (Recommended - Already in dependencies)
+
+**Pros:**
+- ✅ Already installed (v4.1.11)
+- ✅ Actively maintained, stable ecosystem
+- ✅ Excellent TypeScript inference
+- ✅ Widely adopted, great documentation
+- ✅ Works seamlessly with Next.js (no build plugins needed)
+- ✅ Can infer types from schemas (single source of truth)
+
+**Cons:**
+- ⚠️ Slower than Typia (~100-1000x depending on use case)
+- ⚠️ Requires rewriting schemas (can't use pure TS types)
+- ⚠️ Larger bundle size
+
+**Migration steps:**
+1. Create Zod schemas matching WebSocket contracts
+2. Replace `typia.assert()` with `schema.parse()`
+3. Update error handling
+4. Remove typia dependencies
+5. Update `next.config.mjs`
+
+**Example:**
+```typescript
+// Before (Typia)
+const msg = typia.assert<WebSocketMessage>(rawMessage)
+
+// After (Zod)
+import { z } from 'zod'
+
+const WebSocketMessageSchema = z.object({
+  action: z.string(),
+  // ... other fields
+})
+
+const msg = WebSocketMessageSchema.parse(rawMessage)
+```
+
+#### Option B: Use Official Typia Setup (No unplugin)
+
+**Pros:**
+- ✅ Keeps Typia's performance benefits
+- ✅ Maintained by Typia core team
+- ✅ Can use pure TypeScript types
+
+**Cons:**
+- ⚠️ More complex build setup
+- ⚠️ May require `ts-patch` or custom transformer
+- ⚠️ Future uncertainty with TypeScript's tsgo migration
+- ⚠️ Less ecosystem support than Zod
+
+**Migration steps:**
+1. Remove `@ryoppippi/unplugin-typia`
+2. Install `typia` directly with `ts-patch`
+3. Configure `tsconfig.json` with Typia transformer
+4. Update `next.config.mjs`
+5. Test compilation and runtime behavior
+
+#### Option C: Use Valibot (Lightweight Alternative)
+
+**Pros:**
+- ✅ Much smaller bundle size than Zod (~10x smaller)
+- ✅ Modular, tree-shakeable
+- ✅ Good TypeScript inference
+- ✅ Actively maintained
+
+**Cons:**
+- ⚠️ Less mature ecosystem than Zod
+- ⚠️ Fewer community resources
+- ⚠️ Still requires schema definitions
+
+#### Option D: Minimal Runtime Validation
+
+**Pros:**
+- ✅ Zero dependencies
+- ✅ Smallest bundle
+- ✅ Fastest runtime
+
+**Cons:**
+- ⚠️ No type safety at runtime
+- ⚠️ Risk of crashes from bad WebSocket data
+- ⚠️ Only viable if Rust backend guarantees 100% correct data
+
+**Approach:**
+1. Add TypeScript type guards for critical paths
+2. Use defensive programming patterns
+3. Log errors instead of throwing
+4. Trust contracts from backend
+
+### Critical Architectural Consideration
+
+**Why Current Typia Setup is Valuable:**
+- ✅ **Single source of truth**: Rust backend exports TS types → Frontend validates against them
+- ✅ **Zero schema duplication**: No need to maintain separate validation schemas
+- ✅ **Bulletproof**: Compile-time types = runtime validation types
+- ✅ **No schema drift**: Backend changes automatically propagate
+
+**Problem with Zod Migration:**
+- ❌ Would require **duplicating every type as Zod schema**
+- ❌ Zod schemas could **drift from backend contracts**
+- ❌ More maintenance burden (update types AND schemas)
+- ❌ Loses the architectural elegance of single source of truth
+
+### Recommended Migration Path (Revised)
+
+**Option 1: Stay with Current Setup (RECOMMENDED)**
+
+**Rationale:**
+- Archived ≠ Broken (package still works perfectly)
+- Only 2 validation calls in entire codebase
+- Architecture is superior to alternatives
+- Risk is minimal (no security vulnerabilities reported)
+
+**Actions:**
+1. ✅ Pin `@ryoppippi/unplugin-typia` version in package.json
+2. ✅ Document the dependency status in README
+3. ✅ Set up Dependabot/Renovate alerts for security issues
+4. ✅ Monitor Typia ecosystem for alternative Next.js integrations
+5. ✅ Revisit annually or when Next.js/TypeScript major versions change
+
+**Pros:**
+- ✅ No migration effort
+- ✅ Keeps superior architecture
+- ✅ No risk of schema drift
+- ✅ Works perfectly today
+
+**Cons:**
+- ⚠️ No updates to the plugin (but it's feature-complete)
+- ⚠️ Potential future incompatibility (mitigated by version pinning)
+
+---
+
+**Option 2: Fork unplugin-typia (If needed in future)**
+
+**When to consider:**
+- Next.js/SWC makes breaking changes
+- Security vulnerability found in archived package
+- Need new features
+
+**Actions:**
+1. Fork `@ryoppippi/unplugin-typia` to organization GitHub
+2. Maintain minimal fork with security patches only
+3. Publish to private npm registry or use from git
+4. Consider contributing improvements back to community fork
+
+**Effort:** Medium (1-2 days setup, ongoing maintenance)
+
+---
+
+**Option 3: Migrate to Official Typia + Custom SWC Plugin**
+
+**When to consider:**
+- Need to stay on cutting edge
+- Want official Typia support path
+- Willing to invest in build tooling
+
+**Complexity:** High - Would need to:
+1. Research how unplugin-typia worked
+2. Create custom SWC plugin or find alternative approach
+3. Potentially switch to Webpack/Vite instead of SWC
+4. Test thoroughly with Next.js
+
+**Effort:** High (1-2 weeks)
+
+---
+
+**Option 4: Migrate to Zod (Last Resort Only)**
+
+**When to consider:**
+- All other options exhausted
+- Archived package has critical security issues
+- Typia ecosystem completely abandoned
+
+**Migration Path:**
+1. Create Zod schemas mirroring backend contracts
+2. Set up codegen or manual sync process
+3. Replace typia.assert() calls
+4. Implement schema drift detection (tests comparing types)
+
+**Effort:** Medium (3-5 days)
+**Ongoing Cost:** High (maintenance, schema drift risk)
+
+---
+
+**Phase 6A: Immediate Actions (Week 1)** ✅ **COMPLETE (2025-11-13)**
+1. ✅ Verify current setup still works (build + runtime)
+2. ✅ Pin all Typia-related versions in package.json (9.7.2 and 2.6.5)
+3. ✅ Run security audit on dependencies (only unplugin-typia deprecation, no vulnerabilities)
+4. ✅ Upgrade next-auth to fix security vulnerability (beta.29 → beta.30)
+5. ✅ Document dependency status in README and architecture docs
+6. ✅ Add monitoring for Typia ecosystem updates (Dependabot configured)
+7. ✅ Research ecosystem alternatives (documented in `docs/typia-alternatives.md`)
+
+**Phase 6B: Monitoring & Contingency (Ongoing)**
+1. 📅 Quarterly: Check for Typia community forks/alternatives
+2. 📅 Quarterly: Run security audits
+3. 📅 Before major upgrades: Test compatibility
+4. 📊 Maintain contingency plan document
+
+**Phase 6C: Migration (Only if triggered)**
+- Trigger: Security issue, compatibility break, or business requirement
+- Execute: Option 2 (fork) or Option 4 (Zod) based on situation
+
+### Tasks (Phase 6A - Immediate)
+
+1. **Pin dependency versions**
+   - File: `web/package.json`
+   - Pin `@ryoppippi/unplugin-typia` to current version (2.6.5)
+   - Pin `typia` to current version (9.7.2)
+   - Add comment explaining why versions are pinned
+
+2. **Run security audit**
+   ```bash
+   cd web
+   yarn audit
+   npm audit
+   ```
+   - Check for vulnerabilities in Typia dependencies
+   - Document findings
+
+3. **Document dependency status**
+   - File: `web/README.md` or `docs/architecture/validation.md` (new)
+   - Explain Typia setup and architecture benefits
+   - Document that unplugin-typia is archived but functional
+   - Link to this refactoring plan for context
+   - Document contingency plans
+
+4. **Verify current functionality**
+   - Test WebSocket connection and validation
+   - Verify build works: `yarn build`
+   - Verify dev mode: `yarn dev`
+   - Run tests: `yarn test`
+   - Confirm no issues
+
+5. **Set up monitoring**
+   - Add `.github/dependabot.yml` or `renovate.json`
+   - Configure alerts for security issues
+   - Set up periodic reviews (quarterly)
+
+6. **Research ecosystem alternatives**
+   - File: `docs/typia-alternatives.md` (new)
+   - Check for community forks of unplugin-typia
+   - Monitor Typia official repo for Next.js support
+   - Document alternatives for future reference
+
+### Success Criteria (Revised)
+
+- ✓ Dependencies pinned to prevent breaking changes
+- ✓ Security audit completed with no critical issues
+- ✓ Documentation clearly explains dependency status
+- ✓ All tests passing
+- ✓ Build working correctly
+- ✓ Monitoring in place for future issues
+- ✓ Contingency plan documented
+- ✓ **Architecture preserved** (single source of truth maintained)
+
+### Files to Create/Modify
+
+**New files:**
+```
+docs/
+├── typia-alternatives.md (ecosystem research)
+└── architecture/
+    └── validation.md (architecture docs)
+
+.github/
+└── dependabot.yml (security monitoring)
+```
+
+**Modified files:**
+```
+web/
+├── package.json (pin versions, add comments)
+└── README.md (document dependency status)
+```
+
+---
+
 ## Success Metrics (Summary)
 
 ### Quantitative
@@ -1428,11 +1751,26 @@ docs/                             # Documentation
   - Consolidated existing Zustand stores into unified `useAppStore`
   - Clarified WebSocketProvider should only manage connection, not data
   - Updated file structure appendix to reflect unified store architecture
+- **v1.2** (2025-11-13): Phase 1A and 1B completion updates
+  - Added Phase 1A completion summary
+  - Added Phase 1B completion summary
+  - Added **Phase 6: Typia Migration & Cleanup** (critical)
+    - Discovered `@ryoppippi/unplugin-typia` was archived June 2025
+    - Documented migration options (Zod recommended)
+    - Created migration tasks and timeline
+  - Updated next steps to include Typia migration as priority
+- **v1.3** (2025-11-13): Phase 6A completion
+  - Revised Typia migration approach after architectural review
+  - Decided to keep current setup (superior architecture)
+  - Completed Phase 6A: pinned versions, security audit, documentation
+  - Created comprehensive architecture docs
+  - Set up Dependabot monitoring
+  - Ready to proceed with Phase 1C (Performance)
 - **v2.0** (TBD): Updates after Phase 1 completion
 - **v3.0** (TBD): Updates after full refactoring
 
 ---
 
-**Last Updated:** 2025-11-12 (v1.1)
-**Status:** Ready for review and approval
-**Next Step:** Review plan with team, get approval, start Phase 1A
+**Last Updated:** 2025-11-13 (v1.3)
+**Status:** Phase 1B Complete ✅ | Phase 6A Complete ✅
+**Next Step:** Phase 1C (Performance - Memoization)
