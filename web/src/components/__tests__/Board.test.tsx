@@ -38,6 +38,7 @@ let mockStoreState: any = {
   focus: { isFocus: false, currentUser: 'User 1' },
   ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
   actions: { asyncQueue: [] }, // Add actions slice with asyncQueue
+  modals: { isAnyModalOpen: jest.fn(() => false) }, // Add modals slice
 }
 
 jest.mock('@/store', () => ({
@@ -153,6 +154,7 @@ describe('Board', () => {
       focus: { isFocus: false, currentUser: 'User 1' },
       ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
       actions: { asyncQueue: [] },
+      modals: { isAnyModalOpen: jest.fn(() => false) },
     }
   })
 
