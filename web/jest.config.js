@@ -34,7 +34,7 @@ const config = {
   
   // Ignore patterns
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
-  
+
   // Transform files
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
 }

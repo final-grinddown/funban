@@ -43,4 +43,8 @@ jest.mock('next-auth/react', () => ({
 // Mock environment variables if needed
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
 
+// Mock react-hotkeys-hook
+jest.mock('react-hotkeys-hook', () => ({
+	useHotkeys: jest.fn(),
+}))
 
