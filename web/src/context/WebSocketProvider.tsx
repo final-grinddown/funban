@@ -9,17 +9,20 @@
  * - typia validates messages against generated TypeScript contracts from Rust types
  * - WsOperation types from contracts define all possible operations
  * - Runtime validation happens at compile-time with typia transformation
+ * - Uses reconnecting-websocket for automatic reconnection with exponential backoff
+ * - Message handlers are modular and extracted to separate files
  */
 "use client"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
+import ReconnectingWebSocket, { Options as RWSOptions } from "reconnecting-websocket"
 import typia from "typia"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import { useAppStore } from "@/store"
-import type { User, Note } from "@/utils/interfaces"
+import { dispatchPatchOperation } from "@/websocket/handlers"
 
 // WebSocket message types
 type PatchMessage = {
@@ -50,57 +53,43 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
-// Reconnection configuration
-const INITIAL_RECONNECT_DELAY = 1000 // 1 second
-const MAX_RECONNECT_DELAY = 30000 // 30 seconds
-const RECONNECT_BACKOFF_MULTIPLIER = 1.5
+// Reconnection configuration for reconnecting-websocket
+const WS_OPTIONS: RWSOptions = {
+  connectionTimeout: 5000, // 5 seconds to establish connection
+  maxRetries: Infinity, // Keep trying forever
+  minReconnectionDelay: 1000, // Start with 1 second delay
+  maxReconnectionDelay: 30000, // Cap at 30 seconds
+  reconnectionDelayGrowFactor: 1.5, // Exponential backoff multiplier
+  minUptime: 5000, // Consider connection stable after 5 seconds
+  maxEnqueuedMessages: 50, // Buffer up to 50 messages during disconnection
+  debug: process.env.NODE_ENV === 'development',
+}
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
-  const socketRef = useRef<WebSocket | null>(null)
+  const socketRef = useRef<ReconnectingWebSocket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY)
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const shouldReconnectRef = useRef(true)
+  const [connectionStatus, setConnectionStatus] = useState<string>("Uninstantiated")
 
-  // Get actions from unified store
-  const { startAsync, finishAsync } = useAppStore((state) => state.actions)
+  // Get store instance for handlers
+  const store = useAppStore()
 
-  // Get board actions from unified store
+  // Get board actions for bulk operations
   const setUsers = useAppStore((state) => state.board.setUsers)
   const setNotes = useAppStore((state) => state.board.setNotes)
-  const addUser = useAppStore((state) => state.board.addUser)
-  const updateUser = useAppStore((state) => state.board.updateUser)
-  const removeUser = useAppStore((state) => state.board.removeUser)
-  const addUserMark = useAppStore((state) => state.board.addUserMark)
-  const updateUserMark = useAppStore((state) => state.board.updateUserMark)
-  const removeUserMark = useAppStore((state) => state.board.removeUserMark)
-  const addNote = useAppStore((state) => state.board.addNote)
-  const updateNote = useAppStore((state) => state.board.updateNote)
-  const removeNote = useAppStore((state) => state.board.removeNote)
 
   useEffect(() => {
     if (status === "authenticated" && session) {
       const extendedSession = session as Session
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
-        shouldReconnectRef.current = true
       } else {
         console.error('WebSocket: No accessToken in session', session)
       }
     } else {
-      // Disable reconnection when unauthenticated
-      shouldReconnectRef.current = false
-
-      // Clear any pending reconnection
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-        reconnectTimeoutRef.current = null
-      }
-
+      // When unauthenticated, close socket and clear data
       if (socketRef.current) {
-        socketRef.current.onclose = null // Prevent reconnection
         socketRef.current.close()
         socketRef.current = null
       }
@@ -111,111 +100,32 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status, setUsers, setNotes])
 
-  // Transform contract types to app types
-  const transformNote = (note: WsNote): Note => note  // No transformation needed
-  const transformUser = (user: WsUser): User => user  // No transformation needed
-
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {
+      // Dispatch each operation to the appropriate handler
       msg.ops.forEach((op: WsOperation) => {
-        switch (op.type) {
-          case "UserAdded":
-            addUser(transformUser(op.user))
-            break
-          case "UserNameUpdated":
-            updateUser(op.id, { name: op.name })
-            break
-          case "UserColorUpdated":
-            updateUser(op.id, { color: op.color })
-            break
-          case "UserRemoved":
-            removeUser(op.id)
-            break
-          case "UserMarkAdded":
-            addUserMark(op.user_id, {
-              id: op.mark_id,
-              user_id: op.user_id,
-              mark_type: op.mark_type,
-              custom_text: op.custom_text,
-              expires_after_status_ends: op.expires_after_status_ends,
-              expires_at: op.expires_at,
-            })
-            break
-          case "UserMarkUpdated":
-            updateUserMark(op.user_id, op.mark_id, {
-              id: op.mark_id,
-              user_id: op.user_id,
-              mark_type: op.mark_type,
-              custom_text: op.custom_text,
-              expires_after_status_ends: op.expires_after_status_ends,
-              expires_at: op.expires_at,
-            })
-            break
-          case "UserMarkRemoved":
-            removeUserMark(op.user_id, op.mark_id)
-            break
-          case "NoteTextUpdated":
-            updateNote(op.id, { text: op.text, updated: new Date().toISOString() })
-            break
-          case "NoteTagChanged":
-            updateNote(op.id, { tag: op.tag, updated: new Date().toISOString() })
-            break
-          case "NoteOrderChanged":
-            updateNote(op.id, {
-              state: op.state,
-              predecessor_id: op.predecessor_id,
-              updated: new Date().toISOString(),
-            })
-            break
-          case "NoteRemoved":
-            removeNote(op.id)
-            break
-          case "NoteAdded":
-            addNote(transformNote(op.note))
-            break
-          case "ActionFinished":
-            finishAsync(op.uuid)
-            setIsLoading(false)
-            break
-          case "SnapshotCreated":
-            // Handle snapshot creation notification
-            break
-          case "Error":
-            console.error("WebSocket error:", op.message)
-            if (op.uuid) {
-              finishAsync(op.uuid)
-            }
-            setIsLoading(false)
-            break
-        }
+        dispatchPatchOperation(op, store, setIsLoading)
       })
     },
-
-    [addUser, updateUser, removeUser, addUserMark, updateUserMark, removeUserMark, addNote, updateNote, removeNote, finishAsync],
+    [store]
   )
 
   const connectWebSocket = useCallback(() => {
     // Close existing connection if any
     if (socketRef.current) {
-      socketRef.current.onclose = null // Prevent reconnection
       socketRef.current.close()
+      socketRef.current = null
     }
 
-    // Clear any pending reconnection timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
+    // Create new ReconnectingWebSocket with automatic reconnection
+    socketRef.current = new ReconnectingWebSocket(socketUrl!, [], WS_OPTIONS)
 
-    socketRef.current = new WebSocket(socketUrl!)
+    socketRef.current.addEventListener('open', () => {
+      console.log('WebSocket: Connected')
+      setConnectionStatus('Open')
+    })
 
-    socketRef.current.onopen = () => {
-      // Reset reconnect delay on successful connection
-      reconnectDelayRef.current = INITIAL_RECONNECT_DELAY
-      shouldReconnectRef.current = true
-    }
-
-    socketRef.current.onmessage = (event) => {
+    socketRef.current.addEventListener('message', (event) => {
       try {
         const rawMessage = JSON.parse(event.data)
 
@@ -226,53 +136,42 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           case "Patch":
             handlePatchMessage(msg)
             break
-          case "Users": {
-            const users = msg.items.map(transformUser)
-            setUsers(users)
+          case "Users":
+            // No transformation needed - WsUser matches User interface
+            setUsers(msg.items)
             break
-          }
-          case "Notes": {
-            const notes = msg.items.map(transformNote)
-            setNotes(notes)
+          case "Notes":
+            // No transformation needed - WsNote matches Note interface
+            setNotes(msg.items)
             break
-          }
         }
       } catch (error) {
         console.error('Failed to parse or validate WebSocket message:', error)
       }
-    }
+    })
 
-    socketRef.current.onclose = (event) => {
+    socketRef.current.addEventListener('close', (event) => {
       console.log('WebSocket: Closed with code', event.code, 'reason:', event.reason)
 
       // Auth failure (code 1008) - redirect to sign-in
       if (event.code === 1008) {
         console.log('WebSocket: Auth failure, redirecting to sign-in')
+        setConnectionStatus('Closed')
         clearApp()
-        return
+        // Close the reconnecting websocket to stop reconnection attempts
+        if (socketRef.current) {
+          socketRef.current.close()
+          socketRef.current = null
+        }
+      } else {
+        // Normal close or reconnecting
+        setConnectionStatus('Reconnecting')
       }
+    })
 
-      // Don't reconnect if it was a clean close or reconnection is disabled
-      if (!shouldReconnectRef.current || event.code === 1000) {
-        console.log('WebSocket: Not reconnecting (clean close)')
-        return
-      }
-
-      // Attempt to reconnect with exponential backoff
-      console.log('WebSocket: Reconnecting in', reconnectDelayRef.current, 'ms')
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connectWebSocket()
-        reconnectDelayRef.current = Math.min(
-          reconnectDelayRef.current * RECONNECT_BACKOFF_MULTIPLIER,
-          MAX_RECONNECT_DELAY
-        )
-      }, reconnectDelayRef.current)
-    }
-
-    socketRef.current.onerror = (error) => {
+    socketRef.current.addEventListener('error', (error) => {
       console.error('WebSocket error:', error)
-      // Let the close handler manage reconnection or auth redirect
-    }
+    })
   }, [socketUrl, handlePatchMessage, setNotes, setUsers])
 
   function sendMessage(message: string) {
@@ -289,7 +188,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   function sendMessageAsync(message: string, successNotification: string): string {
     const uuid = crypto.randomUUID()
-    startAsync(uuid, successNotification)
+    store.actions.startAsync(uuid, successNotification)
 
     try {
       const parsedMessage = JSON.parse(message)
@@ -306,27 +205,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to parse the message or append UUID:", error)
       setIsLoading(false)
-      finishAsync(uuid)
+      store.actions.finishAsync(uuid)
     }
 
     return uuid
-  }
-
-  function getConnectionStatus(): string {
-    if (!socketRef.current) return "Uninstantiated"
-
-    switch (socketRef.current.readyState) {
-      case WebSocket.CONNECTING:
-        return "Connecting"
-      case WebSocket.OPEN:
-        return "Open"
-      case WebSocket.CLOSING:
-        return "Closing"
-      case WebSocket.CLOSED:
-        return "Closed"
-      default:
-        return "Unknown"
-    }
   }
 
   useEffect(() => {
@@ -336,16 +218,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     return () => {
       // Cleanup: close socket when component unmounts or socketUrl changes
-      shouldReconnectRef.current = false
-
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-        reconnectTimeoutRef.current = null
-      }
-
       if (socketRef.current) {
-        socketRef.current.onclose = null // Prevent reconnection
         socketRef.current.close()
+        socketRef.current = null
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,7 +228,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   return (
     <WebSocketContext.Provider
-      value={{ sendMessage, sendMessageAsync, connectionStatus: getConnectionStatus(), isLoading }}
+      value={{ sendMessage, sendMessageAsync, connectionStatus, isLoading }}
     >
       <Alerts />
       {children}
