@@ -9,6 +9,7 @@ import { Board } from "@/components/Board"
 import { BoardActionsMenu } from "@/components/BoardActionMenu"
 import { ConnectionStatusBadge } from "@/components/ConnectionStatusBadge"
 import { EndStatusModal } from "@/components/EndStatusModal"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { FocusControls } from "@/components/FocusControls"
 import { UserSelector } from "@/components/UserSelector"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
@@ -128,7 +129,9 @@ export function BoardScreen({ accessToken }: Props) {
         </ButtonGroup>
       </Box>
 
-      <Board isEditable={true} />
+      <ErrorBoundary>
+        <Board isEditable={true} />
+      </ErrorBoundary>
 
       {/* Connection status indicator */}
       <ConnectionStatusBadge status={connectionStatus} />
