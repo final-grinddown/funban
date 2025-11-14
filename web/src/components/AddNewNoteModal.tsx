@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import {
   Checkbox,
   FormControl,
@@ -11,6 +11,7 @@ import { Controller, useForm } from "react-hook-form"
 import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
+import { useModalSubmission } from "@/hooks/useModalSubmission"
 import { noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { User } from "@/utils/interfaces"
@@ -38,14 +39,12 @@ interface FormInputs {
 
 export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasTextFocus, clearTextFocus }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const textAreaRef = useRef<HTMLInputElement>(null)
 
   const {
     control,
     handleSubmit,
     reset,
-    setFocus,
     watch,
     formState: { errors, isDirty, isValid },
   } = useForm<FormInputs>({
@@ -60,6 +59,9 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
 
   const isSaveAndCreateNext = watch("saveAndCreateNext")
   const text = watch("text")
+
+  // Handle modal submission and auto-close (only close if NOT saveAndCreateNext)
+  const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose, !isSaveAndCreateNext)
 
   const textValidation = useFormValidation({
     text,
@@ -95,13 +97,9 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
     }
   }, [isOpen, reset, defaultValues])
 
+  // Handle focus when modal opens
   useEffect(() => {
-    if (isOpen && !isLoading) {
-      if (!isSaveAndCreateNext && isSubmitting) {
-        reset({ text: "", state: "", owner: "", saveAndCreateNext: false })
-        onClose()
-      }
-
+    if (isOpen) {
       setTimeout(() => {
         if (hasTextFocus && textAreaRef.current) {
           const textAreaElement = textAreaRef.current
@@ -112,10 +110,15 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
           }
         }
       }, 0)
-
-      setIsSubmitting(false)
     }
-  }, [isLoading, isOpen, isSaveAndCreateNext, isSubmitting, onClose, reset, setFocus, hasTextFocus, clearTextFocus])
+  }, [isOpen, hasTextFocus, clearTextFocus])
+
+  // Reset form when modal closes (handled by useModalSubmission for normal close)
+  useEffect(() => {
+    if (!isOpen && !isSaveAndCreateNext) {
+      reset({ text: "", state: "", owner: "", saveAndCreateNext: false })
+    }
+  }, [isOpen, isSaveAndCreateNext, reset])
 
   return (
     <BaseModal

@@ -1,5 +1,4 @@
 import { useEffect } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Box,
   Button,
@@ -7,15 +6,14 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Grid,
-  IconButton,
   RadioGroup,
   TextField,
   Typography,
 } from "@mui/material"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { availableColors } from "@/utils/constants"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -59,19 +57,7 @@ export function AddNewTeamMemberModal({ isOpen, existingNames, onClose, onSave, 
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Add New Team Member
-        <IconButton
-          aria-label="close"
-          edge="end"
-          onClick={onClose}
-          sx={{
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Add New Team Member" onClose={onClose} />
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Typography variant="subtitle1" sx={{ mt: 2 }}>

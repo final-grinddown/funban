@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import {
   FormControl,
   InputLabel,
@@ -8,6 +8,7 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useModalSubmission } from "@/hooks/useModalSubmission"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { Note } from "@/utils/interfaces"
@@ -31,7 +32,7 @@ interface FormInputs {
 
 export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, hasTextFocus, clearTextFocus }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const {
     control,
@@ -63,11 +64,12 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
     }
   }
 
+  // Reset form when modal opens
   useEffect(() => {
-    if (isOpen && !isLoading) {
+    if (isOpen) {
       reset({ text: noteText, state: noteState })
 
-      // Delay to ensure inputRef is set
+      // Handle focus if needed
       setTimeout(() => {
         if (hasTextFocus && inputRef.current) {
           const inputElement = inputRef.current
@@ -79,18 +81,8 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
           }
         }
       }, 0)
-
-      if (isSubmitting) {
-        setIsSubmitting(false)
-      }
     }
-  }, [clearTextFocus, hasTextFocus, isLoading, isOpen, isSubmitting, noteState, noteText, reset])
-
-  useEffect(() => {
-    if (isSubmitting && !isLoading) {
-      onClose()
-    }
-  }, [isLoading, isSubmitting, onClose])
+  }, [isOpen, noteText, noteState, reset, hasTextFocus, clearTextFocus])
 
   return (
     <BaseModal

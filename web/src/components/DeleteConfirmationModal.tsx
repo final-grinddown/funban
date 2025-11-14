@@ -1,14 +1,12 @@
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
-  IconButton,
   Typography,
 } from "@mui/material"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -21,19 +19,7 @@ interface Props {
 export function DeleteConfirmationModal({ isOpen, userName, onClose, onConfirm, isSubmitting }: Props) {
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        Confirm Deletion
-        <IconButton
-          aria-label="close"
-          edge="end"
-          onClick={onClose}
-          sx={{
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Confirm Deletion" onClose={onClose} />
       <DialogContent>
         <Typography variant="subtitle1">
           Are you sure you want to delete the user <strong>{userName}</strong>?
