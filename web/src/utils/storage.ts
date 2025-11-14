@@ -7,7 +7,7 @@ const USER_EMAIL_KEY = createPrefixedKey("user-email")
 const HEADER_CONFIG_KEY = createPrefixedKey("header-config")
 const ORDER_KEY = createPrefixedKey("column-order")
 const DEV_IDS_KEY = createPrefixedKey("dev-ids")
-const DEV_PREDECESSOORS_KEY = createPrefixedKey("dev-predecessors")
+const DEV_PREDECESSORS_KEY = createPrefixedKey("dev-predecessors")
 
 export const getStoredTheme = (): TThemeMode | null => {
   const storedTheme = window.localStorage.getItem(THEME_KEY)
@@ -67,10 +67,10 @@ export const setStoredDevIdsValue = (order: boolean): void => {
 }
 
 export const getStoredDevPredecessorsValue = (): boolean => {
-  const value = window.localStorage.getItem(DEV_PREDECESSOORS_KEY)
+  const value = window.localStorage.getItem(DEV_PREDECESSORS_KEY)
   return value === "true"
 }
 
 export const setStoredDevPredecessorsValue = (order: boolean): void => {
-  window.localStorage.setItem(DEV_PREDECESSOORS_KEY, order.toString())
+  window.localStorage.setItem(DEV_PREDECESSORS_KEY, order.toString())
 }

@@ -65,7 +65,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
     },
   })
 
-  const onSubmit = handleSubmit((data) => mutation.mutate(data))
+  const handleFormSubmit = handleSubmit((data) => mutation.mutate(data))
 
   useEffect(() => {
     if (!isOpen) {
@@ -107,7 +107,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
             Cancel
           </Button>
           <Button
-            onClick={onSubmit}
+            onClick={handleFormSubmit}
             color="primary"
             variant="contained"
             disabled={!isDirty || !isValid || mutation.isPending || labelValue === ""}

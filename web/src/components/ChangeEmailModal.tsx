@@ -45,7 +45,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
 
   //const isSaveAndCreateNext = watch("saveAndCreateNext")
 
-  const onSubmit = async (data: FormInputs) => {
+  const handleFormSubmit = async (data: FormInputs) => {
     setIsSubmitting(true)
     try {
       await changeEmail(data.new_email, accessToken)
@@ -96,7 +96,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
         >
           After email/login change, you will be logged out and need to log in again.
         </Alert>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="new_email"
             control={control}
@@ -122,7 +122,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isDirty || !isValid}

@@ -13,11 +13,14 @@ A real-time collaborative Kanban board system with customizable workflow states,
 ## Features
 
 - **Workflow-based organization**: Notes flow through customizable workflow states
-- **User-defined ordering**: Maintain custom note order within each workflow state
+- **User-defined ordering**: Maintain custom note order within each workflow state via drag & drop (@dnd-kit)
 - **Execution context tags**: `IMPORTANT`, `DEADLINE`, `WAITING`, `QUICK` tags provide context without affecting priority
-- **Real-time collaboration**: WebSocket-based synchronization with authenticated client tracking
+- **Real-time collaboration**: WebSocket-based synchronization with automatic reconnection and authenticated client tracking
+- **Note splitting**: Split notes into separate items for better granularity
+- **User marks**: Visual indicators with flexible expiration (standup-based, date-based, or permanent)
 - **Responsive UI**: Material-UI components with mobile-friendly design
 - **JWT Authentication**: Secure user sessions with NextAuth.js integration
+- **Connection monitoring**: Visual connection status badge for real-time feedback
 
 ## Key Design Principles
 
@@ -135,12 +138,14 @@ The project uses GitHub Actions for CI/CD:
 - **Observability**: Structured logging with `tracing`
 
 ### Frontend
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 15 with App Router
 - **UI Library**: Material-UI with emotion styling
 - **State Management**: Zustand
 - **Authentication**: NextAuth.js
 - **Data Fetching**: TanStack Query
-- **Real-time**: WebSocket client integration
+- **Real-time**: WebSocket client with automatic reconnection (reconnecting-websocket)
+- **Drag & Drop**: @dnd-kit library
+- **Error Handling**: React Error Boundaries with centralized error utilities
 
 ## Contributing
 

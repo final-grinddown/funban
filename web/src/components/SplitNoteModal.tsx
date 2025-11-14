@@ -73,7 +73,7 @@ export function SplitNoteModal({
   const originalText = watch("originalText")
   const newText = watch("newText")
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     setIsSubmitting(true)
     const message = createSplitNote(
       originalNote.id.toString(),
@@ -130,7 +130,7 @@ export function SplitNoteModal({
           Split this note into two separate notes. You can edit both the original and new note content, and set different states and owners.
         </Typography>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
             {/* Original Note Column */}
             <Box sx={{ flex: 1, border: 1, borderColor: "divider", borderRadius: 1, p: 2 }}>
@@ -157,7 +157,7 @@ export function SplitNoteModal({
                     sx={{ mb: 2 }}
                     error={!!errors.originalText}
                     helperText={errors.originalText ? errors.originalText.message : ""}
-                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isFormValid)}
+                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isFormValid)}
                   />
                 )}
               />
@@ -192,7 +192,7 @@ export function SplitNoteModal({
                     sx={{ mb: 2 }}
                     error={!!errors.newText}
                     helperText={errors.newText ? errors.newText.message : ""}
-                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isFormValid)}
+                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isFormValid)}
                   />
                 )}
               />
@@ -243,7 +243,7 @@ export function SplitNoteModal({
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={!isFormValid || isSubmitting}

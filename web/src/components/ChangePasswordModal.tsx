@@ -50,7 +50,7 @@ export function ChangePasswordModal({ isOpen, onClose, accessToken }: Props) {
 
   //const isSaveAndCreateNext = watch("saveAndCreateNext")
 
-  const onSubmit = async (data: FormInputs) => {
+  const handleFormSubmit = async (data: FormInputs) => {
     setIsSubmitting(true)
     try {
       await changePassword(data.oldPassword, data.newPassword, accessToken)
@@ -103,7 +103,7 @@ export function ChangePasswordModal({ isOpen, onClose, accessToken }: Props) {
         >
           After password change, you will be logged out and need to log in again.
         </Alert>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="oldPassword"
             control={control}
@@ -166,7 +166,7 @@ export function ChangePasswordModal({ isOpen, onClose, accessToken }: Props) {
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isDirty || !isValid}

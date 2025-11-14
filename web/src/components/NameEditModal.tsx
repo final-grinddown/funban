@@ -34,7 +34,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
     mode: "onChange",
   })
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     onSave(data.name)
   }
 
@@ -48,7 +48,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
       <ModalHeader title="Edit Name" onClose={onClose} />
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="name"
             control={control}
@@ -82,7 +82,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isValid || !isDirty}
