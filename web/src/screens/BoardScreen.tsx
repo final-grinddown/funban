@@ -7,6 +7,7 @@ import { AddNewNoteModal } from "@/components/AddNewNoteModal"
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { Board } from "@/components/Board"
 import { BoardActionsMenu } from "@/components/BoardActionMenu"
+import { ConnectionStatusBadge } from "@/components/ConnectionStatusBadge"
 import { EndStatusModal } from "@/components/EndStatusModal"
 import { FocusControls } from "@/components/FocusControls"
 import { UserSelector } from "@/components/UserSelector"
@@ -28,7 +29,7 @@ export function BoardScreen({ accessToken }: Props) {
   const { user, handleChange, handlePrevUser, handleNextUser } = useUserSelection(users)
   const setCurrentUser = useAppStore((state) => state.focus.setCurrentUser)
   const { isFocus, shouldRenderFocus, handleStartFocus, handleEndFocus } = useFocusManagement(users)
-  const { sendMessageAsync } = useWebSocketContext()
+  const { sendMessageAsync, connectionStatus } = useWebSocketContext()
   const {
     isEndStatusModalOpen,
     isAddNewNoteModalOpen,
@@ -128,6 +129,9 @@ export function BoardScreen({ accessToken }: Props) {
       </Box>
 
       <Board isEditable={true} />
+
+      {/* Connection status indicator */}
+      <ConnectionStatusBadge status={connectionStatus} />
 
       <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} users={users} />
 
