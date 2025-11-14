@@ -45,7 +45,7 @@ export function AddNewTeamMemberModal({ isOpen, existingNames, onClose, onSave, 
     name: "color",
   })
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     onSave(data.name, data.color)
   }
 
@@ -59,7 +59,7 @@ export function AddNewTeamMemberModal({ isOpen, existingNames, onClose, onSave, 
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
       <ModalHeader title="Add New Team Member" onClose={onClose} />
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Typography variant="subtitle1" sx={{ mt: 2 }}>
             Set Unique Name
           </Typography>
@@ -133,7 +133,7 @@ export function AddNewTeamMemberModal({ isOpen, existingNames, onClose, onSave, 
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isValid}

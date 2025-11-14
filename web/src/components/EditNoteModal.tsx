@@ -47,7 +47,7 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
 
   const text = watch("text")
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     const hasTextChanged = data.text !== noteText
     const hasStateChanged = data.state !== noteState
     setIsSubmitting(true)
@@ -89,11 +89,11 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Note"
-      primaryButtonAction={handleSubmit(onSubmit)}
+      primaryButtonAction={handleSubmit(handleFormSubmit)}
       primaryButtonDisabled={isSubmitting || !isDirty || text.length > MaxTextLength}
       primaryButtonLoading={isSubmitting}
     >
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="state"
             control={control}
@@ -118,7 +118,7 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
             autoFocus={hasTextFocus}
             inputRef={inputRef}
             sx={{ my: 2 }}
-            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isDirty)}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isDirty)}
           />
         </form>
     </BaseModal>

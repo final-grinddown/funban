@@ -69,7 +69,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
     isValid,
   })
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     const message = createNewNote(data.owner, data.text, data.state)
     sendMessageAsync(message, "New note created!")
     setIsSubmitting(true)
@@ -126,12 +126,12 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
       onClose={onClose}
       title="Add New Note"
       primaryButtonText="Create Note"
-      primaryButtonAction={handleSubmit(onSubmit)}
+      primaryButtonAction={handleSubmit(handleFormSubmit)}
       primaryButtonDisabled={isSubmitting || !textValidation.isFormSubmittable}
       primaryButtonLoading={isSubmitting}
       primaryButtonWidth="120px"
     >
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="state"
             control={control}
@@ -172,7 +172,7 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
             currentText={text}
             inputRef={textAreaRef}
             sx={{ mt: 2 }}
-            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !textValidation.isFormSubmittable)}
+            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !textValidation.isFormSubmittable)}
           />
           <Controller
             name="saveAndCreateNext"
