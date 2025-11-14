@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, Typography } from "@mui/material"
@@ -11,8 +11,8 @@ import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/st
 import { availableColors } from "@/utils/constants"
 import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, Note } from "@/utils/interfaces"
-import { HEADER_CONFIG_KEY, tagColor } from "@/utils/noteConstants"
-import { getStoredDevIdsValue, getStoredDevPredecessorsValue } from "@/utils/storage"
+import { tagColor } from "@/utils/noteConstants"
+import { getStoredDevIdsValue, getStoredDevPredecessorsValue, getStoredHeaderOption } from "@/utils/storage"
 import { DeleteNoteModal } from "../DeleteNoteModal"
 import { EditNoteModal } from "../EditNoteModal"
 import { SplitNoteModal } from "../SplitNoteModal"
@@ -63,8 +63,18 @@ export function BoardItemCard({
     updated && updated !== created
       ? `Updated at ${isEditable ? updatedRelative : updatedDate}`
       : `Created at ${isEditable ? createdRelative : createdDate}`
-  const headerConfig = localStorage.getItem(HEADER_CONFIG_KEY) || "updated_only"
-  const devSettings: DevSettings = { ids: getStoredDevIdsValue(), predecessors: getStoredDevPredecessorsValue() }
+
+  // SSR-safe: Initialize header config from localStorage after mount
+  const [headerConfig, setHeaderConfig] = useState("updated_only")
+  const [devSettings, setDevSettings] = useState<DevSettings>({ ids: false, predecessors: false })
+
+  useEffect(() => {
+    // Only access localStorage on client-side
+    if (typeof window !== "undefined") {
+      setHeaderConfig(getStoredHeaderOption())
+      setDevSettings({ ids: getStoredDevIdsValue(), predecessors: getStoredDevPredecessorsValue() })
+    }
+  }, [])
 
   const {
     contextMenu,

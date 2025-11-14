@@ -9,12 +9,12 @@ import { Note } from "@/utils/interfaces"
  * a sorted array of notes in the correct order.
  *
  * Algorithm:
- * 1. Build a map of note IDs to notes for O(1) lookup
+ * 1. Build a map of predecessor_id → note (successor map) for O(1) lookup
  * 2. Find all root notes (notes with no predecessor)
- * 3. For each root, traverse the linked list by finding notes that reference it
+ * 3. For each root, traverse the linked list using the successor map
  * 4. Add any orphaned notes (not in a valid chain) at the end
  *
- * Time complexity: O(n²) worst case due to the find operation in the inner loop
+ * Time complexity: O(n) - single pass to build map, single pass to traverse
  * Space complexity: O(n) for the maps and visited set
  *
  * @param notes - Array of notes to sort
@@ -22,27 +22,29 @@ import { Note } from "@/utils/interfaces"
  */
 export function useNoteSorting(notes: Note[]): Note[] {
   return useMemo(() => {
-    const idToNote = new Map<number, Note>()
+    const successorMap = new Map<number, Note>()
     const sorted: Note[] = []
     const visited = new Set<number>()
 
-    // Build ID to note mapping for O(1) lookup
-    notes.forEach((note) => idToNote.set(note.id, note))
+    // Build predecessor_id → note mapping for O(1) successor lookup
+    notes.forEach((note) => {
+      if (note.predecessor_id !== null) {
+        successorMap.set(note.predecessor_id, note)
+      }
+    })
 
     // Find roots (notes with no predecessor)
     const roots = notes.filter((note) => note.predecessor_id === null)
 
-    // Traverse linked list for each root
+    // Traverse linked list for each root using O(1) successor lookups
     roots.forEach((root) => {
       let current: Note | undefined = root
       while (current && !visited.has(current.id)) {
         sorted.push(current)
         visited.add(current.id)
 
-        // Find the next note in the chain (the note that has current note as predecessor)
-        // Note: This is O(n) which makes the overall algorithm O(n²)
-        const nextNote = notes.find((note) => note.predecessor_id === current!.id)
-        current = nextNote ? idToNote.get(nextNote.id) : undefined
+        // O(1) lookup of next note in the chain
+        current = successorMap.get(current.id)
       }
     })
 
