@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
+import { useEffect, useRef } from "react"
 import {
   Box,
   Button,
@@ -7,9 +6,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -19,9 +16,11 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { createSplitNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useModalSubmission } from "@/hooks/useModalSubmission"
 import { MaxTextLength } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
 import { Note, User } from "@/utils/interfaces"
+import { ModalHeader } from "./modals/ModalHeader"
 import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
@@ -51,6 +50,7 @@ export function SplitNoteModal({
   selectedUserId,
 }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
+  const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
   const originalTextRef = useRef<HTMLInputElement | null>(null)
   const newTextRef = useRef<HTMLInputElement | null>(null)
 
@@ -74,7 +74,7 @@ export function SplitNoteModal({
   const newText = watch("newText")
 
   const onSubmit = (data: FormInputs) => {
-    setWasSubmitting(true)
+    setIsSubmitting(true)
     const message = createSplitNote(
       originalNote.id.toString(),
       data.originalText,
@@ -86,7 +86,7 @@ export function SplitNoteModal({
   }
 
   useEffect(() => {
-    if (isOpen && !isLoading) {
+    if (isOpen) {
       const newOwnerId = selectedUserId ? selectedUserId.toString() : originalNote.owner_id.toString()
 
       reset({
@@ -110,18 +110,7 @@ export function SplitNoteModal({
         }
       }, 0)
     }
-  }, [clearTextFocus, hasTextFocus, isLoading, isOpen, originalNote, reset, selectedUserId])
-
-  // This useEffect should only close the modal after a successful submission
-  // We need to track if a submission was initiated
-  const [wasSubmitting, setWasSubmitting] = useState(false)
-  
-  useEffect(() => {
-    if (wasSubmitting && !isLoading && isOpen) {
-      onClose()
-      setWasSubmitting(false)
-    }
-  }, [isLoading, isOpen, onClose, wasSubmitting])
+  }, [isOpen, originalNote, reset, selectedUserId, hasTextFocus, clearTextFocus])
 
   // Check if both text fields are valid and at least one has changed
   const isFormValid =
@@ -135,12 +124,7 @@ export function SplitNoteModal({
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md" disableRestoreFocus>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-        Split Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Split Note" onClose={onClose} />
       <DialogContent>
         <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
           Split this note into two separate notes. You can edit both the original and new note content, and set different states and owners.
@@ -262,10 +246,10 @@ export function SplitNoteModal({
           onClick={handleSubmit(onSubmit)}
           color="primary"
           variant="contained"
-          disabled={!isFormValid || isLoading}
+          disabled={!isFormValid || isSubmitting}
           sx={{ width: "100px" }}
         >
-          {isLoading ? <CircularProgress size={20} /> : "Split Note"}
+          {isSubmitting ? <CircularProgress size={20} /> : "Split Note"}
         </Button>
       </DialogActions>
     </Dialog>
