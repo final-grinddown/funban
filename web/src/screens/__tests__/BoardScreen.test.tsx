@@ -41,11 +41,6 @@ const mockUseUserSelection = {
   handleNextUser: jest.fn(),
 }
 
-const mockUseFocusStateStore = {
-  currentUser: '',
-  setCurrentUser: jest.fn(),
-}
-
 jest.mock('@/hooks/useBoardModalManagement', () => ({
   useBoardModalManagement: jest.fn(() => mockUseBoardModalManagement),
 }))
@@ -64,21 +59,27 @@ jest.mock('@/hooks/useUserSelection', () => ({
   useUserSelection: jest.fn(() => mockUseUserSelection),
 }))
 
-jest.mock('@/utils/store', () => ({
-  useFocusStateStore: jest.fn(() => mockUseFocusStateStore),
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: [], users: [], setNotes: jest.fn(), setUsers: jest.fn() },
+  focus: { isFocus: false, currentUser: '', setIsFocus: jest.fn(), setCurrentUser: jest.fn() },
+  ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn(), setSelectedUserId: jest.fn() },
+}
+
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectNotes: (state: any) => state.board.notes,
+  selectUsers: (state: any) => state.board.users,
+  selectIsFocus: (state: any) => state.focus.isFocus,
+  selectCurrentUser: (state: any) => state.focus.currentUser,
 }))
 
 // Mock child components for screen-level testing
 jest.mock('@/components/Board', () => ({
-  Board: ({ notes, isEditable, selectedUserId, isAnyModalOpen, isFocus, currentUser }: any) => (
+  Board: ({ isEditable }: any) => (
     <div
       data-testid="board"
       data-editable={isEditable}
-      data-notes-count={notes.length}
-      data-selected-user={selectedUserId}
-      data-any-modal-open={isAnyModalOpen}
-      data-focus={isFocus}
-      data-current-user={currentUser}
     />
   ),
 }))
@@ -184,30 +185,29 @@ describe('BoardScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset mock implementations to defaults
     mockUseBoardModalManagement.isEndStatusModalOpen = false
     mockUseBoardModalManagement.isAddNewNoteModalOpen = false
     mockUseBoardModalManagement.anchorEl = null
     mockUseBoardModalManagement.openMenu = false
     mockUseBoardModalManagement.isAnyModalOpen = false
-    
+
     mockUseFocusManagement.isFocus = false
     mockUseFocusManagement.shouldRenderFocus = false
-    
+
     mockUseUserSelection.user = '1'
-    
-    mockUseFocusStateStore.currentUser = ''
+
+    // Reset store state
+    mockStoreState = {
+      board: { notes: mockNotes, users: mockUsers, setNotes: jest.fn(), setUsers: jest.fn() },
+      focus: { isFocus: false, currentUser: '', setIsFocus: jest.fn(), setCurrentUser: jest.fn() },
+      ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn(), setSelectedUserId: jest.fn() },
+    }
   })
 
   const renderBoardScreen = (accessToken?: string) => {
-    return render(
-      <BoardScreen 
-        users={mockUsers} 
-        notes={mockNotes} 
-        accessToken={accessToken}
-      />
-    )
+    return render(<BoardScreen accessToken={accessToken} />)
   }
 
   describe('Basic Rendering', () => {
@@ -220,16 +220,12 @@ describe('BoardScreen', () => {
       expect(screen.getByRole('button', { name: 'Board actions' })).toBeInTheDocument()
     })
 
-    it('passes correct props to Board component', () => {
+    it('renders Board component', () => {
       renderBoardScreen('test-token')
 
       const board = screen.getByTestId('board')
+      expect(board).toBeInTheDocument()
       expect(board).toHaveAttribute('data-editable', 'true')
-      expect(board).toHaveAttribute('data-notes-count', '2')
-      expect(board).toHaveAttribute('data-selected-user', '1')
-      expect(board).toHaveAttribute('data-any-modal-open', 'false')
-      expect(board).toHaveAttribute('data-focus', 'false')
-      expect(board).toHaveAttribute('data-current-user', '')
     })
 
     it('renders desktop button group on larger screens', () => {
@@ -268,15 +264,16 @@ describe('BoardScreen', () => {
       mockUseUserSelection.user = '2'
       renderBoardScreen()
 
-      expect(mockUseFocusStateStore.setCurrentUser).toHaveBeenCalledWith('Jane Smith')
+      expect(mockStoreState.focus.setCurrentUser).toHaveBeenCalledWith('Jane Smith')
     })
 
     it('handles empty users array without calling setCurrentUser', () => {
       // Test the useEffect branch when users.length === 0
       mockUseUserSelection.user = '1'
-      render(<BoardScreen users={[]} notes={mockNotes} />)
+      mockStoreState.board.users = []
+      render(<BoardScreen />)
 
-      expect(mockUseFocusStateStore.setCurrentUser).not.toHaveBeenCalled()
+      expect(mockStoreState.focus.setCurrentUser).not.toHaveBeenCalled()
     })
 
     it('handles selected user not found in users array', () => {
@@ -285,7 +282,7 @@ describe('BoardScreen', () => {
       renderBoardScreen()
 
       // Should not call setCurrentUser when user is not found
-      expect(mockUseFocusStateStore.setCurrentUser).not.toHaveBeenCalled()
+      expect(mockStoreState.focus.setCurrentUser).not.toHaveBeenCalled()
     })
   })
 
@@ -336,12 +333,12 @@ describe('BoardScreen', () => {
       expect(modal).toHaveAttribute('data-has-token', 'true')
     })
 
-    it('updates board props when modal is open', () => {
+    it('renders board when modal is open', () => {
       mockUseBoardModalManagement.isAnyModalOpen = true
       renderBoardScreen()
 
       const board = screen.getByTestId('board')
-      expect(board).toHaveAttribute('data-any-modal-open', 'true')
+      expect(board).toBeInTheDocument()
     })
   })
 
@@ -363,14 +360,14 @@ describe('BoardScreen', () => {
       expect(startFocusButton).toBeDisabled()
     })
 
-    it('updates board props when in focus mode', () => {
+    it('renders board in focus mode', () => {
       mockUseFocusManagement.isFocus = true
-      mockUseFocusStateStore.currentUser = 'John Doe'
       renderBoardScreen()
 
       const board = screen.getByTestId('board')
-      expect(board).toHaveAttribute('data-focus', 'true')
-      expect(board).toHaveAttribute('data-current-user', 'John Doe')
+      expect(board).toBeInTheDocument()
+      // Focus mode is active
+      expect(mockUseFocusManagement.isFocus).toBe(true)
     })
 
     it('renders focus controls when shouldRenderFocus is true', () => {

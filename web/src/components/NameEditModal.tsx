@@ -1,16 +1,14 @@
 import { useEffect } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
-  IconButton,
   TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -36,7 +34,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
     mode: "onChange",
   })
 
-  const onSubmit = (data: FormInputs) => {
+  const handleFormSubmit = (data: FormInputs) => {
     onSave(data.name)
   }
 
@@ -48,21 +46,9 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Edit Name
-        <IconButton
-          aria-label="close"
-          edge="end"
-          onClick={onClose}
-          sx={{
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Edit Name" onClose={onClose} />
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="name"
             control={control}
@@ -96,7 +82,7 @@ export function NameEditModal({ isOpen, initialName, existingNames, onClose, onS
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isValid || !isDirty}

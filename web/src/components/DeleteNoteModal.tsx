@@ -1,18 +1,16 @@
-import { useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
-  IconButton,
   Typography,
 } from "@mui/material"
 import { createDeleteNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useModalSubmission } from "@/hooks/useModalSubmission"
 import { Note } from "@/utils/interfaces"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -21,8 +19,8 @@ interface Props {
 }
 
 export function DeleteNoteModal({ isOpen, noteId, onClose }: Props) {
-  const { sendMessageAsync } = useWebSocketContext()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { sendMessageAsync, isLoading } = useWebSocketContext()
+  const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
 
   const handleDelete = () => {
     const message = createDeleteNote(noteId.toString())
@@ -32,12 +30,7 @@ export function DeleteNoteModal({ isOpen, noteId, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Delete Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Delete Note" onClose={onClose} />
       <DialogContent>
         <Typography variant="body1" color="textPrimary">
           Are you sure you want to delete this note?

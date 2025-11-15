@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Alert,
   Button,
@@ -7,8 +6,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
-  IconButton,
   Snackbar,
   TextField,
 } from "@mui/material"
@@ -16,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { postSnapshot } from "@/app/api/fetches"
 import { IRawNote } from "@/utils/interfaces"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   notes: IRawNote[]
@@ -67,7 +65,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
     },
   })
 
-  const onSubmit = handleSubmit((data) => mutation.mutate(data))
+  const handleFormSubmit = handleSubmit((data) => mutation.mutate(data))
 
   useEffect(() => {
     if (!isOpen) {
@@ -78,12 +76,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
   return (
     <>
       <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-          Enter Snapshot Label
-          <IconButton edge="end" color="inherit" onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
+        <ModalHeader title="Enter Snapshot Label" onClose={onClose} />
         <DialogContent>
           <Controller
             name="label"
@@ -114,7 +107,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
             Cancel
           </Button>
           <Button
-            onClick={onSubmit}
+            onClick={handleFormSubmit}
             color="primary"
             variant="contained"
             disabled={!isDirty || !isValid || mutation.isPending || labelValue === ""}

@@ -1,9 +1,9 @@
 import { useState } from "react"
+import { useAppStore } from "@/store"
 import { User } from "@/utils/interfaces"
-import { useFocusStateStore } from "@/utils/store"
 
 export function useFocusManagement(users: User[]) {
-  const { isFocus, setIsFocus, currentUser, setCurrentUser } = useFocusStateStore()
+  const { isFocus, setIsFocus, currentUser, setCurrentUser } = useAppStore((state) => state.focus)
   const [shouldRenderFocus, setShouldRenderFocus] = useState(false)
 
   const getCurrentUserIndex = () => users.findIndex((user) => user.name === currentUser)

@@ -1,8 +1,8 @@
 import { Alert, Snackbar } from "@mui/material"
-import { useActionStateStore } from "@/utils/store"
+import { useAppStore } from "@/store"
 
 export function Alerts() {
-  const { visibleAction, close } = useActionStateStore()
+  const { visibleAction, close } = useAppStore((state) => state.actions)
 
   function handleSnackbarClose() {
     close()

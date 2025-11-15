@@ -45,19 +45,22 @@ Key modules:
 - `model/` - Domain models and DTOs
 
 ### Frontend (Next.js/React)
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 15 with App Router
 - **UI**: Material-UI components with emotion styling
 - **State**: Zustand for global state management
 - **Auth**: NextAuth.js for authentication
-- **Real-time**: WebSocket client for server synchronization
+- **Real-time**: WebSocket client with reconnecting-websocket for automatic reconnection
 - **Data fetching**: TanStack Query for server state
+- **Drag & Drop**: @dnd-kit library for kanban board interactions
 
 Key directories:
 - `src/app/` - Next.js app router pages
-- `src/components/` - Reusable UI components
+- `src/components/` - Reusable UI components (modals, forms, boards)
 - `src/context/` - React context providers (Auth, WebSocket)
-- `src/hooks/` - Custom React hooks
+- `src/hooks/` - Custom React hooks (useModalSubmission, useFormValidation)
 - `src/utils/` - Utility functions and types
+- `src/websocket/handlers/` - Modular WebSocket message handlers
+- `src/types/` - Centralized TypeScript type definitions
 
 ## Key Design Principles
 
@@ -67,6 +70,26 @@ Key directories:
 - **Real-time collaboration**: WebSocket synchronization with authenticated client tracking
 - **Defensive programming**: Graceful error handling and fallback values
 - **Flexible user marks**: Visual indicators (⚫, ⭐, 🕐, 🩺, 🌴, etc.) with flexible expiration options
+- **Component reusability**: Shared hooks and components to eliminate duplication
+- **Type safety**: Strict TypeScript with no `any` types where possible
+
+## Code Quality Standards
+
+### Naming Conventions
+- **Event handlers**: Use `handle*` prefix for internal event handlers (e.g., `handleFormSubmit`, `handleClick`)
+- **Callback props**: Use `on*` prefix for callback props passed to components (e.g., `onClose`, `onSubmit`)
+
+### Component Structure
+- **Error handling**: Use `ErrorBoundary` component to wrap error-prone sections
+- **Error utilities**: Use centralized error handling from `src/utils/errorHandler.ts`
+- **Modal patterns**: Use `useModalSubmission` hook for consistent modal submission behavior
+- **Form validation**: Use `useFormValidation` hook for standardized form validation
+- **Type-safe MUI props**: Use `MuiSxProps` type instead of `any` for Material-UI sx props
+
+### WebSocket Architecture
+- **Automatic reconnection**: Uses `reconnecting-websocket` library
+- **Modular handlers**: Message handlers organized by operation type in `src/websocket/handlers/`
+- **Connection status**: Visible connection status badge for user feedback
 
 ## User Marks System
 
