@@ -170,7 +170,7 @@ export function BoardItemCard({
           opacity: isDragging ? 0.5 : isFocus && name !== currentUser ? 0.05 : 1,
           transition: "opacity 0.25s ease-out",
           cursor: isEditable ? "grab" : "default",
-          border: tag !== null ? `2px solid ${alpha(tagColor[tag], 0.75)}` : "",
+          border: tag !== null && tagColor[tag] ? `2px solid ${alpha(tagColor[tag], 0.75)}` : "",
           touchAction: "none", // Important for touch devices
         }}
       >

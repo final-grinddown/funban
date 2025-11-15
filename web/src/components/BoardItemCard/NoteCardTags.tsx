@@ -15,13 +15,16 @@ interface Props {
 export const NoteCardTags = memo(function NoteCardTags({ tag }: Props) {
   if (!tag) return null
 
+  // Get tag color or fallback to gray if tag color not found
+  const color = tagColor[tag] || '#808080'
+
   return (
     <CardMedia
       sx={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        bgcolor: alpha(tagColor[tag], 0.75),
+        bgcolor: alpha(color, 0.75),
         p: 0.5,
       }}
     >
