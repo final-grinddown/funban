@@ -102,23 +102,27 @@ describe('DeleteNoteModal', () => {
 
     it('disables delete button while submitting', async () => {
       const user = userEvent.setup()
-      
+      // Make the mock async to simulate a real async operation
+      mockWebSocketContext.isLoading = true
+
       render(<DeleteNoteModal {...defaultProps} />)
-      
+
       const deleteButton = screen.getByRole('button', { name: 'Delete' })
       await user.click(deleteButton)
-      
+
       expect(deleteButton).toBeDisabled()
     })
 
     it('shows loading state while submitting', async () => {
       const user = userEvent.setup()
-      
+      // Make the mock async to simulate a real async operation
+      mockWebSocketContext.isLoading = true
+
       render(<DeleteNoteModal {...defaultProps} />)
-      
+
       const deleteButton = screen.getByRole('button', { name: 'Delete' })
       await user.click(deleteButton)
-      
+
       expect(screen.getByRole('progressbar')).toBeInTheDocument()
       expect(deleteButton).not.toHaveTextContent('Delete')
     })
