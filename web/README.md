@@ -24,7 +24,8 @@ Frontend application for Funban - a real-time collaborative Kanban board system.
 - **State Management**: Zustand for global state, TanStack Query for server state
 - **Authentication**: NextAuth.js with JWT
 - **Real-time**: WebSocket client for server synchronization
-- **Type Safety**: TypeScript with runtime validation via typia
+- **Type Safety**: TypeScript with runtime validation via Typia
+  - ⚠️ Note: Uses `@ryoppippi/unplugin-typia` (archived but functional). See [`docs/architecture/validation.md`](../docs/architecture/validation.md) for details.
 
 ## Getting Started
 
@@ -57,3 +58,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `yarn test` - Run tests
 
 See `../Makefile` for combined backend+frontend commands.
+
+## Architecture Documentation
+
+- **[Runtime Validation](../docs/architecture/validation.md)** - Typia setup, architecture, and dependency status
+- **[Refactoring Plan](../REFACTORING_PLAN.md)** - Ongoing frontend improvements and migration strategies

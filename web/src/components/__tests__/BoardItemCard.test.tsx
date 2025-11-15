@@ -17,14 +17,28 @@ jest.mock('@/context/WebSocketProvider', () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
-// Mock focus state store
-const mockUseFocusStateStore = {
-  isFocus: false,
-  currentUser: 'User 1',
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: [], users: mockWebSocketContext.users },
+  focus: { isFocus: false, currentUser: 'User 1' },
+  modals: {
+    editNote: { isOpen: false },
+    splitNote: { isOpen: false },
+    deleteNote: { isOpen: false },
+    openModal: jest.fn((modalName: string) => {
+      mockStoreState.modals[modalName] = { isOpen: true }
+    }),
+    closeModal: jest.fn((modalName: string) => {
+      mockStoreState.modals[modalName] = { isOpen: false }
+    }),
+  },
 }
 
-jest.mock('@/utils/store', () => ({
-  useFocusStateStore: () => mockUseFocusStateStore,
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectUsers: (state: any) => state.board.users,
+  selectIsFocus: (state: any) => state.focus.isFocus,
+  selectCurrentUser: (state: any) => state.focus.currentUser,
 }))
 
 // Mock websocket functions
@@ -32,11 +46,21 @@ jest.mock('@/app/api/websocket', () => ({
   createUpdateNoteTag: jest.fn().mockReturnValue('mock-update-tag-message'),
 }))
 
-// Mock storage utilities
-jest.mock('@/utils/storage', () => ({
-  getStoredDevIdsValue: jest.fn().mockReturnValue(false),
-  getStoredDevPredecessorsValue: jest.fn().mockReturnValue(false),
-}))
+// Mock storage utilities - properly typed to match the actual module
+jest.mock('@/utils/storage', () => {
+  const actual = jest.requireActual<typeof import('@/utils/storage')>('@/utils/storage')
+  type StorageModule = typeof actual
+
+  const mock: StorageModule = {
+    ...actual,
+    getStoredDevIdsValue: jest.fn().mockReturnValue(false) as any,
+    getStoredDevPredecessorsValue: jest.fn().mockReturnValue(false) as any,
+    getStoredHeaderOption: jest.fn().mockReturnValue('updated_only') as any,
+  }
+
+  // TypeScript will now error if we're missing any exports that the component imports
+  return mock
+})
 
 // Mock child components
 jest.mock('../EditNoteModal', () => ({
@@ -98,8 +122,8 @@ describe('BoardItemCard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockWebSocketContext.isLoading = false
-    mockUseFocusStateStore.isFocus = false
-    mockUseFocusStateStore.currentUser = 'User 1'
+    mockStoreState.focus.isFocus = false
+    mockStoreState.focus.currentUser = 'User 1'
     
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
@@ -317,31 +341,30 @@ describe('BoardItemCard', () => {
     })
   })
 
-  // Drag and Drop (2 tests)
+  // Drag and Drop (migrated to @dnd-kit)
+  // NOTE: After @dnd-kit migration, drag-drop is handled by the library internally.
+  // The native HTML5 `draggable` attribute is no longer used.
   describe('Drag and drop', () => {
-    it('is draggable and shows visual feedback during drag', async () => {
+    it('has @dnd-kit attributes for drag and drop', async () => {
       render(<BoardItemCard {...defaultProps} />)
 
       const card = screen.getByText('Test note content').closest('.MuiCard-root')
       expect(card).toBeInTheDocument()
-      
-      // Card should be draggable
-      expect(card).toHaveAttribute('draggable', 'true')
 
-      // Card should have proper data attributes for drag and drop
+      // @dnd-kit uses data attributes and event listeners, not native draggable
+      // Card should have context menu attribute
       expect(card).toHaveAttribute('data-context-menu-card', 'true')
+
+      // @dnd-kit manages drag-drop internally - no native draggable attribute
+      expect(card).not.toHaveAttribute('draggable')
     })
 
     it('maintains content visibility during drag operations', async () => {
       render(<BoardItemCard {...defaultProps} />)
 
       const card = screen.getByText('Test note content').closest('.MuiCard-root')
-      
-      // Simulate drag start
-      const dragStartEvent = new Event('dragstart') as any
-      card!.dispatchEvent(dragStartEvent)
 
-      // Content should remain visible during drag
+      // Content should remain visible
       expect(screen.getByText('Test note content')).toBeInTheDocument()
       expect(screen.getByText('User 1')).toBeInTheDocument()
 
@@ -382,8 +405,8 @@ describe('BoardItemCard', () => {
     })
 
     it('handles focus mode correctly', () => {
-      mockUseFocusStateStore.isFocus = true
-      mockUseFocusStateStore.currentUser = 'User 1'
+      mockStoreState.focus.isFocus = true
+      mockStoreState.focus.currentUser = 'User 1'
       
       render(<BoardItemCard {...defaultProps} />)
 

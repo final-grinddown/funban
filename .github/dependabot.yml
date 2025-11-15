@@ -1,0 +1,66 @@
+# Dependabot configuration for security and dependency monitoring
+# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Monitor web (Next.js frontend) dependencies
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "your-team-or-username"  # TODO: Update with actual reviewer
+    labels:
+      - "dependencies"
+      - "frontend"
+    # Special handling for archived unplugin-typia
+    ignore:
+      - dependency-name: "@ryoppippi/unplugin-typia"
+        # Archived but functional - version pinned intentionally
+        # See: docs/architecture/validation.md
+      - dependency-name: "typia"
+        # Pinned to work with unplugin-typia
+        # Update only when testing new versions
+    # Group minor and patch updates
+    groups:
+      mui:
+        patterns:
+          - "@mui/*"
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "jest*"
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+
+  # Monitor Rust backend dependencies
+  - package-ecosystem: "cargo"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "your-team-or-username"  # TODO: Update with actual reviewer
+    labels:
+      - "dependencies"
+      - "backend"
+    # Group axum ecosystem updates
+    groups:
+      axum:
+        patterns:
+          - "axum*"
+          - "tower*"
+
+  # Monitor GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "ci"

@@ -20,6 +20,16 @@ const mockUsers: User[] = [
   { id: 2, index: 2, name: 'Jane Smith', color: '#00ff00', email: 'jane@example.com', marks: [] },
 ]
 
+// Mock the store
+let mockStoreState: any = {
+  board: { notes: [], users: mockUsers },
+}
+
+jest.mock('@/store', () => ({
+  useAppStore: (selector: any) => selector(mockStoreState),
+  selectUsers: (state: any) => state.board.users,
+}))
+
 jest.mock('@/context/WebSocketProvider', () => ({
   useWebSocketContext: () => ({
     users: mockUsers,
@@ -48,12 +58,12 @@ jest.mock('@/app/api/fetches', () => ({
 
 // Mock modals
 jest.mock('@/components/AddUserMarkModal', () => ({
-  AddUserMarkModal: ({ isOpen, onClose }: any) =>
+  AddUserMarkModal: ({ isOpen }: any) =>
     isOpen ? <div data-testid="add-mark-modal">Add Mark Modal</div> : null,
 }))
 
 jest.mock('@/components/EditUserMarkModal', () => ({
-  EditUserMarkModal: ({ isOpen, onClose }: any) =>
+  EditUserMarkModal: ({ isOpen }: any) =>
     isOpen ? <div data-testid="edit-mark-modal">Edit Mark Modal</div> : null,
 }))
 

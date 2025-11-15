@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -36,7 +36,7 @@ import {
 } from "@/app/api/fetches"
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { EditUserMarkModal } from "@/components/EditUserMarkModal"
-import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useAppStore, selectUsers } from "@/store"
 
 const markTypeLabels: Record<string, string> = {
   "⚫": "Black Mark",
@@ -75,7 +75,7 @@ function formatExpiration(mark: UserMark): string {
 
 export function UserMarksScreen() {
   const { data: session } = useSession()
-  const { users } = useWebSocketContext()
+  const users = useAppStore(selectUsers)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [allMarks, setAllMarks] = useState<UserMark[]>([])
   const [expiredMarks, setExpiredMarks] = useState<Map<number, UserMark[]>>(new Map())
@@ -86,11 +86,7 @@ export function UserMarksScreen() {
   const [editingMark, setEditingMark] = useState<UserMark | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
 
-  useEffect(() => {
-    loadMarks()
-  }, [session?.accessToken])
-
-  const loadMarks = async () => {
+  const loadMarks = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -102,7 +98,11 @@ export function UserMarksScreen() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
+
+  useEffect(() => {
+    loadMarks()
+  }, [loadMarks])
 
   const loadExpiredMarks = async (userId: number) => {
     if (expiredMarks.has(userId)) {

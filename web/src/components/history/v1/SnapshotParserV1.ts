@@ -28,18 +28,24 @@ export class SnapshotParserV1 {
 		const users = Array.from(userMap.values())
 
 		// Convert notes to snapshot format
-		const snapshotNotes: SnapshotNote[] = normalizedNotes.map(note => ({
-			id: note.id,
-			text: note.text,
-			name: note.name,
-			owner_id: note.owner_id,
-			color: note.color,
-			state: note.state,
-			predecessor_id: note.predecessor_id,
-			updated: note.updated,
-			created: note.created,
-			tag: note.tag
-		}))
+		const snapshotNotes: SnapshotNote[] = normalizedNotes.map(note => {
+			// Normalize tag to capitalize first letter, rest lowercase (e.g., "QUICK" -> "Quick")
+			const normalizedTag = note.tag
+				? note.tag.charAt(0).toUpperCase() + note.tag.slice(1).toLowerCase()
+				: null
+			return {
+				id: note.id,
+				text: note.text,
+				name: note.name,
+				owner_id: note.owner_id,
+				color: note.color,
+				state: note.state,
+				predecessor_id: note.predecessor_id,
+				updated: note.updated,
+				created: note.created,
+				tag: normalizedTag
+			}
+		})
 
 		return {
 			users,

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import {
   Box,
   Button,
@@ -7,12 +6,11 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Grid,
-  IconButton,
   RadioGroup,
   Typography,
 } from "@mui/material"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -38,19 +36,7 @@ export function ColorEditModal({ isOpen, currentColor, availableColors, onClose,
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth={true}>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        Edit Color
-        <IconButton
-          aria-label="close"
-          edge="end"
-          onClick={onClose}
-          sx={{
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Edit Color" onClose={onClose} />
       <DialogContent>
         <Box display="flex" gap={1} alignItems="center" mb={1}>
           <Typography variant="h6" component="p" color="text.primary" gutterBottom={false}>
