@@ -46,11 +46,21 @@ jest.mock('@/app/api/websocket', () => ({
   createUpdateNoteTag: jest.fn().mockReturnValue('mock-update-tag-message'),
 }))
 
-// Mock storage utilities
-jest.mock('@/utils/storage', () => ({
-  getStoredDevIdsValue: jest.fn().mockReturnValue(false),
-  getStoredDevPredecessorsValue: jest.fn().mockReturnValue(false),
-}))
+// Mock storage utilities - properly typed to match the actual module
+jest.mock('@/utils/storage', () => {
+  const actual = jest.requireActual<typeof import('@/utils/storage')>('@/utils/storage')
+  type StorageModule = typeof actual
+
+  const mock: StorageModule = {
+    ...actual,
+    getStoredDevIdsValue: jest.fn().mockReturnValue(false) as any,
+    getStoredDevPredecessorsValue: jest.fn().mockReturnValue(false) as any,
+    getStoredHeaderOption: jest.fn().mockReturnValue('updated_only') as any,
+  }
+
+  // TypeScript will now error if we're missing any exports that the component imports
+  return mock
+})
 
 // Mock child components
 jest.mock('../EditNoteModal', () => ({
