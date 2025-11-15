@@ -19,6 +19,10 @@ export class SnapshotParserV2 {
 
 		const notes: SnapshotNote[] = data.notes.map(note => {
 			const owner = userMap.get(note.owner_id)
+			// Normalize tag to capitalize first letter, rest lowercase (e.g., "QUICK" -> "Quick")
+			const normalizedTag = note.tag
+				? note.tag.charAt(0).toUpperCase() + note.tag.slice(1).toLowerCase()
+				: null
 			return {
 				id: note.id,
 				text: note.text,
@@ -29,7 +33,7 @@ export class SnapshotParserV2 {
 				predecessor_id: note.predecessor_id,
 				updated: note.updated,
 				created: note.created,
-				tag: note.tag
+				tag: normalizedTag
 			}
 		})
 
