@@ -37,8 +37,8 @@ import {
 } from "@/app/api/fetches"
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { EditUserMarkModal } from "@/components/EditUserMarkModal"
-import { useAppStore, selectUsers } from "@/store"
 import { useConfig } from "@/context/ConfigProvider"
+import { useAppStore, selectUsers } from "@/store"
 
 const markTypeLabels: Record<string, string> = {
   "⚫": "Black Mark",

@@ -36,7 +36,8 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
 
   const { data, isLoading, error } = useQuery<IHistoryItem>({
     queryKey: ["historyItem", id ?? "last"],
-    queryFn: () => (id ? fetchHistoryItem(apiUrl, id, session?.accessToken) : fetchHistoryItemLast(apiUrl, session?.accessToken)),
+    queryFn: () =>
+      id ? fetchHistoryItem(apiUrl, id, session?.accessToken) : fetchHistoryItemLast(apiUrl, session?.accessToken),
     enabled: !!session?.accessToken,
   })
 
