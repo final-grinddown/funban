@@ -35,8 +35,28 @@ const mockUsers: User[] = [
   { id: 3, index: 3, name: "Bob Johnson", color: "#0000ff", email: "Bob Johnson@example.com", marks: [] },
 ]
 
-const defaultProps = {
+// Mock store
+const mockStoreState = {
+  modals: {
+    addNewNote: {
+      isOpen: false,
+      data: undefined as any,
+    },
+  },
   users: mockUsers,
+}
+
+jest.mock("@/store", () => ({
+  useAppStore: jest.fn((selector: any) => {
+    if (typeof selector === "function") {
+      return selector(mockStoreState)
+    }
+    return mockStoreState
+  }),
+  selectUsers: (state: any) => state.users,
+}))
+
+const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
 }
@@ -46,6 +66,8 @@ describe("AddNewNoteModal", () => {
     jest.clearAllMocks()
     mockWebSocketContext.isLoading = false
     mockWebSocketContext.sendMessageAsync = jest.fn().mockResolvedValue(undefined)
+    // Reset modal data
+    mockStoreState.modals.addNewNote.data = undefined
   })
 
   // Basic Rendering & Modal Behavior (4 tests)
@@ -443,12 +465,13 @@ describe("AddNewNoteModal", () => {
   // Default Values & Focus Management (3 tests)
   describe("Default values and focus management", () => {
     it("sets default values when provided", async () => {
-      const defaultValues = {
+      // Set modal data in store
+      mockStoreState.modals.addNewNote.data = {
         state: "todo",
         ownerId: "2",
       }
 
-      render(<AddNewNoteModal {...defaultProps} defaultValues={defaultValues} />)
+      render(<AddNewNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -460,9 +483,12 @@ describe("AddNewNoteModal", () => {
     })
 
     it("focuses text field when hasTextFocus is true", async () => {
-      const clearTextFocus = jest.fn()
+      // Set modal data in store with focusText flag
+      mockStoreState.modals.addNewNote.data = {
+        focusText: true,
+      }
 
-      render(<AddNewNoteModal {...defaultProps} hasTextFocus={true} clearTextFocus={clearTextFocus} />)
+      render(<AddNewNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -470,7 +496,6 @@ describe("AddNewNoteModal", () => {
       await waitFor(() => {
         const textField = screen.getByLabelText("Note Text")
         expect(textField).toHaveFocus()
-        expect(clearTextFocus).toHaveBeenCalledTimes(1)
       })
     })
 
@@ -542,7 +567,12 @@ describe("AddNewNoteModal", () => {
     })
 
     it("focuses text field when hasTextFocus is true but clearTextFocus is undefined", async () => {
-      render(<AddNewNoteModal {...defaultProps} hasTextFocus={true} clearTextFocus={undefined} />)
+      // Set modal data in store with focusText flag
+      mockStoreState.modals.addNewNote.data = {
+        focusText: true,
+      }
+
+      render(<AddNewNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})

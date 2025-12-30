@@ -19,9 +19,27 @@ jest.mock("@/app/api/websocket", () => ({
   createDeleteNote: jest.fn().mockReturnValue("mock-delete-note-message"),
 }))
 
+// Mock store
+const mockStoreState = {
+  modals: {
+    deleteNote: {
+      isOpen: false,
+      data: { noteId: 456 },
+    },
+  },
+}
+
+jest.mock("@/store", () => ({
+  useAppStore: jest.fn((selector: any) => {
+    if (typeof selector === "function") {
+      return selector(mockStoreState)
+    }
+    return mockStoreState
+  }),
+}))
+
 const defaultProps = {
   isOpen: true,
-  noteId: 456,
   onClose: jest.fn(),
 }
 
@@ -29,6 +47,8 @@ describe("DeleteNoteModal", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockWebSocketContext.sendMessageAsync = jest.fn().mockResolvedValue(undefined)
+    // Reset modal data to default
+    mockStoreState.modals.deleteNote.data = { noteId: 456 }
   })
 
   // Basic Rendering & Modal Behavior (4 tests)
@@ -131,7 +151,10 @@ describe("DeleteNoteModal", () => {
       const user = userEvent.setup()
       const { createDeleteNote } = require("@/app/api/websocket")
 
-      render(<DeleteNoteModal {...defaultProps} noteId={999} />)
+      // Set noteId in store
+      mockStoreState.modals.deleteNote.data = { noteId: 999 }
+
+      render(<DeleteNoteModal {...defaultProps} />)
 
       const deleteButton = screen.getByRole("button", { name: "Delete" })
       await user.click(deleteButton)
@@ -192,7 +215,10 @@ describe("DeleteNoteModal", () => {
       const user = userEvent.setup()
       const { createDeleteNote } = require("@/app/api/websocket")
 
-      render(<DeleteNoteModal {...defaultProps} noteId={0} />)
+      // Set noteId in store
+      mockStoreState.modals.deleteNote.data = { noteId: 0 }
+
+      render(<DeleteNoteModal {...defaultProps} />)
 
       const deleteButton = screen.getByRole("button", { name: "Delete" })
       await user.click(deleteButton)

@@ -30,11 +30,31 @@ jest.mock("../TextLengthCounter", () => ({
   ),
 }))
 
+// Mock store
+const mockStoreState = {
+  modals: {
+    editNote: {
+      isOpen: false,
+      data: {
+        noteId: 123,
+        noteState: "todo",
+        noteText: "Original note text",
+      } as any,
+    },
+  },
+}
+
+jest.mock("@/store", () => ({
+  useAppStore: jest.fn((selector: any) => {
+    if (typeof selector === "function") {
+      return selector(mockStoreState)
+    }
+    return mockStoreState
+  }),
+}))
+
 const defaultProps = {
   isOpen: true,
-  noteId: 123,
-  noteState: "todo" as const,
-  noteText: "Original note text",
   onClose: jest.fn(),
 }
 
@@ -43,6 +63,12 @@ describe("EditNoteModal", () => {
     jest.clearAllMocks()
     mockWebSocketContext.isLoading = false
     mockWebSocketContext.sendMessageAsync = jest.fn().mockResolvedValue(undefined)
+    // Reset modal data to default
+    mockStoreState.modals.editNote.data = {
+      noteId: 123,
+      noteState: "todo",
+      noteText: "Original note text",
+    }
   })
 
   // Basic Rendering & Modal Behavior (4 tests)
@@ -104,7 +130,14 @@ describe("EditNoteModal", () => {
   // Form Pre-population & Reset (3 tests)
   describe("Form pre-population and reset", () => {
     it("pre-populates form with current note values", async () => {
-      render(<EditNoteModal {...defaultProps} noteState="in_progress" noteText="Test content" />)
+      // Set modal data in store
+      mockStoreState.modals.editNote.data = {
+        noteId: 123,
+        noteState: "in_progress",
+        noteText: "Test content",
+      }
+
+      render(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -120,7 +153,13 @@ describe("EditNoteModal", () => {
       await act(async () => {})
 
       // Reopen with different values
-      rerender(<EditNoteModal {...defaultProps} noteState="done" noteText="New content" />)
+      mockStoreState.modals.editNote.data = {
+        noteId: 123,
+        noteState: "done",
+        noteText: "New content",
+      }
+
+      rerender(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -132,7 +171,14 @@ describe("EditNoteModal", () => {
     })
 
     it("shows text length counter when text is present", async () => {
-      render(<EditNoteModal {...defaultProps} noteText="Test content" />)
+      // Set modal data in store
+      mockStoreState.modals.editNote.data = {
+        noteId: 123,
+        noteState: "todo",
+        noteText: "Test content",
+      }
+
+      render(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -183,7 +229,14 @@ describe("EditNoteModal", () => {
 
     it("updates text length counter as user types", async () => {
       const user = userEvent.setup()
-      render(<EditNoteModal {...defaultProps} noteText="" />)
+      // Set modal data in store with empty text
+      mockStoreState.modals.editNote.data = {
+        noteId: 123,
+        noteState: "todo",
+        noteText: "",
+      }
+
+      render(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
@@ -383,7 +436,15 @@ describe("EditNoteModal", () => {
     it("focuses and selects text when hasTextFocus is true", async () => {
       const clearTextFocus = jest.fn()
 
-      render(<EditNoteModal {...defaultProps} hasTextFocus={true} clearTextFocus={clearTextFocus} />)
+      // Set modal data in store with focusText flag
+      mockStoreState.modals.editNote.data = {
+        noteId: 123,
+        noteState: "todo",
+        noteText: "Original note text",
+        focusText: true,
+      }
+
+      render(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
       await act(async () => {})
