@@ -14,11 +14,7 @@ export const fetchHistoryItemLast = async (apiUrl: string, accessToken?: string)
   return fetchWithAuth<IHistoryItem>(`${apiUrl}/history/browser`, accessToken)
 }
 
-export const postSnapshot = async (
-  apiUrl: string,
-  data: ISnapshotData,
-  accessToken?: string,
-): Promise<void> => {
+export const postSnapshot = async (apiUrl: string, data: ISnapshotData, accessToken?: string): Promise<void> => {
   const encodedSnapshot = base64EncodeUnicode(JSON.stringify(data.notes))
 
   return fetchWithAuth<void>(`${apiUrl}/history`, accessToken, {

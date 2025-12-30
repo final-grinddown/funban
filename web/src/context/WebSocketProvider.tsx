@@ -20,9 +20,9 @@ import ReconnectingWebSocket, { Options as RWSOptions } from "reconnecting-webso
 import typia from "typia"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
+import { useConfig } from "@/context/ConfigProvider"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import { useAppStore } from "@/store"
-import { useConfig } from "@/context/ConfigProvider"
 import { dispatchPatchOperation } from "@/websocket/handlers"
 
 // WebSocket message types
@@ -98,7 +98,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       setUsers([])
       setNotes([])
     }
-  }, [session, status, setUsers, setNotes])
+  }, [session, status, wsUrl, setUsers, setNotes])
 
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {
