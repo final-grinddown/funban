@@ -25,13 +25,14 @@ import {
 import Link from "next/link"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { ERoutes } from "@/utils/enums"
+import { ENV } from "@/utils/env"
 import pkg from "../../package.json"
 interface Props {
   children: ReactNode
   userEmail: string
 }
 
-const ENV = process.env.NEXT_PUBLIC_ENV
+const APP_ENV = ENV.ENV
 
 export function DashboardLayout({ children, userEmail }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -89,9 +90,9 @@ export function DashboardLayout({ children, userEmail }: Props) {
               FUN
             </Typography>
             BAN Status tool
-            {ENV !== "production" && (
+            {APP_ENV !== "production" && (
               // Display some icon for development, with environment name as a tooltip using material ui
-              <Tooltip title={ENV} placement="top" arrow>
+              <Tooltip title={APP_ENV} placement="top" arrow>
                 <Typography component="span" variant="h6" color="red" marginLeft="2px">
                   DEV
                 </Typography>

@@ -23,6 +23,7 @@ import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import { useAppStore } from "@/store"
 import { dispatchPatchOperation } from "@/websocket/handlers"
+import { ENV } from "@/utils/env"
 
 // WebSocket message types
 type PatchMessage = {
@@ -49,7 +50,7 @@ interface WebSocketContextType {
   isLoading: boolean
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL
+const WS_URL = ENV.WS_URL
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 

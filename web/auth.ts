@@ -1,8 +1,9 @@
 import NextAuth from "next-auth"
 import "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { ENV } from "@/utils/env"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+const API_URL = ENV.API_URL
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
