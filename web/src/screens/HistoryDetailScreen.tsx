@@ -38,7 +38,6 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
     enabled: !!session?.accessToken,
   })
 
-
   const handleOpenMenu = (event: SyntheticEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget)
   }
@@ -70,7 +69,6 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
       })
     }
   }
-
 
   if (isLoading) {
     return <BackdropLoading isInDashboard={true} />

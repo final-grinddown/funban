@@ -64,8 +64,8 @@ export function Board({ isEditable }: Props) {
 
   // Use local state during drag or while waiting for server confirmation
   // Check if our pending drag UUID is still in the asyncQueue (not yet confirmed)
-  const hasPendingDrag = pendingDragUuidRef.current !== null &&
-    asyncQueue.some(action => action.id === pendingDragUuidRef.current)
+  const hasPendingDrag =
+    pendingDragUuidRef.current !== null && asyncQueue.some((action) => action.id === pendingDragUuidRef.current)
 
   const isOptimistic = activeId !== null || hasPendingDrag
   const notesNotes = isOptimistic ? localNotesNotes : storeNotesNotes
@@ -145,125 +145,183 @@ export function Board({ isEditable }: Props) {
   }, [])
 
   // Keyboard shortcuts to focus first note in each column (1-4)
-  useHotkeys('1', (e) => {
-    if (isAnyModalOpen()) return
-    e.preventDefault()
-    focusFirstNoteInColumn(notesColumnRef)
-  }, [focusFirstNoteInColumn])
+  useHotkeys(
+    "1",
+    (e) => {
+      if (isAnyModalOpen()) return
+      e.preventDefault()
+      focusFirstNoteInColumn(notesColumnRef)
+    },
+    [focusFirstNoteInColumn],
+  )
 
-  useHotkeys('2', (e) => {
-    if (isAnyModalOpen()) return
-    e.preventDefault()
-    focusFirstNoteInColumn(todoColumnRef)
-  }, [focusFirstNoteInColumn])
+  useHotkeys(
+    "2",
+    (e) => {
+      if (isAnyModalOpen()) return
+      e.preventDefault()
+      focusFirstNoteInColumn(todoColumnRef)
+    },
+    [focusFirstNoteInColumn],
+  )
 
-  useHotkeys('3', (e) => {
-    if (isAnyModalOpen()) return
-    e.preventDefault()
-    focusFirstNoteInColumn(inProgressColumnRef)
-  }, [focusFirstNoteInColumn])
+  useHotkeys(
+    "3",
+    (e) => {
+      if (isAnyModalOpen()) return
+      e.preventDefault()
+      focusFirstNoteInColumn(inProgressColumnRef)
+    },
+    [focusFirstNoteInColumn],
+  )
 
-  useHotkeys('4', (e) => {
-    if (isAnyModalOpen()) return
-    e.preventDefault()
-    focusFirstNoteInColumn(doneColumnRef)
-  }, [focusFirstNoteInColumn])
+  useHotkeys(
+    "4",
+    (e) => {
+      if (isAnyModalOpen()) return
+      e.preventDefault()
+      focusFirstNoteInColumn(doneColumnRef)
+    },
+    [focusFirstNoteInColumn],
+  )
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as number)
-    // Initialize local state from store for optimistic updates
-    setLocalNotesNotes(storeNotesNotes)
-    setLocalTodoNotes(storeTodoNotes)
-    setLocalInProgressNotes(storeInProgressNotes)
-    setLocalDoneNotes(storeDoneNotes)
-  }, [storeNotesNotes, storeTodoNotes, storeInProgressNotes, storeDoneNotes])
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      setActiveId(event.active.id as number)
+      // Initialize local state from store for optimistic updates
+      setLocalNotesNotes(storeNotesNotes)
+      setLocalTodoNotes(storeTodoNotes)
+      setLocalInProgressNotes(storeInProgressNotes)
+      setLocalDoneNotes(storeDoneNotes)
+    },
+    [storeNotesNotes, storeTodoNotes, storeInProgressNotes, storeDoneNotes],
+  )
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event
 
-    if (!over) return
+      if (!over) return
 
-    const activeId = active.id as number
-    const overId = over.id
+      const activeId = active.id as number
+      const overId = over.id
 
-    // Find which containers the active and over items are in
-    const activeContainer =
-      localNotesNotes.find(n => n.id === activeId) ? 'notes' :
-      localTodoNotes.find(n => n.id === activeId) ? 'todo' :
-      localInProgressNotes.find(n => n.id === activeId) ? 'in_progress' :
-      localDoneNotes.find(n => n.id === activeId) ? 'done' : null
+      // Find which containers the active and over items are in
+      const activeContainer = localNotesNotes.find((n) => n.id === activeId)
+        ? "notes"
+        : localTodoNotes.find((n) => n.id === activeId)
+          ? "todo"
+          : localInProgressNotes.find((n) => n.id === activeId)
+            ? "in_progress"
+            : localDoneNotes.find((n) => n.id === activeId)
+              ? "done"
+              : null
 
-    const overContainer =
-      localNotesNotes.find(n => n.id === overId) ? 'notes' :
-      localTodoNotes.find(n => n.id === overId) ? 'todo' :
-      localInProgressNotes.find(n => n.id === overId) ? 'in_progress' :
-      localDoneNotes.find(n => n.id === overId) ? 'done' :
-      overId === 'NOTES' ? 'notes' :
-      overId === 'TODO' ? 'todo' :
-      overId === 'IN PROGRESS' ? 'in_progress' :
-      overId === 'DONE' ? 'done' : null
+      const overContainer = localNotesNotes.find((n) => n.id === overId)
+        ? "notes"
+        : localTodoNotes.find((n) => n.id === overId)
+          ? "todo"
+          : localInProgressNotes.find((n) => n.id === overId)
+            ? "in_progress"
+            : localDoneNotes.find((n) => n.id === overId)
+              ? "done"
+              : overId === "NOTES"
+                ? "notes"
+                : overId === "TODO"
+                  ? "todo"
+                  : overId === "IN PROGRESS"
+                    ? "in_progress"
+                    : overId === "DONE"
+                      ? "done"
+                      : null
 
-    if (!activeContainer || !overContainer) return
+      if (!activeContainer || !overContainer) return
 
-    // If moving between containers, update local state for smooth animation
-    if (activeContainer !== overContainer) {
-      const activeNote = notes.find(n => n.id === activeId)
-      if (!activeNote) return
+      // If moving between containers, update local state for smooth animation
+      if (activeContainer !== overContainer) {
+        const activeNote = notes.find((n) => n.id === activeId)
+        if (!activeNote) return
 
-      // Remove from source container and add to target
-      const updateContainers = () => {
-        const removeFrom = (items: typeof localNotesNotes) => items.filter(n => n.id !== activeId)
-        const addTo = (items: typeof localNotesNotes, targetId?: number) => {
-          const filtered = items.filter(n => n.id !== activeId)
-          if (typeof targetId === 'number') {
-            const targetIndex = filtered.findIndex(n => n.id === targetId)
-            if (targetIndex >= 0) {
-              // Insert BEFORE the target index (not after)
-              return [...filtered.slice(0, targetIndex), activeNote, ...filtered.slice(targetIndex)]
+        // Remove from source container and add to target
+        const updateContainers = () => {
+          const removeFrom = (items: typeof localNotesNotes) => items.filter((n) => n.id !== activeId)
+          const addTo = (items: typeof localNotesNotes, targetId?: number) => {
+            const filtered = items.filter((n) => n.id !== activeId)
+            if (typeof targetId === "number") {
+              const targetIndex = filtered.findIndex((n) => n.id === targetId)
+              if (targetIndex >= 0) {
+                // Insert BEFORE the target index (not after)
+                return [...filtered.slice(0, targetIndex), activeNote, ...filtered.slice(targetIndex)]
+              }
             }
+            return [...filtered, activeNote]
           }
-          return [...filtered, activeNote]
+
+          switch (activeContainer) {
+            case "notes":
+              setLocalNotesNotes((prev) => removeFrom(prev))
+              break
+            case "todo":
+              setLocalTodoNotes((prev) => removeFrom(prev))
+              break
+            case "in_progress":
+              setLocalInProgressNotes((prev) => removeFrom(prev))
+              break
+            case "done":
+              setLocalDoneNotes((prev) => removeFrom(prev))
+              break
+          }
+
+          const targetNoteId = typeof overId === "number" ? overId : undefined
+          switch (overContainer) {
+            case "notes":
+              setLocalNotesNotes((prev) => addTo(prev, targetNoteId))
+              break
+            case "todo":
+              setLocalTodoNotes((prev) => addTo(prev, targetNoteId))
+              break
+            case "in_progress":
+              setLocalInProgressNotes((prev) => addTo(prev, targetNoteId))
+              break
+            case "done":
+              setLocalDoneNotes((prev) => addTo(prev, targetNoteId))
+              break
+          }
         }
 
-        switch (activeContainer) {
-          case 'notes': setLocalNotesNotes(prev => removeFrom(prev)); break
-          case 'todo': setLocalTodoNotes(prev => removeFrom(prev)); break
-          case 'in_progress': setLocalInProgressNotes(prev => removeFrom(prev)); break
-          case 'done': setLocalDoneNotes(prev => removeFrom(prev)); break
-        }
+        updateContainers()
+      } else {
+        // Within same container - update order for smooth animation
+        if (typeof overId === "number" && activeId !== overId) {
+          const updateContainer = (items: typeof localNotesNotes) => {
+            const oldIndex = items.findIndex((n) => n.id === activeId)
+            const newIndex = items.findIndex((n) => n.id === overId)
 
-        const targetNoteId = typeof overId === 'number' ? overId : undefined
-        switch (overContainer) {
-          case 'notes': setLocalNotesNotes(prev => addTo(prev, targetNoteId)); break
-          case 'todo': setLocalTodoNotes(prev => addTo(prev, targetNoteId)); break
-          case 'in_progress': setLocalInProgressNotes(prev => addTo(prev, targetNoteId)); break
-          case 'done': setLocalDoneNotes(prev => addTo(prev, targetNoteId)); break
+            if (oldIndex !== -1 && newIndex !== -1) {
+              return arrayMove(items, oldIndex, newIndex)
+            }
+            return items
+          }
+
+          switch (activeContainer) {
+            case "notes":
+              setLocalNotesNotes(updateContainer)
+              break
+            case "todo":
+              setLocalTodoNotes(updateContainer)
+              break
+            case "in_progress":
+              setLocalInProgressNotes(updateContainer)
+              break
+            case "done":
+              setLocalDoneNotes(updateContainer)
+              break
+          }
         }
       }
-
-      updateContainers()
-    } else {
-      // Within same container - update order for smooth animation
-      if (typeof overId === 'number' && activeId !== overId) {
-        const updateContainer = (items: typeof localNotesNotes) => {
-          const oldIndex = items.findIndex(n => n.id === activeId)
-          const newIndex = items.findIndex(n => n.id === overId)
-
-          if (oldIndex !== -1 && newIndex !== -1) {
-            return arrayMove(items, oldIndex, newIndex)
-          }
-          return items
-        }
-
-        switch (activeContainer) {
-          case 'notes': setLocalNotesNotes(updateContainer); break
-          case 'todo': setLocalTodoNotes(updateContainer); break
-          case 'in_progress': setLocalInProgressNotes(updateContainer); break
-          case 'done': setLocalDoneNotes(updateContainer); break
-        }
-      }
-    }
-  }, [localNotesNotes, localTodoNotes, localInProgressNotes, localDoneNotes, notes])
+    },
+    [localNotesNotes, localTodoNotes, localInProgressNotes, localDoneNotes, notes],
+  )
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -284,12 +342,15 @@ export function Board({ isEditable }: Props) {
       const activeNoteId = active.id as number
 
       // Find which column the note ended up in
-      const targetColumn =
-        localNotesNotes.find(n => n.id === activeNoteId) ? { items: localNotesNotes, state: 'notes' } :
-        localTodoNotes.find(n => n.id === activeNoteId) ? { items: localTodoNotes, state: 'todo' } :
-        localInProgressNotes.find(n => n.id === activeNoteId) ? { items: localInProgressNotes, state: 'in_progress' } :
-        localDoneNotes.find(n => n.id === activeNoteId) ? { items: localDoneNotes, state: 'done' } :
-        null
+      const targetColumn = localNotesNotes.find((n) => n.id === activeNoteId)
+        ? { items: localNotesNotes, state: "notes" }
+        : localTodoNotes.find((n) => n.id === activeNoteId)
+          ? { items: localTodoNotes, state: "todo" }
+          : localInProgressNotes.find((n) => n.id === activeNoteId)
+            ? { items: localInProgressNotes, state: "in_progress" }
+            : localDoneNotes.find((n) => n.id === activeNoteId)
+              ? { items: localDoneNotes, state: "done" }
+              : null
 
       if (!targetColumn) return
 
@@ -297,7 +358,7 @@ export function Board({ isEditable }: Props) {
       const columnItems = targetColumn.items
 
       // Find the index of the dragged note in the final array
-      const newIndex = columnItems.findIndex(n => n.id === activeNoteId)
+      const newIndex = columnItems.findIndex((n) => n.id === activeNoteId)
 
       if (newIndex === -1) return
 
@@ -347,11 +408,15 @@ export function Board({ isEditable }: Props) {
           {columns.map(({ title, items, state, orderKey }) => {
             // Assign correct ref based on column state
             const columnRef =
-              state === 'notes' ? notesColumnRef :
-              state === 'todo' ? todoColumnRef :
-              state === 'in_progress' ? inProgressColumnRef :
-              state === 'done' ? doneColumnRef :
-              undefined
+              state === "notes"
+                ? notesColumnRef
+                : state === "todo"
+                  ? todoColumnRef
+                  : state === "in_progress"
+                    ? inProgressColumnRef
+                    : state === "done"
+                      ? doneColumnRef
+                      : undefined
 
             return (
               <BoardColumn

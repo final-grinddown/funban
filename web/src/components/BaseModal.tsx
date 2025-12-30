@@ -19,18 +19,18 @@ interface Props {
   children: ReactNode
   maxWidth?: "xs" | "sm" | "md" | "lg" | "xl"
   fullWidth?: boolean
-  
+
   // Action buttons
   primaryButtonText?: string
   primaryButtonAction?: () => void
   primaryButtonDisabled?: boolean
   primaryButtonLoading?: boolean
   primaryButtonWidth?: string
-  
+
   secondaryButtonText?: string
   secondaryButtonAction?: () => void
   secondaryButtonDisabled?: boolean
-  
+
   // Form submission support
   onSubmit?: () => void
   isSubmitForm?: boolean
@@ -44,17 +44,17 @@ export function BaseModal({
   children,
   maxWidth = "sm",
   fullWidth = true,
-  
+
   primaryButtonText = "Save",
   primaryButtonAction,
   primaryButtonDisabled = false,
   primaryButtonLoading = false,
   primaryButtonWidth = "72px",
-  
+
   secondaryButtonText = "Cancel",
   secondaryButtonAction = onClose,
   secondaryButtonDisabled = false,
-  
+
   onSubmit,
   isSubmitForm = false,
 }: Props) {
@@ -67,25 +67,21 @@ export function BaseModal({
   }
 
   return (
-    <Dialog 
-      open={isOpen} 
-      onClose={onClose} 
-      fullWidth={fullWidth} 
-      maxWidth={maxWidth} 
-      disableRestoreFocus
-    >
-      <DialogTitle sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        pb: description ? 1 : 0 
-      }}>
+    <Dialog open={isOpen} onClose={onClose} fullWidth={fullWidth} maxWidth={maxWidth} disableRestoreFocus>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          pb: description ? 1 : 0,
+        }}
+      >
         {title}
         <IconButton edge="end" color="inherit" onClick={onClose}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <DialogContent>
         {description && (
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
@@ -94,11 +90,11 @@ export function BaseModal({
         )}
         {children}
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
-        <Button 
-          onClick={secondaryButtonAction} 
-          color="secondary" 
+        <Button
+          onClick={secondaryButtonAction}
+          color="secondary"
           variant="contained"
           disabled={secondaryButtonDisabled}
         >

@@ -27,14 +27,14 @@ export function handleNotePatch(op: WsOperation, store: AppState): void {
     case "NoteTextUpdated":
       updateNote(op.id, {
         text: op.text,
-        updated: new Date().toISOString()
+        updated: new Date().toISOString(),
       })
       break
 
     case "NoteTagChanged":
       updateNote(op.id, {
         tag: op.tag,
-        updated: new Date().toISOString()
+        updated: new Date().toISOString(),
       })
       break
 

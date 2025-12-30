@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
-import {
-  FormControl,
-  Select,
-  InputLabel,
-  SelectChangeEvent,
-  MenuItem,
-  Box,
-} from "@mui/material"
+import { FormControl, Select, InputLabel, SelectChangeEvent, MenuItem, Box } from "@mui/material"
 import { Board } from "@/components/Board"
 import { useAppStore } from "@/store"
 import type { ParsedSnapshot } from "@/utils/snapshot-types"
@@ -37,7 +30,7 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
 
   // Convert back to the format Board expects (with owner info embedded)
   const boardNotes = useMemo(() => {
-    return notes.map(note => ({
+    return notes.map((note) => ({
       id: note.id,
       text: note.text,
       name: note.name,
@@ -70,16 +63,12 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
         >
           <MenuItem value="All">All</MenuItem>
           {users.map((user) => {
-            const marksDisplay = user.marks.map(m => m.mark_type).join(' ')
+            const marksDisplay = user.marks.map((m) => m.mark_type).join(" ")
             return (
               <MenuItem key={user.id} value={user.name}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
                   <span>{user.name}</span>
-                  {marksDisplay && (
-                    <span style={{ marginLeft: 'auto', fontSize: '1rem' }}>
-                      {marksDisplay}
-                    </span>
-                  )}
+                  {marksDisplay && <span style={{ marginLeft: "auto", fontSize: "1rem" }}>{marksDisplay}</span>}
                 </Box>
               </MenuItem>
             )

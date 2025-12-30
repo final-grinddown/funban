@@ -37,13 +37,8 @@ export function useFormValidation({
   const safeText = text ?? ""
   const isTextValid = safeText.length > 0 && safeText.length <= MaxTextLength
   const isTextChanged = originalText !== undefined ? safeText !== originalText : true
-  
-  const isFormSubmittable = 
-    isValid && 
-    isDirty && 
-    isTextValid && 
-    isTextChanged && 
-    customValidation
+
+  const isFormSubmittable = isValid && isDirty && isTextValid && isTextChanged && customValidation
 
   return {
     isTextValid,

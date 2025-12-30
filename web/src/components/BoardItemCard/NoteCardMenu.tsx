@@ -3,14 +3,7 @@ import AddLinkIcon from "@mui/icons-material/AddLink"
 import CallSplitIcon from "@mui/icons-material/CallSplit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
-import {
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  ListSubheader,
-  Menu,
-  MenuItem,
-} from "@mui/material"
+import { Divider, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem } from "@mui/material"
 import { useTheme } from "@mui/material/styles"
 import { allowedModifiers } from "@/utils/noteConstants"
 
@@ -50,9 +43,7 @@ export const NoteCardMenu = memo(function NoteCardMenu({
       open={open}
       onClose={onClose}
       anchorReference="anchorPosition"
-      anchorPosition={
-        contextMenu !== null ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined
-      }
+      anchorPosition={contextMenu !== null ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined}
       MenuListProps={{
         "aria-labelledby": "context-menu",
       }}

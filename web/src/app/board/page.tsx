@@ -35,11 +35,7 @@ export default function Board() {
 
   return (
     <DashboardLayout userEmail={session.user.email}>
-      {showLoading ? (
-        <BackdropLoading isInDashboard={true} />
-      ) : (
-        <BoardScreen accessToken={session?.accessToken} />
-      )}
+      {showLoading ? <BackdropLoading isInDashboard={true} /> : <BoardScreen accessToken={session?.accessToken} />}
     </DashboardLayout>
   )
 }

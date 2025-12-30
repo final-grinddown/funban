@@ -21,7 +21,7 @@ import { handleUserPatch } from "./handleUserPatch"
 export function dispatchPatchOperation(
   op: WsOperation,
   store: AppState,
-  setIsLoading: (loading: boolean) => void
+  setIsLoading: (loading: boolean) => void,
 ): void {
   // Classify operation by type and dispatch to appropriate handler
   switch (op.type) {

@@ -1,10 +1,5 @@
 import { useEffect, useRef } from "react"
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-} from "@mui/material"
+import { FormControl, InputLabel, MenuItem, Select } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
@@ -92,33 +87,33 @@ export function EditNoteModal({ isOpen, onClose }: Props) {
       primaryButtonLoading={isSubmitting}
     >
       <form onSubmit={handleSubmit(handleFormSubmit)}>
-          <Controller
-            name="state"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="state-label">State</InputLabel>
-                <Select {...field} labelId="state-label" label="State">
-                  {noteStateOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
-          <NoteTextFieldController
-            name="text"
-            control={control}
-            errors={errors}
-            currentText={text}
-            autoFocus={focusText}
-            inputRef={inputRef}
-            sx={{ my: 2 }}
-            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isDirty)}
-          />
-        </form>
+        <Controller
+          name="state"
+          control={control}
+          render={({ field }) => (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel id="state-label">State</InputLabel>
+              <Select {...field} labelId="state-label" label="State">
+                {noteStateOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
+        <NoteTextFieldController
+          name="text"
+          control={control}
+          errors={errors}
+          currentText={text}
+          autoFocus={focusText}
+          inputRef={inputRef}
+          sx={{ my: 2 }}
+          onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isDirty)}
+        />
+      </form>
     </BaseModal>
   )
 }

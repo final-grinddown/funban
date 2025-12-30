@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from "react"
 
 interface UseModalStateProps {
   /** Whether the modal should close automatically after successful submission */
@@ -58,13 +58,7 @@ export function useModalState({
 
   // Auto-close modal after successful submission
   useEffect(() => {
-    if (
-      autoCloseOnSubmit &&
-      wasSubmitting &&
-      !isSubmitting &&
-      !isExternalLoading &&
-      isOpen
-    ) {
+    if (autoCloseOnSubmit && wasSubmitting && !isSubmitting && !isExternalLoading && isOpen) {
       closeModal()
     }
   }, [autoCloseOnSubmit, wasSubmitting, isSubmitting, isExternalLoading, isOpen, closeModal])

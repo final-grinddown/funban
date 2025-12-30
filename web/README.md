@@ -2,7 +2,7 @@
 
 Frontend application for Funban - a real-time collaborative Kanban board system. Built with Next.js, Material-UI, and WebSocket synchronization.
 
-*This is the web component. The Rust backend API is in the `../server/` directory.*
+_This is the web component. The Rust backend API is in the `../server/` directory._
 
 ## Features
 
@@ -30,18 +30,21 @@ Frontend application for Funban - a real-time collaborative Kanban board system.
 ## Getting Started
 
 1. **Install dependencies**:
+
 ```bash
 yarn install
 ```
 
 2. **Configure environment**:
-Create `.env.local` with backend URL:
+   Create `.env.local` with backend URL:
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXTAUTH_SECRET=your-secret-here
 ```
 
 3. **Run development server**:
+
 ```bash
 yarn dev
 ```

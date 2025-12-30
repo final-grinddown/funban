@@ -77,7 +77,13 @@ export function BoardScreen({ accessToken }: Props) {
 
   useHotkeys("d", () => handleNextUser(), [handleNextUser])
 
-  const handleAddUserMark = (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => {
+  const handleAddUserMark = (data: {
+    userId: number
+    markType: string
+    duration?: number
+    customText?: string
+    expiresAt?: string
+  }) => {
     const message = createAddUserMark(data.userId, data.markType, data.duration, data.customText, data.expiresAt)
     sendMessageAsync(message, "Mark added!")
   }
