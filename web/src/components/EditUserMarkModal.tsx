@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react"
 import { Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem, Select, TextField } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"

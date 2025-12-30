@@ -1,26 +1,27 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
-import { ENV } from "@/utils/env"
 import { base64EncodeUnicode } from "@/utils/helpers"
 import { IHistoryItem, ISnapshotData } from "@/utils/interfaces"
 
-const API_URL = ENV.API_URL
-
-export const fetchHistory = async (accessToken?: string): Promise<IHistoryItem[]> => {
-  return fetchWithAuth<IHistoryItem[]>(`${API_URL}/history`, accessToken)
+export const fetchHistory = async (apiUrl: string, accessToken?: string): Promise<IHistoryItem[]> => {
+  return fetchWithAuth<IHistoryItem[]>(`${apiUrl}/history`, accessToken)
 }
 
-export const fetchHistoryItem = async (id: string, accessToken?: string): Promise<IHistoryItem> => {
-  return fetchWithAuth<IHistoryItem>(`${API_URL}/history/browser/${id}`, accessToken)
+export const fetchHistoryItem = async (apiUrl: string, id: string, accessToken?: string): Promise<IHistoryItem> => {
+  return fetchWithAuth<IHistoryItem>(`${apiUrl}/history/browser/${id}`, accessToken)
 }
 
-export const fetchHistoryItemLast = async (accessToken?: string): Promise<IHistoryItem> => {
-  return fetchWithAuth<IHistoryItem>(`${API_URL}/history/browser`, accessToken)
+export const fetchHistoryItemLast = async (apiUrl: string, accessToken?: string): Promise<IHistoryItem> => {
+  return fetchWithAuth<IHistoryItem>(`${apiUrl}/history/browser`, accessToken)
 }
 
-export const postSnapshot = async (data: ISnapshotData, accessToken?: string): Promise<void> => {
+export const postSnapshot = async (
+  apiUrl: string,
+  data: ISnapshotData,
+  accessToken?: string,
+): Promise<void> => {
   const encodedSnapshot = base64EncodeUnicode(JSON.stringify(data.notes))
 
-  return fetchWithAuth<void>(`${API_URL}/history`, accessToken, {
+  return fetchWithAuth<void>(`${apiUrl}/history`, accessToken, {
     method: "POST",
     body: {
       label: data.label,
@@ -30,11 +31,12 @@ export const postSnapshot = async (data: ISnapshotData, accessToken?: string): P
 }
 
 export const changePassword = async (
+  apiUrl: string,
   old_password: string,
   new_password: string,
   accessToken?: string,
 ): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/auth/password`, accessToken, {
+  return fetchWithAuth<void>(`${apiUrl}/auth/password`, accessToken, {
     method: "POST",
     body: {
       old_password,
@@ -43,8 +45,8 @@ export const changePassword = async (
   })
 }
 
-export const changeEmail = async (new_email: string, accessToken?: string): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/auth/email`, accessToken, {
+export const changeEmail = async (apiUrl: string, new_email: string, accessToken?: string): Promise<void> => {
+  return fetchWithAuth<void>(`${apiUrl}/auth/email`, accessToken, {
     method: "POST",
     body: {
       new_email,
@@ -53,6 +55,7 @@ export const changeEmail = async (new_email: string, accessToken?: string): Prom
 }
 
 export const addUserMark = async (
+  apiUrl: string,
   userId: number,
   markType: string,
   expiresAfterStatusEnds: number | null,
@@ -60,7 +63,7 @@ export const addUserMark = async (
   expiresAt?: string,
   accessToken?: string,
 ): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/user-marks`, accessToken, {
+  return fetchWithAuth<void>(`${apiUrl}/user-marks`, accessToken, {
     method: "POST",
     body: {
       user_id: userId,
@@ -81,19 +84,28 @@ export interface UserMark {
   expires_at: string | null
 }
 
-export const fetchUserMarks = async (accessToken?: string): Promise<UserMark[]> => {
-  return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks`, accessToken)
+export const fetchUserMarks = async (apiUrl: string, accessToken?: string): Promise<UserMark[]> => {
+  return fetchWithAuth<UserMark[]>(`${apiUrl}/user-marks`, accessToken)
 }
 
-export const fetchUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
-  return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}`, accessToken)
+export const fetchUserMarksByUserId = async (
+  apiUrl: string,
+  userId: number,
+  accessToken?: string,
+): Promise<UserMark[]> => {
+  return fetchWithAuth<UserMark[]>(`${apiUrl}/user-marks/user/${userId}`, accessToken)
 }
 
-export const fetchExpiredUserMarksByUserId = async (userId: number, accessToken?: string): Promise<UserMark[]> => {
-  return fetchWithAuth<UserMark[]>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken)
+export const fetchExpiredUserMarksByUserId = async (
+  apiUrl: string,
+  userId: number,
+  accessToken?: string,
+): Promise<UserMark[]> => {
+  return fetchWithAuth<UserMark[]>(`${apiUrl}/user-marks/user/${userId}/expired`, accessToken)
 }
 
 export const updateUserMark = async (
+  apiUrl: string,
   id: number,
   userId: number,
   markType: string,
@@ -102,7 +114,7 @@ export const updateUserMark = async (
   expiresAt?: string,
   accessToken?: string,
 ): Promise<UserMark> => {
-  return fetchWithAuth<UserMark>(`${API_URL}/user-marks/${id}`, accessToken, {
+  return fetchWithAuth<UserMark>(`${apiUrl}/user-marks/${id}`, accessToken, {
     method: "PUT",
     body: {
       user_id: userId,
@@ -114,20 +126,20 @@ export const updateUserMark = async (
   })
 }
 
-export const deleteUserMark = async (id: number, accessToken?: string): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/user-marks/${id}`, accessToken, {
+export const deleteUserMark = async (apiUrl: string, id: number, accessToken?: string): Promise<void> => {
+  return fetchWithAuth<void>(`${apiUrl}/user-marks/${id}`, accessToken, {
     method: "DELETE",
   })
 }
 
-export const expireAllUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expire-all`, accessToken, {
+export const expireAllUserMarks = async (apiUrl: string, userId: number, accessToken?: string): Promise<void> => {
+  return fetchWithAuth<void>(`${apiUrl}/user-marks/user/${userId}/expire-all`, accessToken, {
     method: "PUT",
   })
 }
 
-export const deleteExpiredUserMarks = async (userId: number, accessToken?: string): Promise<void> => {
-  return fetchWithAuth<void>(`${API_URL}/user-marks/user/${userId}/expired`, accessToken, {
+export const deleteExpiredUserMarks = async (apiUrl: string, userId: number, accessToken?: string): Promise<void> => {
+  return fetchWithAuth<void>(`${apiUrl}/user-marks/user/${userId}/expired`, accessToken, {
     method: "DELETE",
   })
 }

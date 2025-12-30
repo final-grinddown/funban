@@ -14,12 +14,8 @@ RUN yarn install --immutable
 COPY contracts/ ../contracts/
 COPY web/ ./
 
-# Set placeholder values for NEXT_PUBLIC_* variables during build
-# These will be overridden at runtime by generate-env.sh
-ENV NEXT_PUBLIC_API_URL="__PLACEHOLDER__" \
-    NEXT_PUBLIC_WS_URL="__PLACEHOLDER__" \
-    NEXT_PUBLIC_ENV="__PLACEHOLDER__"
-
+# Build Next.js app
+# Note: NEXT_PUBLIC_* vars are NOT set here - they're read at runtime by server components
 RUN yarn build
 
 # Production stage
@@ -34,12 +30,9 @@ COPY --from=builder /app/.next/standalone/ ./
 COPY --from=builder /app/.next/static/ ./.next/static/
 COPY --from=builder /app/public/ ./public/
 
-# Copy runtime environment generation script
-COPY web/generate-env.sh /app/
-RUN chmod +x /app/generate-env.sh
-
 # Expose the port your app runs on
 EXPOSE 3000
 
-# Generate runtime configuration and start the application
-CMD ["/bin/sh", "-c", "/app/generate-env.sh && node server.js"]
+# Start the application
+# Runtime env vars are read directly from process.env by the server component
+CMD ["node", "server.js"]

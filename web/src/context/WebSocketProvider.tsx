@@ -22,7 +22,7 @@ import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import { useAppStore } from "@/store"
-import { ENV } from "@/utils/env"
+import { useConfig } from "@/context/ConfigProvider"
 import { dispatchPatchOperation } from "@/websocket/handlers"
 
 // WebSocket message types
@@ -65,6 +65,7 @@ const WS_OPTIONS: RWSOptions = {
 }
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
+  const { wsUrl } = useConfig()
   const { data: session, status } = useSession()
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<ReconnectingWebSocket | null>(null)
@@ -82,7 +83,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (status === "authenticated" && session) {
       const extendedSession = session as Session
       if (extendedSession?.accessToken) {
-        setSocketUrl(`${ENV.WS_URL}?token=${extendedSession.accessToken}`)
+        setSocketUrl(`${wsUrl}?token=${extendedSession.accessToken}`)
       } else {
         console.error("WebSocket: No accessToken in session", session)
       }

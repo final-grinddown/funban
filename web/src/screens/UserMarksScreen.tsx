@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect, useCallback } from "react"
 import {
   Delete as DeleteIcon,
@@ -37,6 +38,7 @@ import {
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { EditUserMarkModal } from "@/components/EditUserMarkModal"
 import { useAppStore, selectUsers } from "@/store"
+import { useConfig } from "@/context/ConfigProvider"
 
 const markTypeLabels: Record<string, string> = {
   "⚫": "Black Mark",
@@ -75,6 +77,7 @@ function formatExpiration(mark: UserMark): string {
 
 export function UserMarksScreen() {
   const { data: session } = useSession()
+  const { apiUrl } = useConfig()
   const users = useAppStore(selectUsers)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [allMarks, setAllMarks] = useState<UserMark[]>([])
@@ -90,7 +93,7 @@ export function UserMarksScreen() {
     try {
       setLoading(true)
       setError(null)
-      const marks = await fetchUserMarks(session?.accessToken)
+      const marks = await fetchUserMarks(apiUrl, session?.accessToken)
       setAllMarks(marks)
     } catch (err) {
       setError("Failed to load user marks")
@@ -98,7 +101,7 @@ export function UserMarksScreen() {
     } finally {
       setLoading(false)
     }
-  }, [session?.accessToken])
+  }, [apiUrl, session?.accessToken])
 
   useEffect(() => {
     loadMarks()
@@ -113,7 +116,7 @@ export function UserMarksScreen() {
 
     setLoadingExpired((prev) => new Set(prev).add(userId))
     try {
-      const expired = await fetchExpiredUserMarksByUserId(userId, session?.accessToken)
+      const expired = await fetchExpiredUserMarksByUserId(apiUrl, userId, session?.accessToken)
       setExpiredMarks((prev) => new Map(prev).set(userId, expired))
       setExpandedExpired((prev) => new Set(prev).add(userId))
     } catch (err) {
@@ -143,7 +146,7 @@ export function UserMarksScreen() {
     if (!confirm("Are you sure you want to permanently delete this mark?")) return
 
     try {
-      await deleteUserMark(markId, session?.accessToken)
+      await deleteUserMark(apiUrl, markId, session?.accessToken)
       setAllMarks((prev) => prev.filter((m) => m.id !== markId))
       // Also remove from expired if present
       setExpiredMarks((prev) => {
@@ -167,6 +170,7 @@ export function UserMarksScreen() {
 
     try {
       await updateUserMark(
+        apiUrl,
         mark.id,
         mark.user_id,
         mark.mark_type,
@@ -193,7 +197,7 @@ export function UserMarksScreen() {
     if (!confirm(`Expire all ${count} marks for this user?`)) return
 
     try {
-      await expireAllUserMarks(userId, session?.accessToken)
+      await expireAllUserMarks(apiUrl, userId, session?.accessToken)
       setAllMarks((prev) => prev.filter((m) => m.user_id !== userId))
       // Invalidate expired cache
       setExpiredMarks((prev) => {
@@ -212,7 +216,7 @@ export function UserMarksScreen() {
     if (!confirm(`Permanently delete ${count} expired marks?`)) return
 
     try {
-      await deleteExpiredUserMarks(userId, session?.accessToken)
+      await deleteExpiredUserMarks(apiUrl, userId, session?.accessToken)
       setExpiredMarks((prev) => {
         const next = new Map(prev)
         next.set(userId, [])
@@ -239,6 +243,7 @@ export function UserMarksScreen() {
 
     try {
       const updated = await updateUserMark(
+        apiUrl,
         editingMark.id,
         data.userId,
         data.markType,
@@ -305,6 +310,7 @@ export function UserMarksScreen() {
   }) => {
     try {
       await addUserMark(
+        apiUrl,
         data.userId,
         data.markType,
         data.duration ?? null,
