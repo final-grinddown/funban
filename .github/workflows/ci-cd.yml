@@ -50,11 +50,11 @@ jobs:
   test-server:
     name: Test Server
     runs-on: ubuntu-latest
-    # Run if: (1) tag push (build everything), or (2) PR with server changes
+    # Always run on tag push; on PRs, only if server changed
+    needs: [changes]
     if: |
-      github.event_name != 'pull_request' ||
-      needs.changes.outputs.server == 'true'
-    needs: changes
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.server == 'true')
     defaults:
       run:
         working-directory: ./server
@@ -113,11 +113,11 @@ jobs:
   test-web:
     name: Test Web
     runs-on: ubuntu-latest
-    # Run if: (1) tag push (build everything), or (2) PR with web changes
+    # Always run on tag push; on PRs, only if web changed
+    needs: [changes]
     if: |
-      github.event_name != 'pull_request' ||
-      needs.changes.outputs.web == 'true'
-    needs: changes
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.web == 'true')
     defaults:
       run:
         working-directory: ./web
