@@ -10,17 +10,20 @@ export const metadata: Metadata = {
   description: "Kanban board status tool",
 }
 
+// Force dynamic rendering to read env vars at request time
+export const dynamic = "force-dynamic"
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode
 }>) {
   // Server Component - reads env vars at REQUEST time (runtime, not build time)
-  // These are read from the container's environment variables
+  // Use regular env vars (NO NEXT_PUBLIC_ prefix) for runtime configuration
   const config = {
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || "",
-    wsUrl: process.env.NEXT_PUBLIC_WS_URL || "",
-    env: process.env.NEXT_PUBLIC_ENV || "local",
+    apiUrl: process.env.API_URL || "",
+    wsUrl: process.env.WS_URL || "",
+    env: process.env.APP_ENV || "local",
   }
 
   return (
