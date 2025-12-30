@@ -9,20 +9,15 @@ import { Controller, useForm } from "react-hook-form"
 import { createUpdateNote, createUpdateNoteReorderLast, createUpdateNoteText } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
+import { useAppStore } from "@/store"
 import { MaxTextLength, noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { Note } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
   isOpen: boolean
-  noteId: Note["id"]
-  noteState: Note["state"]
-  noteText: Note["text"]
   onClose: () => void
-  hasTextFocus?: boolean
-  clearTextFocus?: () => void
 }
 
 interface FormInputs {
@@ -30,9 +25,14 @@ interface FormInputs {
   state: string
 }
 
-export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, hasTextFocus, clearTextFocus }: Props) {
+export function EditNoteModal({ isOpen, onClose }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
+  const modalData = useAppStore((state) => state.modals.editNote.data)
+  const noteId = modalData?.noteId
+  const noteState = modalData?.noteState
+  const noteText = modalData?.noteText
+  const focusText = modalData?.focusText
   const inputRef = useRef<HTMLInputElement | null>(null)
   const {
     control,
@@ -41,13 +41,15 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
     reset,
     formState: { errors, isDirty },
   } = useForm<FormInputs>({
-    defaultValues: { text: noteText, state: noteState },
+    defaultValues: { text: noteText ?? "", state: noteState ?? "notes" },
     mode: "onChange",
   })
 
   const text = watch("text")
 
   const handleFormSubmit = (data: FormInputs) => {
+    if (!noteId || !noteText || !noteState) return
+
     const hasTextChanged = data.text !== noteText
     const hasStateChanged = data.state !== noteState
     setIsSubmitting(true)
@@ -66,23 +68,19 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
 
   // Reset form when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && noteText && noteState) {
       reset({ text: noteText, state: noteState })
 
       // Handle focus if needed
       setTimeout(() => {
-        if (hasTextFocus && inputRef.current) {
+        if (focusText && inputRef.current) {
           const inputElement = inputRef.current
           inputElement.focus()
           inputElement.setSelectionRange(0, inputElement.value.length)
-
-          if (clearTextFocus) {
-            clearTextFocus()
-          }
         }
       }, 0)
     }
-  }, [isOpen, noteText, noteState, reset, hasTextFocus, clearTextFocus])
+  }, [isOpen, noteText, noteState, reset, focusText])
 
   return (
     <BaseModal
@@ -115,7 +113,7 @@ export function EditNoteModal({ isOpen, noteId, noteState, noteText, onClose, ha
             control={control}
             errors={errors}
             currentText={text}
-            autoFocus={hasTextFocus}
+            autoFocus={focusText}
             inputRef={inputRef}
             sx={{ my: 2 }}
             onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isDirty)}

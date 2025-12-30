@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import {
   Checkbox,
   FormControl,
@@ -12,22 +12,15 @@ import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useFormValidation, requiredSelectRules } from "@/hooks/useFormValidation"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
+import { useAppStore, selectUsers } from "@/store"
 import { noteStateOptions } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { User } from "@/utils/interfaces"
 import { BaseModal } from "./BaseModal"
 import { NoteTextFieldController } from "./NoteTextFieldController"
 
 interface Props {
-  users: User[]
   isOpen: boolean
   onClose: () => void
-  hasTextFocus?: boolean
-  clearTextFocus?: () => void
-  defaultValues?: {
-    state: string
-    ownerId: string
-  }
 }
 
 interface FormInputs {
@@ -37,9 +30,16 @@ interface FormInputs {
   saveAndCreateNext: boolean
 }
 
-export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasTextFocus, clearTextFocus }: Props) {
+export function AddNewNoteModal({ isOpen, onClose }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const textAreaRef = useRef<HTMLInputElement>(null)
+  const modalData = useAppStore((state) => state.modals.addNewNote.data)
+  const users = useAppStore(selectUsers)
+  const defaultValues = useMemo(
+    () => (modalData ? { state: modalData.state, ownerId: modalData.ownerId } : undefined),
+    [modalData?.state, modalData?.ownerId]
+  )
+  const hasTextFocus = modalData?.focusText
 
   const {
     control,
@@ -87,11 +87,11 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
 
   // Reset form with defaultValues when modal is opened
   useEffect(() => {
-    if (isOpen && defaultValues?.state && defaultValues?.ownerId) {
+    if (isOpen && defaultValues) {
       reset({
         text: "", // Keep text field properly initialized
-        state: defaultValues?.state,
-        owner: defaultValues?.ownerId,
+        state: defaultValues.state,
+        owner: defaultValues.ownerId,
         saveAndCreateNext: false, // Keep all fields properly initialized
       })
     }
@@ -104,14 +104,10 @@ export function AddNewNoteModal({ users, isOpen, onClose, defaultValues, hasText
         if (hasTextFocus && textAreaRef.current) {
           const textAreaElement = textAreaRef.current
           textAreaElement.focus()
-
-          if (clearTextFocus) {
-            clearTextFocus()
-          }
         }
       }, 0)
     }
-  }, [isOpen, hasTextFocus, clearTextFocus])
+  }, [isOpen, hasTextFocus])
 
   // Reset form when modal closes (handled by useModalSubmission for normal close)
   useEffect(() => {

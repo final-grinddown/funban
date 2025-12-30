@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -14,6 +14,12 @@ export default function Board() {
   const users = useAppStore(selectUsers)
   const notes = useAppStore(selectNotes)
   const session = data as Session
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Wait for client-side mount to avoid hydration mismatch
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -26,7 +32,7 @@ export default function Board() {
     return <BackdropLoading />
   }
 
-  const showLoading = users.length === 0 || notes.length === 0
+  const showLoading = !isMounted || users.length === 0
 
   return (
     <DashboardLayout userEmail={session.user.email}>
