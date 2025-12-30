@@ -2,7 +2,8 @@ import NextAuth from "next-auth"
 import "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+// Use regular env var (NO NEXT_PUBLIC_ prefix) for runtime configuration
+const API_URL = process.env.API_URL || ""
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
