@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from "@mui/material"
+import { Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem, Select, TextField } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { requiredSelectRules } from "@/hooks/useFormValidation"
 import { User } from "@/utils/interfaces"
@@ -18,7 +10,13 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   selectedUserId?: number
-  onSubmit: (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => void
+  onSubmit: (data: {
+    userId: number
+    markType: string
+    duration?: number
+    customText?: string
+    expiresAt?: string
+  }) => void
 }
 
 interface FormInputs {
@@ -84,9 +82,7 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
     let expiresAt: string | undefined
 
     if (data.useStandupExpiration) {
-      finalDuration = data.duration === "custom"
-        ? parseInt(data.customDuration, 10)
-        : parseInt(data.duration, 10)
+      finalDuration = data.duration === "custom" ? parseInt(data.customDuration, 10) : parseInt(data.duration, 10)
     }
 
     if (data.useDateExpiration && data.expirationDate) {
@@ -208,7 +204,7 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
             control={control}
             rules={{
               required: "Custom duration is required",
-              min: { value: 1, message: "Duration must be at least 1" }
+              min: { value: 1, message: "Duration must be at least 1" },
             }}
             render={({ field }) => (
               <TextField
@@ -246,7 +242,7 @@ export function AddUserMarkModal({ users, isOpen, onClose, selectedUserId, onSub
                 const selectedDate = new Date(value)
                 const now = new Date()
                 return selectedDate > now || "Expiration date must be in the future"
-              }
+              },
             }}
             render={({ field }) => (
               <TextField

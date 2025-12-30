@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from "@mui/material"
+import { Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem, Select, TextField } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { UserMark } from "@/app/api/fetches"
 import { BaseModal } from "@/components/BaseModal"
@@ -19,7 +11,13 @@ interface Props {
   onClose: () => void
   mark: UserMark
   users: User[]
-  onSubmit: (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => void
+  onSubmit: (data: {
+    userId: number
+    markType: string
+    duration?: number
+    customText?: string
+    expiresAt?: string
+  }) => void
 }
 
 interface FormInputs {
@@ -86,9 +84,7 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
     let expiresAt: string | undefined
 
     if (data.useStandupExpiration) {
-      finalDuration = data.duration === "custom"
-        ? parseInt(data.customDuration, 10)
-        : parseInt(data.duration, 10)
+      finalDuration = data.duration === "custom" ? parseInt(data.customDuration, 10) : parseInt(data.duration, 10)
     }
 
     if (data.useDateExpiration && data.expirationDate) {
@@ -114,7 +110,7 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
 
       // Check if duration matches a preset
       const durationStr = mark.expires_after_status_ends?.toString() || ""
-      const hasPreset = durationOptions.some(opt => opt.value === durationStr)
+      const hasPreset = durationOptions.some((opt) => opt.value === durationStr)
 
       // Format the date for datetime-local input
       let dateStr = ""
@@ -223,7 +219,7 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
             control={control}
             rules={{
               required: "Custom duration is required",
-              min: { value: 0, message: "Duration must be at least 0" }
+              min: { value: 0, message: "Duration must be at least 0" },
             }}
             render={({ field }) => (
               <TextField
@@ -261,7 +257,7 @@ export function EditUserMarkModal({ isOpen, onClose, mark, users, onSubmit }: Pr
                 const selectedDate = new Date(value)
                 const now = new Date()
                 return selectedDate > now || "Expiration date must be in the future"
-              }
+              },
             }}
             render={({ field }) => (
               <TextField

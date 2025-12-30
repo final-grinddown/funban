@@ -73,7 +73,7 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
       data.originalText,
       data.newText,
       data.newState !== originalNote.state ? data.newState : undefined,
-      data.newOwner !== originalNote.owner_id.toString() ? data.newOwner : undefined
+      data.newOwner !== originalNote.owner_id.toString() ? data.newOwner : undefined,
     )
     sendMessageAsync(message, `Note split successfully!`)
   }
@@ -101,7 +101,8 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
   }, [isOpen, originalNote, reset, selectedUserId])
 
   // Check if both text fields are valid and at least one has changed
-  const isFormValid = originalNote &&
+  const isFormValid =
+    originalNote &&
     isValid &&
     isDirty &&
     originalText.length > 0 &&
@@ -115,7 +116,8 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
       <ModalHeader title="Split Note" onClose={onClose} />
       <DialogContent>
         <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-          Split this note into two separate notes. You can edit both the original and new note content, and set different states and owners.
+          Split this note into two separate notes. You can edit both the original and new note content, and set
+          different states and owners.
         </Typography>
 
         <form onSubmit={handleSubmit(handleFormSubmit)}>
@@ -125,13 +127,13 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
               <Typography variant="h6" gutterBottom>
                 Original Note
               </Typography>
-                
+
               <Controller
                 name="originalText"
                 control={control}
-                rules={{ 
+                rules={{
                   required: "Text is required",
-                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` }
+                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -149,7 +151,7 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
                   />
                 )}
               />
-              
+
               {originalText && originalText.length > 0 && (
                 <TextLengthCounter currentLength={originalText.length} maxLength={MaxTextLength} />
               )}
@@ -160,13 +162,13 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
               <Typography variant="h6" gutterBottom>
                 New Note
               </Typography>
-              
+
               <Controller
                 name="newText"
                 control={control}
-                rules={{ 
+                rules={{
                   required: "Text is required",
-                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` }
+                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -184,7 +186,7 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
                   />
                 )}
               />
-              
+
               <Controller
                 name="newState"
                 control={control}
@@ -217,7 +219,7 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
                   </FormControl>
                 )}
               />
-              
+
               {newText && newText.length > 0 && (
                 <TextLengthCounter currentLength={newText.length} maxLength={MaxTextLength} />
               )}
@@ -225,7 +227,7 @@ export function SplitNoteModal({ isOpen, onClose }: Props) {
           </Box>
         </form>
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
         <Button onClick={onClose} color="secondary" variant="contained">
           Cancel

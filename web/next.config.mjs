@@ -1,8 +1,8 @@
-import unTypiaNext from "@ryoppippi/unplugin-typia/next";
+import unTypiaNext from "@ryoppippi/unplugin-typia/next"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	output: 'standalone'
+  output: "standalone",
 }
 
 export default unTypiaNext(nextConfig, {})

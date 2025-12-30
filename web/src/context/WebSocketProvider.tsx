@@ -62,7 +62,7 @@ const WS_OPTIONS: RWSOptions = {
   reconnectionDelayGrowFactor: 1.5, // Exponential backoff multiplier
   minUptime: 5000, // Consider connection stable after 5 seconds
   maxEnqueuedMessages: 50, // Buffer up to 50 messages during disconnection
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === "development",
 }
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
@@ -85,7 +85,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       if (extendedSession?.accessToken) {
         setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
       } else {
-        console.error('WebSocket: No accessToken in session', session)
+        console.error("WebSocket: No accessToken in session", session)
       }
     } else {
       // When unauthenticated, close socket and clear data
@@ -107,7 +107,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         dispatchPatchOperation(op, store, setIsLoading)
       })
     },
-    [store]
+    [store],
   )
 
   const connectWebSocket = useCallback(() => {
@@ -120,12 +120,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     // Create new ReconnectingWebSocket with automatic reconnection
     socketRef.current = new ReconnectingWebSocket(socketUrl!, [], WS_OPTIONS)
 
-    socketRef.current.addEventListener('open', () => {
-      console.log('WebSocket: Connected')
-      setConnectionStatus('Open')
+    socketRef.current.addEventListener("open", () => {
+      console.log("WebSocket: Connected")
+      setConnectionStatus("Open")
     })
 
-    socketRef.current.addEventListener('message', (event) => {
+    socketRef.current.addEventListener("message", (event) => {
       try {
         const rawMessage = JSON.parse(event.data)
 
@@ -146,17 +146,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break
         }
       } catch (error) {
-        console.error('Failed to parse or validate WebSocket message:', error)
+        console.error("Failed to parse or validate WebSocket message:", error)
       }
     })
 
-    socketRef.current.addEventListener('close', (event) => {
-      console.log('WebSocket: Closed with code', event.code, 'reason:', event.reason)
+    socketRef.current.addEventListener("close", (event) => {
+      console.log("WebSocket: Closed with code", event.code, "reason:", event.reason)
 
       // Auth failure (code 1008) - redirect to sign-in
       if (event.code === 1008) {
-        console.log('WebSocket: Auth failure, redirecting to sign-in')
-        setConnectionStatus('Closed')
+        console.log("WebSocket: Auth failure, redirecting to sign-in")
+        setConnectionStatus("Closed")
         clearApp()
         // Close the reconnecting websocket to stop reconnection attempts
         if (socketRef.current) {
@@ -165,12 +165,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Normal close or reconnecting
-        setConnectionStatus('Reconnecting')
+        setConnectionStatus("Reconnecting")
       }
     })
 
-    socketRef.current.addEventListener('error', (error) => {
-      console.error('WebSocket error:', error)
+    socketRef.current.addEventListener("error", (error) => {
+      console.error("WebSocket error:", error)
     })
   }, [socketUrl, handlePatchMessage, setNotes, setUsers])
 
@@ -227,9 +227,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, [socketUrl])
 
   return (
-    <WebSocketContext.Provider
-      value={{ sendMessage, sendMessageAsync, connectionStatus, isLoading }}
-    >
+    <WebSocketContext.Provider value={{ sendMessage, sendMessageAsync, connectionStatus, isLoading }}>
       <Alerts />
       {children}
     </WebSocketContext.Provider>

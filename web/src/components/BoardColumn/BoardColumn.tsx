@@ -18,7 +18,10 @@ interface Props {
   columnIndex: number
 }
 
-export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColumn({ title, items, state, isEditable, columnIndex }, ref) {
+export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColumn(
+  { title, items, state, isEditable, columnIndex },
+  ref,
+) {
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
   const selectedUserId = useAppStore((state) => state.ui.selectedUserId)
@@ -79,14 +82,17 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
   }, [closeModal])
 
   // Merge droppable ref with forwarded ref
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    setNodeRef(node)
-    if (typeof ref === 'function') {
-      ref(node)
-    } else if (ref) {
-      ref.current = node
-    }
-  }, [setNodeRef, ref])
+  const mergedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setNodeRef(node)
+      if (typeof ref === "function") {
+        ref(node)
+      } else if (ref) {
+        ref.current = node
+      }
+    },
+    [setNodeRef, ref],
+  )
 
   return (
     <Box

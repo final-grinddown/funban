@@ -25,11 +25,7 @@ import { useEffect, useState } from "react"
  * @param shouldClose - Optional condition to prevent auto-close (defaults to true)
  * @returns Object with isSubmitting state and setter
  */
-export function useModalSubmission(
-  isLoading: boolean,
-  onClose: () => void,
-  shouldClose: boolean = true
-) {
+export function useModalSubmission(isLoading: boolean, onClose: () => void, shouldClose: boolean = true) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {

@@ -38,7 +38,13 @@ export function TeamMemberCard({ id, name, color, onEditName, onEditColor, onDel
           </Typography>
           <Box display="flex" alignItems="center">
             <Box display="flex" alignItems="center">
-              <Box width={24} height={24} bgcolor={color?.startsWith("#") ? color : (matchColorName(color, availableColors) || "#000000")} borderRadius="50%" mr={1} />
+              <Box
+                width={24}
+                height={24}
+                bgcolor={color?.startsWith("#") ? color : matchColorName(color, availableColors) || "#000000"}
+                borderRadius="50%"
+                mr={1}
+              />
             </Box>
             <Typography variant="body1" component="p" textTransform="capitalize" color={theme.palette.text.primary}>
               {color}

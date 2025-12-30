@@ -111,15 +111,15 @@ export function UserMarksScreen() {
       return
     }
 
-    setLoadingExpired(prev => new Set(prev).add(userId))
+    setLoadingExpired((prev) => new Set(prev).add(userId))
     try {
       const expired = await fetchExpiredUserMarksByUserId(userId, session?.accessToken)
-      setExpiredMarks(prev => new Map(prev).set(userId, expired))
-      setExpandedExpired(prev => new Set(prev).add(userId))
+      setExpiredMarks((prev) => new Map(prev).set(userId, expired))
+      setExpandedExpired((prev) => new Set(prev).add(userId))
     } catch (err) {
       console.error("Failed to load expired marks:", err)
     } finally {
-      setLoadingExpired(prev => {
+      setLoadingExpired((prev) => {
         const next = new Set(prev)
         next.delete(userId)
         return next
@@ -128,7 +128,7 @@ export function UserMarksScreen() {
   }
 
   const toggleExpiredSection = (userId: number) => {
-    setExpandedExpired(prev => {
+    setExpandedExpired((prev) => {
       const next = new Set(prev)
       if (next.has(userId)) {
         next.delete(userId)
@@ -144,12 +144,15 @@ export function UserMarksScreen() {
 
     try {
       await deleteUserMark(markId, session?.accessToken)
-      setAllMarks(prev => prev.filter(m => m.id !== markId))
+      setAllMarks((prev) => prev.filter((m) => m.id !== markId))
       // Also remove from expired if present
-      setExpiredMarks(prev => {
+      setExpiredMarks((prev) => {
         const next = new Map(prev)
         next.forEach((marks, userId) => {
-          next.set(userId, marks.filter(m => m.id !== markId))
+          next.set(
+            userId,
+            marks.filter((m) => m.id !== markId),
+          )
         })
         return next
       })
@@ -170,11 +173,11 @@ export function UserMarksScreen() {
         0, // Set to 0 to expire
         mark.custom_text || undefined,
         undefined, // expiresAt - don't change date expiration
-        session?.accessToken
+        session?.accessToken,
       )
-      setAllMarks(prev => prev.filter(m => m.id !== mark.id))
+      setAllMarks((prev) => prev.filter((m) => m.id !== mark.id))
       // Invalidate expired cache for this user
-      setExpiredMarks(prev => {
+      setExpiredMarks((prev) => {
         const next = new Map(prev)
         next.delete(mark.user_id)
         return next
@@ -186,14 +189,14 @@ export function UserMarksScreen() {
   }
 
   const handleExpireAll = async (userId: number) => {
-    const count = allMarks.filter(m => m.user_id === userId).length
+    const count = allMarks.filter((m) => m.user_id === userId).length
     if (!confirm(`Expire all ${count} marks for this user?`)) return
 
     try {
       await expireAllUserMarks(userId, session?.accessToken)
-      setAllMarks(prev => prev.filter(m => m.user_id !== userId))
+      setAllMarks((prev) => prev.filter((m) => m.user_id !== userId))
       // Invalidate expired cache
-      setExpiredMarks(prev => {
+      setExpiredMarks((prev) => {
         const next = new Map(prev)
         next.delete(userId)
         return next
@@ -210,7 +213,7 @@ export function UserMarksScreen() {
 
     try {
       await deleteExpiredUserMarks(userId, session?.accessToken)
-      setExpiredMarks(prev => {
+      setExpiredMarks((prev) => {
         const next = new Map(prev)
         next.set(userId, [])
         return next
@@ -242,7 +245,7 @@ export function UserMarksScreen() {
         data.duration ?? null,
         data.customText,
         data.expiresAt,
-        session?.accessToken
+        session?.accessToken,
       )
 
       // Update in local state
@@ -251,17 +254,20 @@ export function UserMarksScreen() {
 
       if (wasExpired && !isExpired) {
         // Moving from expired to active
-        setAllMarks(prev => [...prev, updated])
-        setExpiredMarks(prev => {
+        setAllMarks((prev) => [...prev, updated])
+        setExpiredMarks((prev) => {
           const next = new Map(prev)
           const userExpired = next.get(data.userId) || []
-          next.set(data.userId, userExpired.filter(m => m.id !== editingMark.id))
+          next.set(
+            data.userId,
+            userExpired.filter((m) => m.id !== editingMark.id),
+          )
           return next
         })
       } else if (!wasExpired && isExpired) {
         // Moving from active to expired
-        setAllMarks(prev => prev.filter(m => m.id !== editingMark.id))
-        setExpiredMarks(prev => {
+        setAllMarks((prev) => prev.filter((m) => m.id !== editingMark.id))
+        setExpiredMarks((prev) => {
           const next = new Map(prev)
           next.delete(data.userId)
           return next
@@ -269,14 +275,17 @@ export function UserMarksScreen() {
       } else {
         // Staying in same category, just update
         if (isExpired) {
-          setExpiredMarks(prev => {
+          setExpiredMarks((prev) => {
             const next = new Map(prev)
             const userExpired = next.get(data.userId) || []
-            next.set(data.userId, userExpired.map(m => m.id === editingMark.id ? updated : m))
+            next.set(
+              data.userId,
+              userExpired.map((m) => (m.id === editingMark.id ? updated : m)),
+            )
             return next
           })
         } else {
-          setAllMarks(prev => prev.map(m => m.id === editingMark.id ? updated : m))
+          setAllMarks((prev) => prev.map((m) => (m.id === editingMark.id ? updated : m)))
         }
       }
 
@@ -287,7 +296,13 @@ export function UserMarksScreen() {
     }
   }
 
-  const handleAddMark = async (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => {
+  const handleAddMark = async (data: {
+    userId: number
+    markType: string
+    duration?: number
+    customText?: string
+    expiresAt?: string
+  }) => {
     try {
       await addUserMark(
         data.userId,
@@ -295,7 +310,7 @@ export function UserMarksScreen() {
         data.duration ?? null,
         data.customText,
         data.expiresAt,
-        session?.accessToken
+        session?.accessToken,
       )
 
       // Refresh marks list to show the new mark
@@ -308,14 +323,14 @@ export function UserMarksScreen() {
   }
 
   const getUserMarkCount = (userId: number) => {
-    return allMarks.filter(m => m.user_id === userId).length
+    return allMarks.filter((m) => m.user_id === userId).length
   }
 
   const getUserMarks = (userId: number) => {
-    return allMarks.filter(m => m.user_id === userId)
+    return allMarks.filter((m) => m.user_id === userId)
   }
 
-  const selectedUser = users.find(u => u.id === selectedUserId)
+  const selectedUser = users.find((u) => u.id === selectedUserId)
   const selectedUserMarks = selectedUserId ? getUserMarks(selectedUserId) : []
   const selectedUserExpired = selectedUserId ? expiredMarks.get(selectedUserId) || [] : []
 
@@ -340,14 +355,11 @@ export function UserMarksScreen() {
           </Alert>
         )}
         <List>
-          {users.map(user => {
+          {users.map((user) => {
             const markCount = getUserMarkCount(user.id)
             return (
               <ListItem key={user.id} disablePadding>
-                <ListItemButton
-                  selected={selectedUserId === user.id}
-                  onClick={() => setSelectedUserId(user.id)}
-                >
+                <ListItemButton selected={selectedUserId === user.id} onClick={() => setSelectedUserId(user.id)}>
                   <ListItemText
                     primary={
                       <Box display="flex" alignItems="center" gap={1}>
@@ -363,9 +375,7 @@ export function UserMarksScreen() {
                       </Box>
                     }
                   />
-                  {markCount > 0 && (
-                    <Badge badgeContent={markCount} color="primary" />
-                  )}
+                  {markCount > 0 && <Badge badgeContent={markCount} color="primary" />}
                 </ListItemButton>
               </ListItem>
             )
@@ -384,23 +394,13 @@ export function UserMarksScreen() {
         ) : (
           <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h5">
-                Marks for {selectedUser.name}
-              </Typography>
+              <Typography variant="h5">Marks for {selectedUser.name}</Typography>
               <Box display="flex" gap={1}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => setShowAddModal(true)}
-                >
+                <Button variant="contained" color="primary" onClick={() => setShowAddModal(true)}>
                   Add Mark
                 </Button>
                 {selectedUserMarks.length > 0 && (
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    onClick={() => handleExpireAll(selectedUser.id)}
-                  >
+                  <Button variant="outlined" color="warning" onClick={() => handleExpireAll(selectedUser.id)}>
                     Expire All Marks
                   </Button>
                 )}
@@ -416,7 +416,7 @@ export function UserMarksScreen() {
                 <Typography color="text.secondary">No active marks</Typography>
               ) : (
                 <List>
-                  {selectedUserMarks.map(mark => (
+                  {selectedUserMarks.map((mark) => (
                     <ListItem
                       key={mark.id}
                       sx={{ border: 1, borderColor: "divider", borderRadius: 1, mb: 1 }}
@@ -425,18 +425,10 @@ export function UserMarksScreen() {
                           <IconButton onClick={() => handleEditMark(mark)} size="small">
                             <EditIcon />
                           </IconButton>
-                          <IconButton
-                            onClick={() => handleExpireMark(mark)}
-                            size="small"
-                            color="warning"
-                          >
+                          <IconButton onClick={() => handleExpireMark(mark)} size="small" color="warning">
                             <TimerOffIcon />
                           </IconButton>
-                          <IconButton
-                            onClick={() => handleDeleteMark(mark.id)}
-                            size="small"
-                            color="error"
-                          >
+                          <IconButton onClick={() => handleDeleteMark(mark.id)} size="small" color="error">
                             <DeleteIcon />
                           </IconButton>
                         </Box>
@@ -445,8 +437,9 @@ export function UserMarksScreen() {
                       <ListItemText
                         primary={
                           <>
-                            <Typography variant="h6" component="span">{mark.mark_type}</Typography>
-                            {" "}
+                            <Typography variant="h6" component="span">
+                              {mark.mark_type}
+                            </Typography>{" "}
                             <Typography component="span">{markTypeLabels[mark.mark_type]}</Typography>
                           </>
                         }
@@ -475,13 +468,7 @@ export function UserMarksScreen() {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Button
                   onClick={() => loadExpiredMarks(selectedUser.id)}
-                  endIcon={
-                    expandedExpired.has(selectedUser.id) ? (
-                      <ExpandLessIcon />
-                    ) : (
-                      <ExpandMoreIcon />
-                    )
-                  }
+                  endIcon={expandedExpired.has(selectedUser.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   disabled={loadingExpired.has(selectedUser.id)}
                 >
                   {loadingExpired.has(selectedUser.id) ? (
@@ -507,7 +494,7 @@ export function UserMarksScreen() {
                   <Typography color="text.secondary">No expired marks</Typography>
                 ) : (
                   <List>
-                    {selectedUserExpired.map(mark => (
+                    {selectedUserExpired.map((mark) => (
                       <ListItem
                         key={mark.id}
                         sx={{
@@ -522,11 +509,7 @@ export function UserMarksScreen() {
                             <IconButton onClick={() => handleEditMark(mark)} size="small">
                               <EditIcon />
                             </IconButton>
-                            <IconButton
-                              onClick={() => handleDeleteMark(mark.id)}
-                              size="small"
-                              color="error"
-                            >
+                            <IconButton onClick={() => handleDeleteMark(mark.id)} size="small" color="error">
                               <DeleteIcon />
                             </IconButton>
                           </Box>
@@ -535,16 +518,14 @@ export function UserMarksScreen() {
                         <ListItemText
                           primary={
                             <>
-                              <Typography variant="h6" component="span">{mark.mark_type}</Typography>
-                              {" "}
-                              <Typography component="span">{markTypeLabels[mark.mark_type]}</Typography>
-                              {" "}
+                              <Typography variant="h6" component="span">
+                                {mark.mark_type}
+                              </Typography>{" "}
+                              <Typography component="span">{markTypeLabels[mark.mark_type]}</Typography>{" "}
                               <Chip label="Expired" size="small" color="default" />
                             </>
                           }
-                          secondary={
-                            mark.custom_text ? `"${mark.custom_text}"` : undefined
-                          }
+                          secondary={mark.custom_text ? `"${mark.custom_text}"` : undefined}
                         />
                       </ListItem>
                     ))}

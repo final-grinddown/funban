@@ -4,7 +4,7 @@
  * Centralized type definitions for MUI components to eliminate `any` types
  */
 
-import type { SxProps, Theme } from '@mui/material/styles'
+import type { SxProps, Theme } from "@mui/material/styles"
 
 /**
  * Type-safe SxProps for Material-UI components

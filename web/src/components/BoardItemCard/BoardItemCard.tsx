@@ -42,8 +42,7 @@ export function BoardItemCard({
   const openModal = useAppStore((state) => state.modals.openModal)
   const theme = useTheme()
 
-  const matchedColor =
-    color?.startsWith("#") ? color : matchColorName(color || "Black", availableColors) || "#000000"
+  const matchedColor = color?.startsWith("#") ? color : matchColorName(color || "Black", availableColors) || "#000000"
   const contrastColor = theme.palette.getContrastText(matchedColor)
 
   // @dnd-kit sortable hook
@@ -69,13 +68,7 @@ export function BoardItemCard({
     }
   }, [])
 
-  const {
-    contextMenu,
-    isSubmitting,
-    openContextMenu,
-    closeContextMenu,
-    setIsSubmitting,
-  } = useNoteCardModals()
+  const { contextMenu, isSubmitting, openContextMenu, closeContextMenu, setIsSubmitting } = useNoteCardModals()
 
   const openMenu = contextMenu !== null
 

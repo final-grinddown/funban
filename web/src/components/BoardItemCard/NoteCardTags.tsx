@@ -16,7 +16,7 @@ export const NoteCardTags = memo(function NoteCardTags({ tag }: Props) {
   if (!tag) return null
 
   // Get tag color or fallback to gray if tag color not found
-  const color = tagColor[tag] || '#808080'
+  const color = tagColor[tag] || "#808080"
 
   return (
     <CardMedia

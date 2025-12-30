@@ -1,11 +1,4 @@
-import {
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  Typography,
-} from "@mui/material"
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, Typography } from "@mui/material"
 import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {

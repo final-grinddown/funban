@@ -9,12 +9,14 @@
 The Funban web frontend is a well-structured Next.js 15 application with React 19, demonstrating modern best practices in many areas. The codebase shows evidence of recent refactoring efforts (optimized sorting algorithm, SSR-safe localStorage, error boundaries). However, several issues were identified ranging from type safety concerns to architectural improvements.
 
 **Overall Health**: Good (7/10)
+
 - Strong architecture with proper separation of concerns
 - Excellent TypeScript usage with strict mode enabled
 - Good WebSocket implementation with runtime validation
 - Well-organized component structure
 
 **Key Strengths**:
+
 - Optimized O(n) sorting algorithm for note ordering
 - SSR-safe implementations in critical components
 - Comprehensive error handling infrastructure
@@ -22,6 +24,7 @@ The Funban web frontend is a well-structured Next.js 15 application with React 1
 - Clean separation of UI state (Zustand) and server state (TanStack Query)
 
 **Critical Priorities**:
+
 1. Fix `any` type usage in auth callbacks (security concern)
 2. Add error boundaries around more components
 3. Implement proper error reporting integration
@@ -29,6 +32,7 @@ The Funban web frontend is a well-structured Next.js 15 application with React 1
 5. Reduce duplicate useEffect dependencies
 
 ## Audit Scope
+
 - **Total Files Reviewed**: 118
 - **Total Lines of Code**: ~9,639
 - **Technologies**: Next.js 15.5.2, React 19, TypeScript 5, Material-UI 7.3.2, Zustand 4.5.5, TanStack Query 5.51, NextAuth 5.0-beta.30
@@ -36,6 +40,7 @@ The Funban web frontend is a well-structured Next.js 15 application with React 1
 - **Files Excluded**: Test files, node_modules, .next build artifacts
 
 ## Findings Overview
+
 - Critical Errors: 2
 - Red Flags: 8
 - Code Smells: 12
@@ -51,17 +56,20 @@ The Funban web frontend is a well-structured Next.js 15 application with React 1
 The application follows a modern React architecture with clear separation of concerns:
 
 **Presentation Layer**:
+
 - Next.js App Router for routing and SSR
 - Material-UI components for consistent UI
 - React Hook Form for form management
 - Emotion for styling
 
 **State Management Layer**:
+
 - **Zustand** for client-side UI state (modals, focus, board data, theme)
 - **TanStack Query** for server state caching (history, user marks)
 - **NextAuth** for authentication session management
 
 **Data Layer**:
+
 - WebSocket connection for real-time board updates
 - REST API for non-real-time operations (history, settings)
 - Type-safe message validation using typia
@@ -94,6 +102,7 @@ The application follows a modern React architecture with clear separation of con
 ### Data Flow
 
 **Real-time Updates (WebSocket)**:
+
 1. User action → Component event handler
 2. Create typed WsAction → Validate with typia
 3. Send via WebSocket with UUID tracking
@@ -103,6 +112,7 @@ The application follows a modern React architecture with clear separation of con
 7. React re-renders affected components
 
 **Non-real-time Operations (REST)**:
+
 1. User action → Component calls TanStack Query mutation
 2. fetchWithAuth adds JWT token
 3. Server responds with data
@@ -129,9 +139,11 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Critical Error** (`auth.ts:64,79`)
+
   - Description: Using `any` type for token and user parameters in JWT/session callbacks
   - Impact: Bypasses TypeScript type safety, could lead to runtime errors accessing undefined properties
   - Recommendation: Define proper types for JWT and Session callbacks
+
   ```typescript
   // Should be:
   interface ExtendedToken extends JWT {
@@ -143,11 +155,13 @@ The application follows a modern React architecture with clear separation of con
   ```
 
 - **Red Flag** (`auth.ts:48-50`)
+
   - Description: Generic error handling with console.error only
   - Impact: Authentication errors silently fail, no user feedback
   - Recommendation: Return error information to display to user, log to error service
 
 - **Code Smell** (`src/app/api/fetchWithAuth.ts:30`)
+
   - Description: Empty catch block loses error context
   - Impact: Network errors lose stack trace and details
   - Recommendation: Preserve original error or at least log it
@@ -167,11 +181,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Code Smell** (`src/store/slices/modalSlice.ts:19`)
+
   - Description: Generic `any` type for modal data
   - Impact: Loses type safety for modal payloads
   - Recommendation: Use discriminated union types or generic constraints for modal data
 
 - **Code Smell** (`src/store/slices/boardSlice.ts:54-65`)
+
   - Description: Duplicate logic updating notes when user name/color changes
   - Impact: Violates DRY principle, easy to introduce bugs
   - Recommendation: Extract to helper function or reconsider data normalization
@@ -191,16 +207,19 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Best Practice Violation** (`src/context/WebSocketProvider.tsx:226`)
+
   - Description: ESLint disable comment for exhaustive-deps
   - Impact: May miss necessary dependencies, causing stale closures
   - Recommendation: Review dependencies and fix properly rather than disabling
 
 - **Code Smell** (`src/context/WebSocketProvider.tsx:88`)
+
   - Description: Console.error for missing accessToken in production
   - Impact: Exposes internal errors to end users
   - Recommendation: Use proper error logging service in production
 
 - **Best Practice Violation** (`src/websocket/handlers/handleActionPatch.ts:30`)
+
   - Description: Console.error for WebSocket errors
   - Impact: No user notification of errors, poor UX
   - Recommendation: Show toast/snackbar notification to user
@@ -220,26 +239,31 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Red Flag** (`src/components/Board.tsx:165-172`)
+
   - Description: handleDragStart captures store state in closure
   - Impact: If store updates during drag, local state is stale
   - Recommendation: Use ref to capture latest store state instead of closure
 
 - **Code Smell** (`src/components/Board.tsx:60-61`)
+
   - Description: Complex boolean expression for hasPendingDrag
   - Impact: Hard to read and reason about
   - Recommendation: Extract to useMemo with clear variable name
 
 - **Best Practice Violation** (`src/components/BoardItemCard/BoardItemCard.tsx:68-77`)
+
   - Description: Multiple useState + useEffect for SSR-safe initialization
   - Impact: Causes double render, could use single useEffect
   - Recommendation: Combine into single effect or use proper SSR pattern
 
 - **Code Smell** (`src/components/BoardItemCard/BoardItemCard.tsx:130-134`)
+
   - Description: useEffect with isSubmitting and isLoading checking
   - Impact: Fragile side effect, may not work as expected
   - Recommendation: Rely on useModalSubmission hook instead
 
 - **Best Practice Violation** (`src/components/EditNoteModal.tsx:73-83`)
+
   - Description: setTimeout 0 for focus management
   - Impact: Hack that may be unreliable, race condition prone
   - Recommendation: Use callback ref or proper focus management hook
@@ -259,11 +283,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Code Smell** (`src/hooks/useNoteSorting.ts:53`)
+
   - Description: Filtering orphaned notes after sorting
   - Impact: Edge case handling, suggests data integrity issue
   - Recommendation: Investigate why orphaned notes exist, fix at source
 
 - **Best Practice Violation** (`src/hooks/useModalSubmission.ts:35-44`)
+
   - Description: Complex useEffect with multiple conditions
   - Impact: Hard to reason about when modal will close
   - Recommendation: Simplify logic or split into separate effects
@@ -283,11 +309,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Technical Debt** (`src/utils/errorHandler.ts:44-57`)
+
   - Description: TODO comments for toast notifications and error reporting
   - Impact: Errors not visible to users, no monitoring
   - Recommendation: Integrate error reporting service (Sentry/LogRocket) and toast system
 
 - **Technical Debt** (`src/components/ErrorBoundary.tsx:40`)
+
   - Description: TODO for error reporting service integration
   - Impact: Component errors not tracked in production
   - Recommendation: Add Sentry or similar service
@@ -307,6 +335,7 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Code Smell** (`src/hooks/useFormValidation.ts:17`)
+
   - Description: Comment "Whether form has any changes" next to isDirty check
   - Impact: Redundant comment for obvious code
   - Recommendation: Remove unnecessary comment
@@ -326,11 +355,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Code Smell** (`src/utils/helpers.ts:89-92`)
+
   - Description: base64EncodeUnicode uses String.fromCharCode.apply with Array.from
   - Impact: Inefficient, could fail on large inputs (call stack limit)
   - Recommendation: Use loop or reduce instead of apply
 
 - **Code Smell** (`src/utils/storage.ts:43`)
+
   - Description: Inconsistent localStorage vs window.localStorage
   - Impact: Confusing, mixing global and window-scoped access
   - Recommendation: Use window.localStorage consistently
@@ -350,11 +381,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Code Smell** (`src/screens/BoardScreen.tsx:50-63`)
+
   - Description: Complex snapshot transformation in useMemo
   - Impact: Business logic in presentation layer
   - Recommendation: Extract to utility function or handle in API layer
 
 - **Best Practice Violation** (`src/screens/BoardScreen.tsx:74-78`)
+
   - Description: Multiple separate useHotkeys calls
   - Impact: Verbose, could be array-based configuration
   - Recommendation: Use array of hotkey definitions or single hook call
@@ -374,11 +407,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Red Flag** (`src/utils/interfaces.ts:10-18`)
+
   - Description: Unused interface definitions (IWebSocketMessage, IServerMessage, IPatchOperation)
   - Impact: Dead code, confusing
   - Recommendation: Remove unused types or document why kept
 
 - **Code Smell** (`src/utils/interfaces.ts:24-37`)
+
   - Description: IRawNote has string IDs, Note has number IDs
   - Impact: Constant conversion needed, error-prone
   - Recommendation: Standardize on number throughout or use branded types
@@ -390,7 +425,7 @@ The application follows a modern React architecture with clear separation of con
 
 ---
 
-### 11. Pages (_document)
+### 11. Pages (\_document)
 
 **Files**: `src/pages/_document.tsx`
 **Purpose**: Custom Next.js document for HTML structure
@@ -398,6 +433,7 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Best Practice Violation** (`src/pages/_document.tsx:13`)
+
   - Description: Using 'theme' key without project prefix in localStorage
   - Impact: Could conflict with other apps on same domain
   - Recommendation: Use prefixed key from storage.ts createPrefixedKey
@@ -417,11 +453,13 @@ The application follows a modern React architecture with clear separation of con
 #### Findings
 
 - **Technical Debt** (`package.json:5`)
+
   - Description: Archived dependency @ryoppippi/unplugin-typia noted in comments
   - Impact: Dependency archived in June 2025, may have security issues
   - Recommendation: Follow migration strategy in REFACTORING_PLAN.md Phase 6
 
 - **Technical Debt** (`package.json:31`)
+
   - Description: NextAuth 5.0-beta.30 (beta version in production)
   - Impact: May have bugs, API may change
   - Recommendation: Monitor for stable release, be prepared for migration
@@ -440,6 +478,7 @@ The application follows a modern React architecture with clear separation of con
 **Overall**: Good security posture with some concerns
 
 **Findings**:
+
 1. **Red Flag**: JWT tokens stored in session (NextAuth handles this, but worth noting)
 2. **Best Practice**: Using Bearer token authentication
 3. **Good**: No eval() usage detected
@@ -449,6 +488,7 @@ The application follows a modern React architecture with clear separation of con
 7. **Missing**: No Content Security Policy headers visible
 
 **Recommendations**:
+
 - Add CSP headers in next.config.mjs
 - Implement client-side rate limiting for API calls
 - Sanitize error messages in production
@@ -460,6 +500,7 @@ The application follows a modern React architecture with clear separation of con
 **Overall**: Generally optimized with some areas for improvement
 
 **Findings**:
+
 1. **Excellent**: O(n) sorting algorithm (recently optimized from O(n²))
 2. **Good**: useMemo and useCallback used appropriately
 3. **Good**: Lazy loading not needed (small bundle size)
@@ -469,6 +510,7 @@ The application follows a modern React architecture with clear separation of con
 7. **Missing**: No virtualization for large lists (could be issue with 1000+ notes)
 
 **Recommendations**:
+
 - Consider React.memo for BoardItemCard if performance issues arise
 - Add virtualization (react-window) if supporting >100 notes per column
 - Profile drag & drop with large note counts
@@ -480,6 +522,7 @@ The application follows a modern React architecture with clear separation of con
 **Overall**: Modern stack with some concerns
 
 **Findings**:
+
 1. **Critical**: @ryoppippi/unplugin-typia (archived June 2025) - Migration planned
 2. **Warning**: NextAuth 5.0-beta (not stable)
 3. **Good**: React 19 (latest)
@@ -490,6 +533,7 @@ The application follows a modern React architecture with clear separation of con
 **Vulnerable Dependencies**: None detected (based on recent updates)
 
 **Recommendations**:
+
 - Execute Phase 6 migration away from unplugin-typia
 - Monitor NextAuth 5.0 for stable release
 - Set up Dependabot or Renovate for automated updates
@@ -501,6 +545,7 @@ The application follows a modern React architecture with clear separation of con
 **Overall**: Good test coverage (based on test files present)
 
 **Findings**:
+
 1. **Good**: Jest + Testing Library setup
 2. **Good**: Component tests for critical components
 3. **Good**: Test utilities and mocks well organized
@@ -509,11 +554,13 @@ The application follows a modern React architecture with clear separation of con
 6. **Concern**: Many test files use `any` types for mocks
 
 **Coverage** (from coverage/ directory):
+
 - Tests exist for critical components
 - Modal components well tested
 - Screen components tested
 
 **Recommendations**:
+
 - Add integration tests for WebSocket message handling
 - Add E2E tests for critical user flows
 - Type test mocks properly instead of using `any`
@@ -525,6 +572,7 @@ The application follows a modern React architecture with clear separation of con
 **Overall**: Good inline documentation, some TODOs
 
 **Findings**:
+
 1. **Good**: JSDoc comments in utility functions
 2. **Good**: Architecture comments in WebSocketProvider
 3. **Good**: README and TESTING_STRATEGY.md present
@@ -533,6 +581,7 @@ The application follows a modern React architecture with clear separation of con
 6. **Missing**: Component prop documentation (though TypeScript provides this)
 
 **Recommendations**:
+
 - Address TODO comments or create tickets
 - Document WebSocket message protocol
 - Add Storybook for component documentation
@@ -542,26 +591,31 @@ The application follows a modern React architecture with clear separation of con
 ### Code Quality Metrics
 
 **TypeScript Usage**: 9/10
+
 - Strict mode enabled
 - Minimal `any` usage (mostly in tests)
 - Good type inference
 
 **Component Design**: 8/10
+
 - Clear separation of concerns
 - Good use of composition
 - Some complex components could be split
 
 **State Management**: 8/10
+
 - Clean Zustand implementation
 - Good separation of UI and server state
 - Some normalization issues
 
 **Error Handling**: 6/10
+
 - Good infrastructure in place
 - Many TODOs for actual implementation
 - Needs error reporting integration
 
 **Code Consistency**: 9/10
+
 - Consistent naming conventions
 - Good file organization
 - ESLint configured
@@ -573,6 +627,7 @@ The application follows a modern React architecture with clear separation of con
 ### Must Fix (Critical - Next Sprint)
 
 1. **Type `any` in auth callbacks** (`auth.ts:64,79`)
+
    - Security and stability concern
    - Easy fix with proper typing
 
@@ -583,14 +638,17 @@ The application follows a modern React architecture with clear separation of con
 ### Should Fix (High Priority - Next 2 Sprints)
 
 3. **Implement error reporting** (`src/utils/errorHandler.ts:44-57`)
+
    - Currently no monitoring of production errors
    - Integrate Sentry or LogRocket
 
 4. **Fix theme SSR issue** (`src/store/slices/themeSlice.ts:27-28`)
+
    - Direct window access will crash SSR
    - Add typeof window check
 
 5. **Remove unused types** (`src/utils/interfaces.ts:10-18`)
+
    - Dead code cleanup
    - Reduces confusion
 
@@ -601,14 +659,17 @@ The application follows a modern React architecture with clear separation of con
 ### Nice to Have (Medium Priority)
 
 7. **Consolidate useEffect hooks** (Multiple modal components)
+
    - Simplify component logic
    - Easier to maintain
 
 8. **Extract complex business logic** (`src/screens/BoardScreen.tsx:50-63`)
+
    - Move snapshot transformation to utils
    - Cleaner separation of concerns
 
 9. **Replace setTimeout(0) for focus** (Multiple modals)
+
    - Use callback refs
    - More reliable
 
@@ -619,6 +680,7 @@ The application follows a modern React architecture with clear separation of con
 ### Technical Debt
 
 11. **Migrate from archived typia plugin** (`package.json`)
+
     - Follow Phase 6 plan
     - Before dependency becomes unmaintained
 
@@ -637,10 +699,12 @@ The Funban web frontend demonstrates solid engineering practices with a modern t
 ### Critical Findings
 
 **2 Critical Errors** require immediate attention:
+
 1. Untyped authentication callbacks creating type safety gaps
 2. Unprotected localStorage access that will crash in incognito mode
 
 **8 Red Flags** need addressing in the next sprint:
+
 - Stale closures in drag & drop handlers
 - Console-based error handling instead of user-facing messages
 - User ID type inconsistencies throughout the app
@@ -649,6 +713,7 @@ The Funban web frontend demonstrates solid engineering practices with a modern t
 ### Technical Debt Analysis
 
 **Estimated Technical Debt**: ~40 hours
+
 - Error reporting integration: 8 hours
 - Type safety improvements: 8 hours
 - localStorage error handling: 4 hours
@@ -656,6 +721,7 @@ The Funban web frontend demonstrates solid engineering practices with a modern t
 - Documentation improvements: 8 hours
 
 **Quick Wins** (< 2 hours each):
+
 - Remove unused interfaces
 - Fix auth callback types
 - Add try-catch to localStorage
@@ -665,18 +731,21 @@ The Funban web frontend demonstrates solid engineering practices with a modern t
 ### Recommended Roadmap
 
 **Phase 1: Stability** (Sprint 1)
+
 - Fix critical type safety issues
 - Add localStorage error handling
 - Implement basic error reporting
 - Fix SSR issues
 
 **Phase 2: Quality** (Sprint 2-3)
+
 - Consolidate useEffect hooks
 - Add error boundaries throughout
 - Improve error handling UX
 - Address user ID type inconsistency
 
 **Phase 3: Maintenance** (Sprint 4+)
+
 - Migrate from archived typia plugin (Phase 6 plan)
 - Upgrade NextAuth to stable
 - Add integration tests
@@ -695,6 +764,7 @@ The Funban web frontend demonstrates solid engineering practices with a modern t
 **Grade: B+ (7/10)**
 
 This is a well-maintained production codebase with good engineering practices. The main areas for improvement are:
+
 - **Error handling maturity**: Infrastructure exists but needs completion
 - **Type safety gaps**: Mostly in auth and test code
 - **SSR safety**: Some patterns need fixing

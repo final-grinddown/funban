@@ -1,11 +1,4 @@
-import {
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  Typography,
-} from "@mui/material"
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, Typography } from "@mui/material"
 import { createDeleteNoteBulk, createDeleteNoteUserBulk } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"

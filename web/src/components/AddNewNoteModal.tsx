@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useRef } from "react"
-import {
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-} from "@mui/material"
+import { Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem, Select } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { createNewNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
@@ -37,7 +30,7 @@ export function AddNewNoteModal({ isOpen, onClose }: Props) {
   const users = useAppStore(selectUsers)
   const defaultValues = useMemo(
     () => (modalData ? { state: modalData.state, ownerId: modalData.ownerId } : undefined),
-    [modalData]
+    [modalData],
   )
   const hasTextFocus = modalData?.focusText
 
@@ -128,56 +121,58 @@ export function AddNewNoteModal({ isOpen, onClose }: Props) {
       primaryButtonWidth="120px"
     >
       <form onSubmit={handleSubmit(handleFormSubmit)}>
-          <Controller
-            name="state"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="state-label">State</InputLabel>
-                <Select {...field} labelId="state-label" label="State">
-                  {noteStateOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
-          <Controller
-            name="owner"
-            control={control}
-            rules={requiredSelectRules}
-            render={({ field }) => (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="owner-label">Note Owner</InputLabel>
-                <Select {...field} labelId="owner-label" label="Note Owner" error={!!errors.owner}>
-                  {users.map((user) => (
-                    <MenuItem key={user.id} value={user.id.toString()}>
-                      {user.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
-          <NoteTextFieldController
-            name="text"
-            control={control}
-            errors={errors}
-            currentText={text}
-            inputRef={textAreaRef}
-            sx={{ mt: 2 }}
-            onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !textValidation.isFormSubmittable)}
-          />
-          <Controller
-            name="saveAndCreateNext"
-            control={control}
-            render={({ field }) => (
-              <FormControlLabel sx={{ mt: 1 }} control={<Checkbox {...field} />} label="Save and Create Next" />
-            )}
-          />
-        </form>
+        <Controller
+          name="state"
+          control={control}
+          render={({ field }) => (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel id="state-label">State</InputLabel>
+              <Select {...field} labelId="state-label" label="State">
+                {noteStateOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
+        <Controller
+          name="owner"
+          control={control}
+          rules={requiredSelectRules}
+          render={({ field }) => (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel id="owner-label">Note Owner</InputLabel>
+              <Select {...field} labelId="owner-label" label="Note Owner" error={!!errors.owner}>
+                {users.map((user) => (
+                  <MenuItem key={user.id} value={user.id.toString()}>
+                    {user.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
+        <NoteTextFieldController
+          name="text"
+          control={control}
+          errors={errors}
+          currentText={text}
+          inputRef={textAreaRef}
+          sx={{ mt: 2 }}
+          onKeyDown={(event) =>
+            handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !textValidation.isFormSubmittable)
+          }
+        />
+        <Controller
+          name="saveAndCreateNext"
+          control={control}
+          render={({ field }) => (
+            <FormControlLabel sx={{ mt: 1 }} control={<Checkbox {...field} />} label="Save and Create Next" />
+          )}
+        />
+      </form>
     </BaseModal>
   )
 }

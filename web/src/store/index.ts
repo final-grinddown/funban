@@ -12,17 +12,17 @@ export type AppState = BoardSlice & ModalSlice & FocusSlice & ThemeSlice & Actio
 
 // Create the unified store
 export const useAppStore = create<AppState>()(
-	devtools(
-		(...args) => ({
-			...createBoardSlice(...args),
-			...createModalSlice(...args),
-			...createFocusSlice(...args),
-			...createThemeSlice(...args),
-			...createActionSlice(...args),
-			...createUiSlice(...args),
-		}),
-		{ name: "FunbanStore" },
-	),
+  devtools(
+    (...args) => ({
+      ...createBoardSlice(...args),
+      ...createModalSlice(...args),
+      ...createFocusSlice(...args),
+      ...createThemeSlice(...args),
+      ...createActionSlice(...args),
+      ...createUiSlice(...args),
+    }),
+    { name: "FunbanStore" },
+  ),
 )
 
 // Convenience selectors for common use cases

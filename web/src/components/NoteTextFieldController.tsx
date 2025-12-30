@@ -46,7 +46,7 @@ export const NoteTextFieldController = <TFormData extends Record<string, any>>({
         rules={{
           ...(required && { required: textValidationRules.required }),
           maxLength: { value: maxLength, message: `Text cannot exceed ${maxLength} characters` },
-          minLength: required ? textValidationRules.minLength : undefined
+          minLength: required ? textValidationRules.minLength : undefined,
         }}
         render={({ field }) => (
           <TextField
@@ -65,7 +65,7 @@ export const NoteTextFieldController = <TFormData extends Record<string, any>>({
           />
         )}
       />
-      
+
       {showLengthCounter && currentText && currentText.length > 0 && (
         <TextLengthCounter currentLength={currentText.length} maxLength={maxLength} />
       )}

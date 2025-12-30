@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
-import {
-  FormControl,
-  Select,
-  InputLabel,
-  SelectChangeEvent,
-  MenuItem,
-} from "@mui/material"
+import { FormControl, Select, InputLabel, SelectChangeEvent, MenuItem } from "@mui/material"
 import { Board } from "@/components/Board"
 import { useAppStore } from "@/store"
 import type { ParsedSnapshot } from "@/utils/snapshot-types"
@@ -29,7 +23,7 @@ export function HistoryV1({ snapshot }: HistoryV1Props) {
 
   const userNames = useMemo(() => {
     const names = ["All"]
-    users.forEach(user => names.push(user.name))
+    users.forEach((user) => names.push(user.name))
     return names
   }, [users])
 
@@ -42,7 +36,7 @@ export function HistoryV1({ snapshot }: HistoryV1Props) {
 
   // Convert back to the format Board expects (with owner info embedded)
   const boardNotes = useMemo(() => {
-    return notes.map(note => ({
+    return notes.map((note) => ({
       id: note.id,
       text: note.text,
       name: note.name,
