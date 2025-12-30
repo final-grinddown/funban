@@ -1,0 +1,271 @@
+name: CI/CD
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on any version tag (v1.0.0, v1.0.0-rc1, etc)
+  pull_request:
+    branches: [ develop, master ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  SQLX_OFFLINE: true
+
+jobs:
+  # Detect what changed (only for PRs, skip on tag push)
+  changes:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**/*.rs'
+              - 'server/src/**'
+              - 'server/.cargo/**'
+              - 'server/migrations/**'
+              - 'server/.sqlx/**'
+              - 'server/Cargo.toml'
+              - 'server/Cargo.lock'
+              - 'server/Dockerfile'
+            web:
+              - 'web/**'
+              - 'web/src/**'
+              - 'web/package.json'
+              - 'web/yarn.lock'
+              - 'web/.yarnrc.yml'
+              - 'web/tsconfig.json'
+              - 'web/next.config.mjs'
+              - 'web/Dockerfile'
+
+  test-server:
+    name: Test Server
+    runs-on: ubuntu-latest
+    # Run if: (1) tag push (build everything), or (2) PR with server changes
+    if: |
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.server == 'true'
+    needs: changes
+    defaults:
+      run:
+        working-directory: ./server
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: 8861a78310f7c1d1a3f01849350b36f1
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: 17ff8b3e0828c7b4a0a77238fa95e12d
+          MYSQL_DATABASE: funban
+          MYSQL_SSL_MODE: DISABLED
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-server-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-server-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Build main binary
+        run: cargo build --bin funban-server --verbose
+
+      - name: Build create_admin binary
+        run: cargo build --bin create_admin --verbose
+
+      - name: Run tests
+        run: cargo test --verbose
+        env:
+          DATABASE_URL: mysql://root:8861a78310f7c1d1a3f01849350b36f1@localhost:3306/funban?ssl-mode=DISABLED
+
+  test-web:
+    name: Test Web
+    runs-on: ubuntu-latest
+    # Run if: (1) tag push (build everything), or (2) PR with web changes
+    if: |
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.web == 'true'
+    needs: changes
+    defaults:
+      run:
+        working-directory: ./web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Type check
+        run: yarn check:ts
+
+      - name: Lint
+        run: yarn check:lint
+
+      - name: Build
+        run: yarn build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api
+          NEXT_PUBLIC_WS_URL: ws://localhost:3001/ws
+          NEXT_PUBLIC_ENV: production
+
+  build-and-deploy:
+    name: Build and Deploy Images
+    runs-on: ubuntu-latest
+    # Only run on tag pushes, after all tests pass
+    needs: [test-server, test-web]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write  # Needed to create releases
+      packages: write
+      id-token: write  # Needed for cosign
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and push server image (always build, Docker cache handles unchanged)
+      - name: Extract metadata for server
+        id: meta-server
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/server
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Funban Server
+            org.opencontainers.image.description=Funban Server - Production Release
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Build and push server image
+        id: build-server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }}
+          labels: ${{ steps.meta-server.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign server image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository }}/server@${{ steps.build-server.outputs.digest }}
+
+      # Build and push web image (always build, Docker cache handles unchanged)
+      - name: Extract metadata for web
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/web
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Funban Web
+            org.opencontainers.image.description=Funban Web - Production Release
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Build and push web image
+        id: build-web
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./web/Dockerfile
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.funban.dev/api
+            NEXT_PUBLIC_WS_URL=wss://api.funban.dev/ws
+            NEXT_PUBLIC_ENV=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign web image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository }}/web@${{ steps.build-web.outputs.digest }}
+
+      # Create GitHub release (only for non-prerelease tags)
+      - name: Create GitHub Release
+        if: "!contains(github.ref_name, '-')"
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          body: |
+            ## Docker Images
+
+            ### Server
+            ```bash
+            docker pull ${{ env.REGISTRY }}/${{ github.repository }}/server:${{ github.ref_name }}
+            ```
+
+            ### Web
+            ```bash
+            docker pull ${{ env.REGISTRY }}/${{ github.repository }}/web:${{ github.ref_name }}
+            ```
+
+            ## Deployment
+
+            Update your docker-compose.prod.yaml to use this version and redeploy:
+
+            ```bash
+            docker compose -f docker-compose.prod.yaml pull
+            docker compose -f docker-compose.prod.yaml up -d
+            ```
