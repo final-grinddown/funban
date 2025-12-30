@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Box } from "@mui/material"
 import { useHotkeys } from "react-hotkeys-hook"
-import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/store"
+import { useAppStore, selectIsFocus, selectCurrentUser } from "@/store"
 import { Note } from "@/utils/interfaces"
 import { DeleteNoteBulkModal } from "../DeleteNoteBulkModal"
 import { BoardColumnHeader } from "./BoardColumnHeader"
@@ -19,7 +19,6 @@ interface Props {
 }
 
 export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColumn({ title, items, state, isEditable, columnIndex }, ref) {
-  const users = useAppStore(selectUsers)
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
   const selectedUserId = useAppStore((state) => state.ui.selectedUserId)

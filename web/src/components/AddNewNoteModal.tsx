@@ -37,7 +37,7 @@ export function AddNewNoteModal({ isOpen, onClose }: Props) {
   const users = useAppStore(selectUsers)
   const defaultValues = useMemo(
     () => (modalData ? { state: modalData.state, ownerId: modalData.ownerId } : undefined),
-    [modalData?.state, modalData?.ownerId]
+    [modalData]
   )
   const hasTextFocus = modalData?.focusText
 
