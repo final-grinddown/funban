@@ -77,15 +77,20 @@ where
 pub async fn add(db: &MySqlPool, user: &UserDto) -> sqlx::Result<UserDto> {
     let mut transaction = db.begin().await?;
 
+    // Use a default test password for users created through this API
+    // Production users should be created using the create_admin utility
+    let default_password = "$argon2i$v=19$m=16,t=2,p=1$YlpjRFNUd2E5SFVrY3dYVQ$Xvbh9z5v1IyHzupMbgNFMw";
+
     sqlx::query!(
         r#"
-				INSERT INTO users (name, `index`, color, email)
-				VALUES (?, ?, ?, ?)
+				INSERT INTO users (name, `index`, color, email, password)
+				VALUES (?, ?, ?, ?, ?)
 				"#,
         user.name,
         user.index,
         user.color,
         user.email,
+        default_password,
     )
     .execute(&mut *transaction)
     .await?;
