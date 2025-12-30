@@ -23,8 +23,8 @@ export const config = {
      * - /sign-in
      * - /api/auth (NextAuth API routes)
      * - /_next (Next.js internals)
-     * - /favicon.ico, /robots.txt (static files)
+     * - /favicon.ico, /robots.txt, /env.js (static files)
      */
-    "/((?!$|api/auth|_next/static|_next/image|favicon.ico|robots.txt|sign-in$).+)",
+    "/((?!$|api/auth|_next/static|_next/image|favicon.ico|robots.txt|env.js|sign-in$).+)",
   ],
 }

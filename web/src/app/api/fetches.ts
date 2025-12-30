@@ -1,8 +1,9 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
 import { base64EncodeUnicode } from "@/utils/helpers"
 import { IHistoryItem, ISnapshotData } from "@/utils/interfaces"
+import { ENV } from "@/utils/env"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+const API_URL = ENV.API_URL
 
 export const fetchHistory = async (accessToken?: string): Promise<IHistoryItem[]> => {
   return fetchWithAuth<IHistoryItem[]>(`${API_URL}/history`, accessToken)
