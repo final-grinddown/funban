@@ -34,8 +34,16 @@ function getEnv(envKey: string, windowKey: string): string | undefined {
         : undefined
 }
 
+// Use getters to ensure values are read at access time, not module load time
+// This ensures window.ENV is populated before we try to read from it
 export const ENV = {
-  API_URL: getEnv("NEXT_PUBLIC_API_URL", "API_URL"),
-  WS_URL: getEnv("NEXT_PUBLIC_WS_URL", "WS_URL"),
-  ENV: getEnv("NEXT_PUBLIC_ENV", "ENV"),
-} as const
+  get API_URL() {
+    return getEnv("NEXT_PUBLIC_API_URL", "API_URL")
+  },
+  get WS_URL() {
+    return getEnv("NEXT_PUBLIC_WS_URL", "WS_URL")
+  },
+  get ENV() {
+    return getEnv("NEXT_PUBLIC_ENV", "ENV")
+  },
+}
