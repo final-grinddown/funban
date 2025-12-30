@@ -1,7 +1,7 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
+import { ENV } from "@/utils/env"
 import { base64EncodeUnicode } from "@/utils/helpers"
 import { IHistoryItem, ISnapshotData } from "@/utils/interfaces"
-import { ENV } from "@/utils/env"
 
 const API_URL = ENV.API_URL
 

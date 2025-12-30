@@ -22,8 +22,8 @@ import { clearApp } from "@/app/api/auth/clearApp"
 import { Alerts } from "@/components/Alerts"
 import type { WsNote, WsUser, WsOperation } from "@/schemas/websocket"
 import { useAppStore } from "@/store"
-import { dispatchPatchOperation } from "@/websocket/handlers"
 import { ENV } from "@/utils/env"
+import { dispatchPatchOperation } from "@/websocket/handlers"
 
 // WebSocket message types
 type PatchMessage = {
