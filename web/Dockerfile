@@ -13,6 +13,13 @@ RUN yarn install --immutable
 # Copy contracts and web source code
 COPY contracts/ ../contracts/
 COPY web/ ./
+
+# Set placeholder values for NEXT_PUBLIC_* variables during build
+# These will be overridden at runtime by generate-env.sh
+ENV NEXT_PUBLIC_API_URL="__PLACEHOLDER__" \
+    NEXT_PUBLIC_WS_URL="__PLACEHOLDER__" \
+    NEXT_PUBLIC_ENV="__PLACEHOLDER__"
+
 RUN yarn build
 
 # Production stage
