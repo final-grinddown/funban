@@ -50,8 +50,6 @@ interface WebSocketContextType {
   isLoading: boolean
 }
 
-const WS_URL = ENV.WS_URL
-
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
 // Reconnection configuration for reconnecting-websocket
@@ -84,7 +82,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (status === "authenticated" && session) {
       const extendedSession = session as Session
       if (extendedSession?.accessToken) {
-        setSocketUrl(`${WS_URL}?token=${extendedSession.accessToken}`)
+        setSocketUrl(`${ENV.WS_URL}?token=${extendedSession.accessToken}`)
       } else {
         console.error("WebSocket: No accessToken in session", session)
       }
