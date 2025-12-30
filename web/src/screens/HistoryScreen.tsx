@@ -19,24 +19,26 @@ import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
 import { fetchHistory, fetchHistoryItem } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
+import { useConfig } from "@/context/ConfigProvider"
 import { ERoutes } from "@/utils/enums"
 
 export function HistoryScreen() {
   const theme = useTheme()
   const router = useRouter()
+  const { apiUrl } = useConfig()
   const queryClient = useQueryClient()
   const { data: session } = useSession() as { data: Session }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["history"],
-    queryFn: () => fetchHistory(session?.accessToken),
+    queryFn: () => fetchHistory(apiUrl, session?.accessToken),
     enabled: !!session?.accessToken,
   })
 
   const handleMouseEnter = (id: string) => {
     queryClient.prefetchQuery({
       queryKey: ["historyItem", id],
-      queryFn: () => fetchHistoryItem(id, session?.accessToken),
+      queryFn: () => fetchHistoryItem(apiUrl, id, session?.accessToken),
     })
   }
 

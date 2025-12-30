@@ -13,7 +13,6 @@ function getEnv(envKey: string, windowKey: string): string | undefined {
   // Client-side: try window.ENV first (production), then fallback to build-time env (local dev)
   if (typeof window !== "undefined") {
     const windowValue = (window.ENV as any)?.[windowKey]
-    console.log(`[ENV] Reading ${windowKey}: window.ENV =`, window.ENV, `value =`, windowValue)
     if (windowValue) return windowValue
 
     // Fallback to build-time environment variables (Next.js inlines these)

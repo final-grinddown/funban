@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react"
 import {
   Alert,
@@ -12,6 +13,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { postSnapshot } from "@/app/api/fetches"
+import { useConfig } from "@/context/ConfigProvider"
 import { IRawNote } from "@/utils/interfaces"
 import { ModalHeader } from "./modals/ModalHeader"
 
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
+  const { apiUrl } = useConfig()
   const queryClient = useQueryClient()
   const {
     control,
@@ -49,7 +52,7 @@ export function EndStatusModal({ notes, accessToken, isOpen, onClose }: Props) {
 
   const mutation = useMutation({
     mutationKey: ["postSnapshot"],
-    mutationFn: (data: { label: string }) => postSnapshot({ label: data.label, notes }, accessToken),
+    mutationFn: (data: { label: string }) => postSnapshot(apiUrl, { label: data.label, notes }, accessToken),
     onSuccess: () => {
       onClose()
       setSnackbarMessage("Snapshot sent successfully!")

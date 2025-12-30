@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import {
@@ -13,6 +14,7 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { changeEmail } from "@/app/api/fetches"
+import { useConfig } from "@/context/ConfigProvider"
 import { hasCode } from "@/utils/helpers"
 import { ModalHeader } from "./modals/ModalHeader"
 
@@ -27,6 +29,7 @@ interface FormInputs {
 }
 
 export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
+  const { apiUrl } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -48,7 +51,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
   const handleFormSubmit = async (data: FormInputs) => {
     setIsSubmitting(true)
     try {
-      await changeEmail(data.new_email, accessToken)
+      await changeEmail(apiUrl, data.new_email, accessToken)
       onClose()
       clearApp()
     } catch (err) {

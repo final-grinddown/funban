@@ -24,17 +24,16 @@ import {
 } from "@mui/material"
 import Link from "next/link"
 import { clearApp } from "@/app/api/auth/clearApp"
+import { useConfig } from "@/context/ConfigProvider"
 import { ERoutes } from "@/utils/enums"
-import { ENV } from "@/utils/env"
 import pkg from "../../package.json"
 interface Props {
   children: ReactNode
   userEmail: string
 }
 
-const APP_ENV = ENV.ENV
-
 export function DashboardLayout({ children, userEmail }: Props) {
+  const { env: APP_ENV } = useConfig()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const theme = useTheme()
 

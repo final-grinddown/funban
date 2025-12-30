@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import {
@@ -13,6 +14,7 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { changePassword } from "@/app/api/fetches"
+import { useConfig } from "@/context/ConfigProvider"
 import { hasCode } from "@/utils/helpers"
 import { ModalHeader } from "./modals/ModalHeader"
 
@@ -29,6 +31,7 @@ interface FormInputs {
 }
 
 export function ChangePasswordModal({ isOpen, onClose, accessToken }: Props) {
+  const { apiUrl } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -53,7 +56,7 @@ export function ChangePasswordModal({ isOpen, onClose, accessToken }: Props) {
   const handleFormSubmit = async (data: FormInputs) => {
     setIsSubmitting(true)
     try {
-      await changePassword(data.oldPassword, data.newPassword, accessToken)
+      await changePassword(apiUrl, data.oldPassword, data.newPassword, accessToken)
       onClose()
       clearApp()
     } catch (err) {
