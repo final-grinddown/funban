@@ -13,9 +13,6 @@ import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, Note } from "@/utils/interfaces"
 import { tagColor } from "@/utils/noteConstants"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue, getStoredHeaderOption } from "@/utils/storage"
-import { DeleteNoteModal } from "../DeleteNoteModal"
-import { EditNoteModal } from "../EditNoteModal"
-import { SplitNoteModal } from "../SplitNoteModal"
 import { NoteCardHeader } from "./NoteCardHeader"
 import { NoteCardMenu } from "./NoteCardMenu"
 import { NoteCardTags } from "./NoteCardTags"
@@ -43,10 +40,6 @@ export function BoardItemCard({
   const isFocus = useAppStore(selectIsFocus)
   const currentUser = useAppStore(selectCurrentUser)
   const openModal = useAppStore((state) => state.modals.openModal)
-  const closeModal = useAppStore((state) => state.modals.closeModal)
-  const editNoteModalOpen = useAppStore((state) => state.modals.editNote.isOpen)
-  const splitNoteModalOpen = useAppStore((state) => state.modals.splitNote.isOpen)
-  const deleteNoteModalOpen = useAppStore((state) => state.modals.deleteNote.isOpen)
   const theme = useTheme()
 
   const matchedColor =
@@ -79,25 +72,20 @@ export function BoardItemCard({
   const {
     contextMenu,
     isSubmitting,
-    textFocus,
     openContextMenu,
     closeContextMenu,
     setIsSubmitting,
-    setTextFocus,
-    clearTextFocus,
   } = useNoteCardModals()
 
   const openMenu = contextMenu !== null
 
   const handleEditModal = (focusText: boolean = false) => {
-    setTextFocus(focusText)
     openModal("editNote", { noteId: id, noteState: state, noteText: text, focusText })
     closeContextMenu()
   }
 
   const handleEditOpenModal = () => handleEditModal()
   const handleEditDoubleClickOpenModal = () => handleEditModal(true)
-  const handleEditCloseModal = () => closeModal("editNote")
 
   const handleClearModifier = () => {
     const message = createUpdateNoteTag(id.toString(), null)
@@ -231,26 +219,6 @@ export function BoardItemCard({
             onClearModifier={handleClearModifier}
             onSetModifier={handleSetModifier}
           />
-
-          <EditNoteModal
-            isOpen={editNoteModalOpen}
-            noteId={id}
-            noteState={state}
-            noteText={text}
-            onClose={handleEditCloseModal}
-            hasTextFocus={textFocus}
-            clearTextFocus={clearTextFocus}
-          />
-
-          <SplitNoteModal
-            isOpen={splitNoteModalOpen}
-            originalNote={{ id, text, name, owner_id, color, state, predecessor_id, updated, created, tag }}
-            users={users}
-            onClose={() => closeModal("splitNote")}
-            selectedUserId={currentUser ? parseInt(currentUser) : undefined}
-          />
-
-          <DeleteNoteModal isOpen={deleteNoteModalOpen} noteId={id} onClose={() => closeModal("deleteNote")} />
         </>
       )}
     </>

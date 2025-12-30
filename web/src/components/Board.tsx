@@ -23,6 +23,9 @@ import { getStoredColumnOrder } from "@/utils/storage"
 import { BoardColumn } from "./BoardColumn"
 import { BoardItemCard } from "./BoardItemCard"
 import { BoardLoadingState } from "./BoardLoadingState"
+import { DeleteNoteModal } from "./DeleteNoteModal"
+import { EditNoteModal } from "./EditNoteModal"
+import { SplitNoteModal } from "./SplitNoteModal"
 
 interface Props {
   isEditable: boolean
@@ -33,6 +36,10 @@ export function Board({ isEditable }: Props) {
   const notes = useAppStore(selectNotes)
   const asyncQueue = useAppStore((state) => state.actions.asyncQueue)
   const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
+  const closeModal = useAppStore((state) => state.modals.closeModal)
+  const deleteNoteModalOpen = useAppStore((state) => state.modals.deleteNote.isOpen)
+  const editNoteModalOpen = useAppStore((state) => state.modals.editNote.isOpen)
+  const splitNoteModalOpen = useAppStore((state) => state.modals.splitNote.isOpen)
   const [activeId, setActiveId] = useState<number | null>(null) // Currently dragging
   const pendingDragUuidRef = useRef<string | null>(null) // UUID of pending drag operation
   const columnOrder = getStoredColumnOrder()
@@ -370,6 +377,10 @@ export function Board({ isEditable }: Props) {
       </DndContext>
 
       <BoardLoadingState isLoading={isLoading} />
+
+      <DeleteNoteModal isOpen={deleteNoteModalOpen} onClose={() => closeModal("deleteNote")} />
+      <EditNoteModal isOpen={editNoteModalOpen} onClose={() => closeModal("editNote")} />
+      <SplitNoteModal isOpen={splitNoteModalOpen} onClose={() => closeModal("splitNote")} />
     </Box>
   )
 }
