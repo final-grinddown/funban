@@ -1,18 +1,17 @@
 "use client"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { DashboardLayout } from "@/components/DashboardLayout"
 import { BoardScreen } from "@/screens/BoardScreen"
-import { useAppStore, selectUsers, selectNotes } from "@/store"
+import { useAppStore, selectUsers } from "@/store"
 
 export default function Board() {
   const { data, status } = useSession()
   const router = useRouter()
   const users = useAppStore(selectUsers)
-  const notes = useAppStore(selectNotes)
   const session = data as Session
   const [isMounted, setIsMounted] = useState(false)
 
