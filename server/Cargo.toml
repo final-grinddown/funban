@@ -3,6 +3,14 @@ name = "funban-server"
 version = "1.1.0"
 edition = "2021"
 
+[[bin]]
+name = "funban-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "create_admin"
+path = "src/bin/create_admin.rs"
+
 
 [dependencies]
 axum = { version = "0.8.4", features = [
