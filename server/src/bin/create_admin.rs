@@ -77,16 +77,14 @@ async fn main() -> Result<()> {
         .to_string();
 
     // Insert user into database
-    sqlx::query(
-        "INSERT INTO users (email, name, password, color) VALUES (?, ?, ?, ?)"
-    )
-    .bind(&email)
-    .bind(&name)
-    .bind(&password_hash)
-    .bind("#000000") // Default color
-    .execute(&pool)
-    .await
-    .context("Failed to insert user into database")?;
+    sqlx::query("INSERT INTO users (email, name, password, color) VALUES (?, ?, ?, ?)")
+        .bind(&email)
+        .bind(&name)
+        .bind(&password_hash)
+        .bind("#000000") // Default color
+        .execute(&pool)
+        .await
+        .context("Failed to insert user into database")?;
 
     println!("\n✓ Admin user created successfully!");
     println!("  Email: {}", email);
