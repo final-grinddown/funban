@@ -156,8 +156,11 @@ jobs:
             ${{ runner.os }}-cargo-server-
 
 
-      - name: Build
-        run: cargo build --verbose
+      - name: Build main binary
+        run: cargo build --bin funban-server --verbose
+
+      - name: Build create_admin binary
+        run: cargo build --bin create_admin --verbose
 
       - name: Run tests
         run: cargo test --verbose
