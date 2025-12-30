@@ -9,20 +9,21 @@ import {
 import { createDeleteNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
-import { Note } from "@/utils/interfaces"
+import { useAppStore } from "@/store"
 import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
-  noteId: Note["id"]
   onClose: () => void
 }
 
-export function DeleteNoteModal({ isOpen, noteId, onClose }: Props) {
+export function DeleteNoteModal({ isOpen, onClose }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
+  const noteId = useAppStore((state) => state.modals.deleteNote.data?.noteId)
 
   const handleDelete = () => {
+    if (!noteId) return
     const message = createDeleteNote(noteId.toString())
     sendMessageAsync(message, "Note deleted successfully!")
     setIsSubmitting(true)

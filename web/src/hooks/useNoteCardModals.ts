@@ -1,8 +1,8 @@
 import { useState } from "react"
 
 /**
- * Custom hook for managing note card modal states.
- * Centralizes modal state management for Edit, Delete, Split modals.
+ * Custom hook for managing note card context menu and submission state.
+ * Centralizes state management for note card interactions.
  *
  * @returns Modal state and handlers
  */
@@ -12,7 +12,6 @@ export function useNoteCardModals() {
     mouseY: number
   } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [textFocus, setTextFocus] = useState(false)
 
   const openContextMenu = (event: React.MouseEvent) => {
     event.preventDefault()
@@ -32,11 +31,8 @@ export function useNoteCardModals() {
   return {
     contextMenu,
     isSubmitting,
-    textFocus,
     openContextMenu,
     closeContextMenu,
     setIsSubmitting,
-    setTextFocus,
-    clearTextFocus: () => setTextFocus(false),
   }
 }
