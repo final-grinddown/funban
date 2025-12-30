@@ -1,4 +1,4 @@
-.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server scripts format contracts sqlx-prepare precommit precommit-web precommit-server docker-up docker-down docker-build clean kill-dev
+.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server fix fix-web fix-server scripts format contracts sqlx-prepare precommit precommit-web precommit-server docker-up docker-down docker-build clean kill-dev
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Development
@@ -55,6 +55,22 @@ check-server:
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Scripts (make active changes - run before precommit)
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Auto-fix all formatting and linting issues (run this before committing!)
+fix: fix-server fix-web
+	@echo "✨ All auto-fixes applied!"
+
+fix-server:
+	@echo "🦀 Fixing Rust formatting and linting..."
+	cd server && cargo fmt
+	cd server && cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
+	@echo "📊 Regenerating SQLx offline data..."
+	cd server && cargo sqlx prepare --workspace -- --all-targets --all-features --bins --tests
+
+fix-web:
+	@echo "⚛️  Fixing web formatting and linting..."
+	cd web && yarn prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,scss,md}"
+	cd web && yarn check:lint:fix
 
 # Run all server scripts: formatting, contracts generation, SQLx prepare
 # Use this before committing to ensure all generated files are up to date
