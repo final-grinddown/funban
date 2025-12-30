@@ -17,20 +17,15 @@ import { Controller, useForm } from "react-hook-form"
 import { createSplitNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
+import { useAppStore, selectUsers } from "@/store"
 import { MaxTextLength } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { Note, User } from "@/utils/interfaces"
 import { ModalHeader } from "./modals/ModalHeader"
 import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   isOpen: boolean
-  originalNote: Note
-  users: User[]
   onClose: () => void
-  hasTextFocus?: boolean
-  clearTextFocus?: () => void
-  selectedUserId?: number
 }
 
 interface FormInputs {
@@ -40,17 +35,13 @@ interface FormInputs {
   newOwner: string
 }
 
-export function SplitNoteModal({
-  isOpen,
-  originalNote,
-  users,
-  onClose,
-  hasTextFocus,
-  clearTextFocus,
-  selectedUserId,
-}: Props) {
+export function SplitNoteModal({ isOpen, onClose }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
+  const modalData = useAppStore((state) => state.modals.splitNote.data)
+  const originalNote = modalData?.originalNote
+  const users = useAppStore(selectUsers)
+  const selectedUserId = modalData?.selectedUserId
   const originalTextRef = useRef<HTMLInputElement | null>(null)
   const newTextRef = useRef<HTMLInputElement | null>(null)
 
@@ -62,10 +53,10 @@ export function SplitNoteModal({
     formState: { errors, isDirty, isValid },
   } = useForm<FormInputs>({
     defaultValues: {
-      originalText: originalNote.text,
-      newText: originalNote.text,
-      newState: originalNote.state,
-      newOwner: originalNote.owner_id.toString(),
+      originalText: originalNote?.text ?? "",
+      newText: originalNote?.text ?? "",
+      newState: originalNote?.state ?? "notes",
+      newOwner: originalNote?.owner_id.toString() ?? "",
     },
     mode: "onChange",
   })
@@ -74,6 +65,8 @@ export function SplitNoteModal({
   const newText = watch("newText")
 
   const handleFormSubmit = (data: FormInputs) => {
+    if (!originalNote) return
+
     setIsSubmitting(true)
     const message = createSplitNote(
       originalNote.id.toString(),
@@ -86,7 +79,7 @@ export function SplitNoteModal({
   }
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && originalNote) {
       const newOwnerId = selectedUserId ? selectedUserId.toString() : originalNote.owner_id.toString()
 
       reset({
@@ -98,22 +91,17 @@ export function SplitNoteModal({
 
       // Handle focus management
       setTimeout(() => {
-        if (hasTextFocus) {
-          if (originalTextRef.current) {
-            const inputElement = originalTextRef.current
-            inputElement.focus()
-            inputElement.setSelectionRange(0, inputElement.value.length)
-          }
-          if (clearTextFocus) {
-            clearTextFocus()
-          }
+        if (originalTextRef.current) {
+          const inputElement = originalTextRef.current
+          inputElement.focus()
+          inputElement.setSelectionRange(0, inputElement.value.length)
         }
       }, 0)
     }
-  }, [isOpen, originalNote, reset, selectedUserId, hasTextFocus, clearTextFocus])
+  }, [isOpen, originalNote, reset, selectedUserId])
 
   // Check if both text fields are valid and at least one has changed
-  const isFormValid =
+  const isFormValid = originalNote &&
     isValid &&
     isDirty &&
     originalText.length > 0 &&

@@ -3,10 +3,8 @@ import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Box } from "@mui/material"
 import { useHotkeys } from "react-hotkeys-hook"
-import { useBoardColumnModals } from "@/hooks/useBoardColumnModals"
 import { useAppStore, selectUsers, selectIsFocus, selectCurrentUser } from "@/store"
 import { Note } from "@/utils/interfaces"
-import { AddNewNoteModal } from "../AddNewNoteModal"
 import { DeleteNoteBulkModal } from "../DeleteNoteBulkModal"
 import { BoardColumnHeader } from "./BoardColumnHeader"
 import { BoardColumnList } from "./BoardColumnList"
@@ -28,7 +26,6 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
   const openModal = useAppStore((state) => state.modals.openModal)
   const closeModal = useAppStore((state) => state.modals.closeModal)
   const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
-  const addNewNoteModalOpen = useAppStore((state) => state.modals.addNewNote.isOpen)
   const deleteNoteBulkModalOpen = useAppStore((state) => state.modals.deleteNoteBulk.isOpen)
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -38,9 +35,6 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
   const { setNodeRef, isOver } = useDroppable({
     id: title, // Use column title as droppable ID
   })
-
-  const { textFocus, setTextFocus, newNoteDefaultValues, setNewNoteDefaultValues, clearTextFocus } =
-    useBoardColumnModals()
 
   const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget)
@@ -66,17 +60,10 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
   const handleOpenAddNewNoteModal = useCallback(
     (focusText: boolean = false) => {
       handleCloseMenu()
-      setTextFocus(focusText)
-      setNewNoteDefaultValues({ state: state, ownerId: String(selectedUserId) })
       openModal("addNewNote", { state, ownerId: String(selectedUserId), focusText })
     },
-    [handleCloseMenu, setTextFocus, setNewNoteDefaultValues, state, selectedUserId, openModal],
+    [handleCloseMenu, state, selectedUserId, openModal],
   )
-
-  const handleCloseAddNewNoteModal = useCallback(() => {
-    setNewNoteDefaultValues({ state: "", ownerId: "" })
-    closeModal("addNewNote")
-  }, [setNewNoteDefaultValues, closeModal])
 
   const handleDeleteAllNotes = useCallback(() => {
     handleCloseMenu()
@@ -132,14 +119,6 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
         <BoardColumnList items={items} isFocus={isFocus} currentUser={currentUser} isEditable={isEditable} />
       </SortableContext>
 
-      <AddNewNoteModal
-        isOpen={addNewNoteModalOpen}
-        onClose={handleCloseAddNewNoteModal}
-        users={users}
-        defaultValues={newNoteDefaultValues}
-        hasTextFocus={textFocus}
-        clearTextFocus={clearTextFocus}
-      />
       {selectedUserId && (
         <DeleteNoteBulkModal
           isOpen={deleteNoteBulkModalOpen}

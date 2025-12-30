@@ -136,7 +136,7 @@ export function BoardScreen({ accessToken }: Props) {
       {/* Connection status indicator */}
       <ConnectionStatusBadge status={connectionStatus} />
 
-      <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} users={users} />
+      <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} />
 
       <EndStatusModal
         isOpen={isEndStatusModalOpen}
