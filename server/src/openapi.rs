@@ -47,6 +47,6 @@ impl Modify for SecurityAddon {
 			(url = "http://localhost:3001/api", description = "Local server"),
 			(url = "https://funban.dev/api", description = "Production server")
 		),
-    info(title = "Funban API", version = "1.1.0", description = "API documentation for Funban")
+    info(title = "Funban API", version = "1.2.1", description = "API documentation for Funban")
 )]
 pub struct ApiDoc;
