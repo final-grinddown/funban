@@ -35,6 +35,8 @@ export function Board({ isEditable }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
   const notes = useAppStore(selectNotes)
   const asyncQueue = useAppStore((state) => state.actions.asyncQueue)
+  const failedUuids = useAppStore((state) => state.actions.failedUuids)
+  const clearFailedUuid = useAppStore((state) => state.actions.clearFailedUuid)
   const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
   const closeModal = useAppStore((state) => state.modals.closeModal)
   const deleteNoteModalOpen = useAppStore((state) => state.modals.deleteNote.isOpen)
@@ -73,13 +75,21 @@ export function Board({ isEditable }: Props) {
   const inProgressNotes = isOptimistic ? localInProgressNotes : storeInProgressNotes
   const doneNotes = isOptimistic ? localDoneNotes : storeDoneNotes
 
-  // Clear pending drag UUID when server confirms (removed from asyncQueue)
+  // Handle pending drag UUID leaving the asyncQueue (success or failure)
   useEffect(() => {
     if (pendingDragUuidRef.current !== null && !hasPendingDrag) {
-      // UUID is no longer in queue - server has confirmed
+      const uuid = pendingDragUuidRef.current
       pendingDragUuidRef.current = null
+      if (failedUuids.includes(uuid)) {
+        // Server rejected the reorder — snap local state back to authoritative store state
+        setLocalNotesNotes(storeNotesNotes)
+        setLocalTodoNotes(storeTodoNotes)
+        setLocalInProgressNotes(storeInProgressNotes)
+        setLocalDoneNotes(storeDoneNotes)
+        clearFailedUuid(uuid)
+      }
     }
-  }, [hasPendingDrag])
+  }, [hasPendingDrag, failedUuids, storeNotesNotes, storeTodoNotes, storeInProgressNotes, storeDoneNotes, clearFailedUuid])
 
   const columns = useMemo(() => {
     const columnData: IColumnData[] = [

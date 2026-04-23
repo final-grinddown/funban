@@ -78,6 +78,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   // Get board actions for bulk operations
   const setUsers = useAppStore((state) => state.board.setUsers)
   const setNotes = useAppStore((state) => state.board.setNotes)
+  const cancelAllPending = useAppStore((state) => state.actions.cancelAllPending)
 
   useEffect(() => {
     if (status === "authenticated" && session) {
@@ -137,11 +138,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             handlePatchMessage(msg)
             break
           case "Users":
-            // No transformation needed - WsUser matches User interface
             setUsers(msg.items)
             break
           case "Notes":
-            // No transformation needed - WsNote matches Note interface
+            // Fresh board state from server (sent on each new WS session).
+            // Cancel any in-flight optimistic operations — the server's list is authoritative.
+            cancelAllPending()
             setNotes(msg.items)
             break
         }
@@ -172,7 +174,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     socketRef.current.addEventListener("error", (error) => {
       console.error("WebSocket error:", error)
     })
-  }, [socketUrl, handlePatchMessage, setNotes, setUsers])
+  }, [socketUrl, handlePatchMessage, setNotes, setUsers, cancelAllPending])
 
   function sendMessage(message: string) {
     try {

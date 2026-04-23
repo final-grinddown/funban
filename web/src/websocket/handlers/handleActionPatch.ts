@@ -14,7 +14,7 @@ import type { AppState } from "@/store"
  * @param setIsLoading - Function to update loading state
  */
 export function handleActionPatch(op: WsOperation, store: AppState, setIsLoading: (loading: boolean) => void): void {
-  const { finishAsync } = store.actions
+  const { finishAsync, failAsync } = store.actions
 
   switch (op.type) {
     case "ActionFinished":
@@ -25,14 +25,12 @@ export function handleActionPatch(op: WsOperation, store: AppState, setIsLoading
     case "Error":
       console.error("WebSocket error:", op.message)
       if (op.uuid) {
-        finishAsync(op.uuid)
+        failAsync(op.uuid)
       }
       setIsLoading(false)
       break
 
     case "SnapshotCreated":
-      // Handle snapshot creation notification
-      // Currently no action needed - backend has created a snapshot
       break
   }
 }
