@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::http::ApiContext;
+use tracing::{info, warn};
 
 pub const COOKIE_NAME: &str = "funban_token";
 pub const COOKIE_NAME_MARKER: &str = "funban_marker";
@@ -90,6 +91,7 @@ pub async fn signin(
     let valid_password = check_password(&ctx.db, &payload.email, &payload.password).await?;
 
     if !valid_password {
+        warn!(email = %payload.email, "Failed signin — bad password");
         return Err(Error::Unauthorized(json_error_message(
             "Bad username or password",
         )));
@@ -100,6 +102,7 @@ pub async fn signin(
     let user = match user {
         Some(user) => user,
         None => {
+            warn!(email = %payload.email, "Failed signin — user not found after password check");
             return Err(Error::Unauthorized(json_error_message(
                 "Bad username or password",
             )))
@@ -139,6 +142,7 @@ pub async fn signin(
             SameSite::Strict
         });
 
+    info!(email = %user.email, username = %user.name, "Signin");
     let changed_cookies = cookies.add(token_cookie).add(marker_cookie);
     Ok((
         changed_cookies,
@@ -152,7 +156,8 @@ pub async fn signin(
 }
 
 #[utoipa::path(post, path = "/auth/signout", responses((status = 200, body = EmptyResponse, description = "Successfull logout.")), security(("jwt" = [])))]
-pub async fn signout(cookies: CookieJar) -> Result<(CookieJar, Json<EmptyResponse>)> {
+pub async fn signout(Extension(claims): Extension<Claims>, cookies: CookieJar) -> Result<(CookieJar, Json<EmptyResponse>)> {
+    info!(email = %claims.email, "Signout");
     let changed_cookies = cookies
         .remove(Cookie::build((COOKIE_NAME, "")).path("/").build())
         .remove(Cookie::build((COOKIE_NAME_MARKER, "")).path("/").build());
@@ -186,6 +191,7 @@ pub async fn change_email(
     validate_input(payload.validate()).map_err(|e| Error::BadRequest(e.message))?;
 
     sql::user::update_email(&ctx.db, &claims.email, &payload.new_email).await?;
+    info!(old_email = %claims.email, new_email = %payload.new_email, "Email changed");
 
     Ok(Json(EmptyResponse {
         message: "Email successfully changed.",
@@ -202,6 +208,7 @@ pub async fn change_password(
         auth::check_password(&ctx.db, &claims.email, &payload.old_password).await?;
 
     if !valid_password {
+        warn!(email = %claims.email, "Failed password change — wrong current password");
         return Err(Error::BadRequest(
             serde_json::json!({"message": "The given existing password is not valid", "code": "INVALID_PASSWORD"})
                 .to_string(),
