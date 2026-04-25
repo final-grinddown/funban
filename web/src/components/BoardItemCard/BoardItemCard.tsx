@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Card, CardContent, Typography } from "@mui/material"
+import { Card, CardContent } from "@mui/material"
 import { alpha, useTheme } from "@mui/material/styles"
 import { createUpdateNoteTag } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
@@ -13,6 +13,7 @@ import { formatDateToShow, matchColorName } from "@/utils/helpers"
 import { DevSettings, Note } from "@/utils/interfaces"
 import { tagColor } from "@/utils/noteConstants"
 import { getStoredDevIdsValue, getStoredDevPredecessorsValue, getStoredHeaderOption } from "@/utils/storage"
+import { NoteText } from "@/components/NoteText"
 import { NoteCardHeader } from "./NoteCardHeader"
 import { NoteCardMenu } from "./NoteCardMenu"
 import { NoteCardTags } from "./NoteCardTags"
@@ -191,9 +192,7 @@ export function BoardItemCard({
           }}
           onDoubleClick={handleEditDoubleClickOpenModal}
         >
-          <Typography variant="body1" sx={{ whiteSpace: "pre-line" }}>
-            {text}
-          </Typography>
+          <NoteText text={text} />
         </CardContent>
 
         <NoteCardTags tag={tag} />
