@@ -195,6 +195,9 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
 
     let ping_delay = tokio::time::Instant::now() + Duration::from_secs(30);
     let mut ping_interval = interval_at(ping_delay, Duration::from_secs(30));
+    // Tracks whether the client acknowledged the last ping.
+    // Initialised to true so the first ping isn't treated as a missed pong.
+    let mut pong_received = true;
 
     loop {
         tokio::select! {
@@ -291,12 +294,19 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
                             .await;
                         }
                     }
-                    Some(Ok(Message::Pong(_))) => {}
+                    Some(Ok(Message::Pong(_))) => {
+                        pong_received = true;
+                    }
                     Some(Ok(_)) => {}
                     _ => break,
                 }
             }
             _ = ping_interval.tick() => {
+                if !pong_received {
+                    warn!(client_id = %client_id, "No pong received since last ping, closing dead session");
+                    break;
+                }
+                pong_received = false;
                 if let Err(e) = context.ping_session(&client_id).await {
                     warn!(client_id = %client_id, error = %e, "Ping failed, closing session");
                     break;
