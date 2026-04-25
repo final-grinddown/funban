@@ -19,6 +19,7 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 use crate::http::ApiContext;
+use tracing::info;
 
 #[derive(Debug, Serialize, Clone, Default, ToSchema)]
 pub struct HistoryDto {
@@ -114,6 +115,7 @@ pub async fn remove(Path(id): Path<u32>, ctx: Extension<ApiContext>) -> Result<(
     let db_result = sql::history::delete(&ctx.db, id).await?;
 
     if db_result.is_some() {
+        info!(snapshot_id = id, "History snapshot deleted");
         Ok(())
     } else {
         Err(Error::NotFound)
@@ -131,6 +133,7 @@ pub async fn rename(ctx: Extension<ApiContext>, Json(payload): Json<HistoryRenam
     let db_result = sql::history::rename(&ctx.db, payload.id, &payload.label).await?;
 
     if db_result.is_some() {
+        info!(snapshot_id = payload.id, label = %payload.label, "History snapshot renamed");
         Ok(())
     } else {
         Err(Error::NotFound)
@@ -229,10 +232,22 @@ pub async fn create(
         .await
         .map_err(|e| Error::Internal(format!("Failed to create history: {}", e)))?;
 
+    info!(
+        snapshot_id = result.id,
+        label = ?result.label,
+        notes = notes.len(),
+        users = users.len(),
+        "History snapshot created"
+    );
+
     // Decrement user marks expiration and cleanup
     let removed_marks = sql::user_mark::decrement_expires_and_cleanup(&ctx.db)
         .await
         .map_err(|e| Error::Internal(format!("Failed to update user marks: {}", e)))?;
+
+    if !removed_marks.is_empty() {
+        info!(count = removed_marks.len(), "User marks expired");
+    }
 
     // Broadcast mark removals via WebSocket
     if !removed_marks.is_empty() {

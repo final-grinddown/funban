@@ -140,13 +140,19 @@ impl WsContext {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    /// Remove a WebSocket session
     pub async fn remove_session(&self, client_id: &str) {
         let mut txs = self.txs.lock().await;
         if txs.remove(client_id).is_some() {
             info!("Removed WebSocket session: {}", client_id);
         }
+    }
+
+    pub async fn ping_session(&self, client_id: &str) -> anyhow::Result<()> {
+        let mut txs = self.txs.lock().await;
+        if let Some(tx) = txs.get_mut(client_id) {
+            tx.send(Message::Ping(bytes::Bytes::new())).await?;
+        }
+        Ok(())
     }
 
     #[allow(dead_code)]

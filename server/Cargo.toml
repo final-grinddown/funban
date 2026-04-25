@@ -49,6 +49,7 @@ chrono = { version = "0.4.41", features = ["serde"] }
 rand = "0.9.1"
 config = { version = "0.15.11" }
 futures = "0.3.30"
+bytes = "1"
 json-patch = "4.0.0"
 utoipa = { version = "5.3.1", features = ["chrono"] }
 argon2 = { version = "0.5.3" }
