@@ -9,6 +9,7 @@ use axum::{
     Extension,
 };
 use futures::StreamExt;
+use metrics::counter;
 use tokio::time::interval_at;
 use tracing::{error, info, instrument, warn};
 
@@ -304,11 +305,13 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
             _ = ping_interval.tick() => {
                 if !pong_received {
                     warn!(client_id = %client_id, "No pong received since last ping, closing dead session");
+                    counter!("ws_dead_sessions_total").increment(1);
                     break;
                 }
                 pong_received = false;
                 if let Err(e) = context.ping_session(&client_id).await {
                     warn!(client_id = %client_id, error = %e, "Ping failed, closing session");
+                    counter!("ws_dead_sessions_total").increment(1);
                     break;
                 }
             }
