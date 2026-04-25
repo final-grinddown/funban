@@ -12,7 +12,7 @@ use sqlx::{
     MySqlPool,
 };
 
-use metrics::{gauge};
+use metrics::gauge;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tower::ServiceBuilder;
 use tower_http::{add_extension::AddExtensionLayer, cors::CorsLayer, trace::TraceLayer};
@@ -130,7 +130,10 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
     let app = Router::new()
         .nest("/ws", ws_router)
         .nest("/api", api_router)
-        .route("/metrics", axum::routing::get(move || async move { metrics_handle.render() }))
+        .route(
+            "/metrics",
+            axum::routing::get(move || async move { metrics_handle.render() }),
+        )
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))

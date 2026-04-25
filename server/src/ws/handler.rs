@@ -9,8 +9,8 @@ use axum::{
     Extension,
 };
 use futures::StreamExt;
-use tokio::time::interval_at;
 use metrics::counter;
+use tokio::time::interval_at;
 use tracing::{error, info, instrument, warn};
 
 use crate::{

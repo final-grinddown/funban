@@ -1,9 +1,9 @@
 use futures::{stream::SplitSink, SinkExt};
+use metrics::gauge;
 use serde::Serialize;
 use sqlx::MySqlPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use metrics::gauge;
 use tracing::{info, warn};
 
 use axum::{
