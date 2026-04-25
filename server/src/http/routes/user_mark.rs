@@ -173,8 +173,6 @@ async fn create(
                 );
                 if let Err(e) = ws_ctx.broadcast(vec![ws_op]).await {
                     tracing::error!("Failed to broadcast user mark creation: {}", e);
-                } else {
-                    tracing::info!("Successfully broadcasted UserMarkAdded");
                 }
             } else {
                 tracing::warn!("WebSocket context not available for broadcasting UserMarkAdded");
@@ -229,8 +227,6 @@ async fn delete_mark(
                         );
                         if let Err(e) = ws_ctx.broadcast(vec![ws_op]).await {
                             tracing::error!("Failed to broadcast user mark deletion: {}", e);
-                        } else {
-                            tracing::info!("Successfully broadcasted UserMarkRemoved");
                         }
                     } else {
                         tracing::warn!(
