@@ -3,6 +3,7 @@ use serde::Serialize;
 use sqlx::MySqlPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+use metrics::gauge;
 use tracing::{info, warn};
 
 use axum::{
@@ -91,6 +92,7 @@ impl WsContext {
 
         // Add session to our list of sessions
         txs.insert(client_id, tx);
+        gauge!("ws_connections_active").increment(1.0);
 
         Ok(())
     }
@@ -117,6 +119,7 @@ impl WsContext {
         // Remove disconnected clients
         for client_id in to_remove {
             txs.remove(&client_id);
+            gauge!("ws_connections_active").decrement(1.0);
         }
 
         Ok(())
@@ -134,6 +137,7 @@ impl WsContext {
             if let Err(err) = tx.send(Message::Text(Utf8Bytes::from(message))).await {
                 warn!("Failed to send to client {}: {}", client_id, err);
                 txs.remove(&client_id);
+                gauge!("ws_connections_active").decrement(1.0);
             }
         }
 
@@ -144,6 +148,7 @@ impl WsContext {
         let mut txs = self.txs.lock().await;
         if txs.remove(client_id).is_some() {
             info!("Removed WebSocket session: {}", client_id);
+            gauge!("ws_connections_active").decrement(1.0);
         }
     }
 
