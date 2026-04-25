@@ -105,7 +105,7 @@ pub async fn signin(
             warn!(email = %payload.email, "Failed signin — user not found after password check");
             return Err(Error::Unauthorized(json_error_message(
                 "Bad username or password",
-            )))
+            )));
         }
     };
 
@@ -156,7 +156,10 @@ pub async fn signin(
 }
 
 #[utoipa::path(post, path = "/auth/signout", responses((status = 200, body = EmptyResponse, description = "Successfull logout.")), security(("jwt" = [])))]
-pub async fn signout(Extension(claims): Extension<Claims>, cookies: CookieJar) -> Result<(CookieJar, Json<EmptyResponse>)> {
+pub async fn signout(
+    Extension(claims): Extension<Claims>,
+    cookies: CookieJar,
+) -> Result<(CookieJar, Json<EmptyResponse>)> {
     info!(email = %claims.email, "Signout");
     let changed_cookies = cookies
         .remove(Cookie::build((COOKIE_NAME, "")).path("/").build())
