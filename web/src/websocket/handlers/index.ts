@@ -16,13 +16,8 @@ import { handleUserPatch } from "./handleUserPatch"
  * Dispatches a WebSocket operation to the appropriate handler
  * @param op - The WebSocket operation to process
  * @param store - The Zustand store instance
- * @param setIsLoading - Function to update loading state
  */
-export function dispatchPatchOperation(
-  op: WsOperation,
-  store: AppState,
-  setIsLoading: (loading: boolean) => void,
-): void {
+export function dispatchPatchOperation(op: WsOperation, store: AppState): void {
   // Classify operation by type and dispatch to appropriate handler
   switch (op.type) {
     // Note operations
@@ -53,7 +48,7 @@ export function dispatchPatchOperation(
     case "ActionFinished":
     case "Error":
     case "SnapshotCreated":
-      handleActionPatch(op, store, setIsLoading)
+      handleActionPatch(op, store)
       break
 
     default: {
