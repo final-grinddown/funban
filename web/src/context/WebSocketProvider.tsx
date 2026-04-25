@@ -69,7 +69,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
   const [socketUrl, setSocketUrl] = useState<string | null>(null)
   const socketRef = useRef<ReconnectingWebSocket | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const isLoading = useAppStore((state) => state.actions.asyncQueue.length > 0)
   const [connectionStatus, setConnectionStatus] = useState<string>("Uninstantiated")
 
   // Get store instance for handlers
@@ -103,9 +103,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   const handlePatchMessage = useCallback(
     (msg: PatchMessage) => {
-      // Dispatch each operation to the appropriate handler
       msg.ops.forEach((op: WsOperation) => {
-        dispatchPatchOperation(op, store, setIsLoading)
+        dispatchPatchOperation(op, store)
       })
     },
     [store],
@@ -199,15 +198,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         parsedMessage.uuid = uuid
       }
 
-      const messageWithUUID = JSON.stringify(parsedMessage)
-
-      setIsLoading(true)
-
-      sendMessage(messageWithUUID)
+      sendMessage(JSON.stringify(parsedMessage))
     } catch (error) {
       console.error("Failed to parse the message or append UUID:", error)
-      setIsLoading(false)
-      store.actions.finishAsync(uuid)
+      store.actions.failAsync(uuid)
     }
 
     return uuid

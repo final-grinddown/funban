@@ -7,7 +7,7 @@ const nextConfig = {
     return [
       {
         source: "/((?!_next/static|_next/image|favicon).*)",
-        headers: [{ key: "Cache-Control", value: "no-cache" }],
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ]
   },

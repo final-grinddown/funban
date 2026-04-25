@@ -11,23 +11,19 @@ import type { AppState } from "@/store"
  * Handles action-related WebSocket patch operations
  * @param op - The WebSocket operation to process
  * @param store - The Zustand store instance
- * @param setIsLoading - Function to update loading state
  */
-export function handleActionPatch(op: WsOperation, store: AppState, setIsLoading: (loading: boolean) => void): void {
+export function handleActionPatch(op: WsOperation, store: AppState): void {
   const { finishAsync, failAsync } = store.actions
 
   switch (op.type) {
     case "ActionFinished":
       finishAsync(op.uuid)
-      setIsLoading(false)
       break
 
     case "Error":
-      console.error("WebSocket error:", op.message)
       if (op.uuid) {
-        failAsync(op.uuid)
+        failAsync(op.uuid, op.message)
       }
-      setIsLoading(false)
       break
 
     case "SnapshotCreated":
