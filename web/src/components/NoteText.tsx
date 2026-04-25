@@ -1,5 +1,5 @@
-import ReactMarkdown from "react-markdown"
 import { Typography } from "@mui/material"
+import ReactMarkdown from "react-markdown"
 
 interface Props {
   text: string
@@ -18,12 +18,8 @@ export function NoteText({ text }: Props) {
             {children}
           </Typography>
         ),
-        ul: ({ children }) => (
-          <ul style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ul>
-        ),
-        ol: ({ children }) => (
-          <ol style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ol>
-        ),
+        ul: ({ children }) => <ul style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ul>,
+        ol: ({ children }) => <ol style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ol>,
         li: ({ children }) => (
           <Typography component="li" variant="body1">
             {children}
