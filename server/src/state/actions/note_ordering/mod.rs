@@ -1,8 +1,9 @@
 use anyhow::Result;
 use sqlx::MySqlPool;
+use tracing::warn;
 
 use crate::sql::note::{self, MoveTarget};
-use crate::state::{AppState, BusinessOperation, WsOperation};
+use crate::state::{respond_error, AppState, BusinessOperation, WsOperation};
 use crate::ws::OperationResult;
 
 impl AppState {
@@ -13,18 +14,31 @@ impl AppState {
         moved_item_id: u32,
         over_id: MoveTarget,
     ) -> Result<OperationResult> {
-        let changes = note::transfer(db, moved_item_id, over_id).await?;
-
-        let changes: Vec<WsOperation> = changes
-            .into_iter()
-            .map(|change| WsOperation::NoteOrderChanged {
-                id: change.id as u32,
-                state: change.state.into(),
-                predecessor_id: change.predecessor_id.map(|id| id as u32),
-            })
-            .collect();
-
-        changes.broadcast(uuid)
+        match note::transfer(db, moved_item_id, over_id.clone()).await {
+            Ok(changes) => {
+                let changes: Vec<WsOperation> = changes
+                    .into_iter()
+                    .map(|change| WsOperation::NoteOrderChanged {
+                        id: change.id as u32,
+                        state: change.state.into(),
+                        predecessor_id: change.predecessor_id.map(|id| id as u32),
+                    })
+                    .collect();
+                changes.broadcast(uuid)
+            }
+            Err(sqlx::Error::RowNotFound) => {
+                warn!(
+                    moved_item_id,
+                    ?over_id,
+                    "Reorder rejected: anchor note not found in DB (stale client state)"
+                );
+                respond_error(
+                    uuid,
+                    "Reorder failed: the target position no longer exists. Please refresh the page.".to_string(),
+                )
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     pub(crate) async fn handle_delete_notes(

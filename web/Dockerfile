@@ -5,16 +5,6 @@ WORKDIR /app
 # Enable corepack for Yarn 4
 RUN corepack enable
 
-# Define build arguments
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_WS_URL
-ARG NEXT_PUBLIC_ENV
-
-# Set environment variables for build
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
-ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
-
 # Install dependencies
 COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
 COPY web/.yarn/ ./.yarn/
@@ -23,6 +13,9 @@ RUN yarn install --immutable
 # Copy contracts and web source code
 COPY contracts/ ../contracts/
 COPY web/ ./
+
+# Build Next.js app
+# Note: NEXT_PUBLIC_* vars are NOT set here - they're read at runtime by server components
 RUN yarn build
 
 # Production stage
@@ -31,14 +24,15 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-
 # Copy necessary files from builder
 COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/.next/standalone/ ./
 COPY --from=builder /app/.next/static/ ./.next/static/
+COPY --from=builder /app/public/ ./public/
 
 # Expose the port your app runs on
 EXPOSE 3000
 
 # Start the application
+# Runtime env vars are read directly from process.env by the server component
 CMD ["node", "server.js"]

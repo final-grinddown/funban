@@ -12,7 +12,7 @@ const PROJECT_PREFIX = "funban-"
  * @returns The key with the project-specific prefix.
  */
 export function createPrefixedKey(key: string): string {
-	return `${PROJECT_PREFIX}${key}`
+  return `${PROJECT_PREFIX}${key}`
 }
 
 /**
@@ -22,7 +22,7 @@ export function createPrefixedKey(key: string): string {
  * @returns True if the value is "light" or "dark", otherwise false.
  */
 export function isThemeMode(value: unknown): value is TThemeMode {
-	return value === "light" || value === "dark"
+  return value === "light" || value === "dark"
 }
 
 /**
@@ -38,15 +38,15 @@ export function isThemeMode(value: unknown): value is TThemeMode {
  * @returns The color value (e.g., a hex code) if a match is found, otherwise undefined.
  */
 export function matchColorName(color: string, availableColors: readonly { name: string; value: string }[]) {
-	if (!color) return undefined
-	const normalizedColor = color.toLowerCase().replace(/ /g, "_")
+  if (!color) return undefined
+  const normalizedColor = color.toLowerCase().replace(/ /g, "_")
 
-	const matchedColor = availableColors.find((c) => {
-		const normalizedAvailableColor = c.name.toLowerCase().replace(/ /g, "_")
-		return normalizedAvailableColor === normalizedColor
-	})
+  const matchedColor = availableColors.find((c) => {
+    const normalizedAvailableColor = c.name.toLowerCase().replace(/ /g, "_")
+    return normalizedAvailableColor === normalizedColor
+  })
 
-	return matchedColor?.value
+  return matchedColor?.value
 }
 
 /**
@@ -61,18 +61,18 @@ export function matchColorName(color: string, availableColors: readonly { name: 
  * @returns An array of normalized notes conforming to the Note interface.
  */
 export function normalizeNotes(notes: IRawNote[]): Note[] {
-	return notes.map((note) => ({
-		id: Number(note.id),
-		text: note.text,
-		name: note.owner.name,
-		owner_id: Number(note.owner.id),
-		color: note.owner.color,
-		state: note.state,
-		predecessor_id: note.predecessor_id ? Number(note.predecessor_id) : null,
-		updated: note.updated,
-		created: note.created,
-		tag: (note.tag || null) as Note['tag'],
-	}))
+  return notes.map((note) => ({
+    id: Number(note.id),
+    text: note.text,
+    name: note.owner.name,
+    owner_id: Number(note.owner.id),
+    color: note.owner.color,
+    state: note.state,
+    predecessor_id: note.predecessor_id ? Number(note.predecessor_id) : null,
+    updated: note.updated,
+    created: note.created,
+    tag: (note.tag || null) as Note["tag"],
+  }))
 }
 
 /**
@@ -85,11 +85,11 @@ export function normalizeNotes(notes: IRawNote[]): Note[] {
  * @returns The Base64 encoded string.
  */
 export function base64EncodeUnicode(str: string): string {
-	// Convert string to UTF-8 encoded bytes
-	const bytes = new TextEncoder().encode(str);
-	// Convert Uint8Array to regular array for apply
-	const binaryStr = String.fromCharCode.apply(null, Array.from(bytes));
-	return btoa(binaryStr);
+  // Convert string to UTF-8 encoded bytes
+  const bytes = new TextEncoder().encode(str)
+  // Convert Uint8Array to regular array for apply
+  const binaryStr = String.fromCharCode.apply(null, Array.from(bytes))
+  return btoa(binaryStr)
 }
 
 /**
@@ -102,11 +102,11 @@ export function base64EncodeUnicode(str: string): string {
  * @returns The original string with Unicode characters preserved.
  */
 export function base64DecodeUnicode(str: string): string {
-	const binaryStr = atob(str);
-	// Convert binary string to Uint8Array
-	const bytes = Uint8Array.from(binaryStr, char => char.charCodeAt(0));
-	// Use TextDecoder to properly handle Unicode
-	return new TextDecoder().decode(bytes);
+  const binaryStr = atob(str)
+  // Convert binary string to Uint8Array
+  const bytes = Uint8Array.from(binaryStr, (char) => char.charCodeAt(0))
+  // Use TextDecoder to properly handle Unicode
+  return new TextDecoder().decode(bytes)
 }
 
 /**
@@ -122,16 +122,16 @@ export function base64DecodeUnicode(str: string): string {
  * @param isDisabled - A boolean value indicating whether the submit action is disabled.
  */
 export function handleKeyDownSubmit<T>(
-	event: KeyboardEvent<HTMLDivElement>,
-	handleSubmit: (onSubmit: (data: T) => void) => (e?: BaseSyntheticEvent) => void,
-	onSubmit: (data: T) => void,
-	isDisabled: boolean,
+  event: KeyboardEvent<HTMLDivElement>,
+  handleSubmit: (onSubmit: (data: T) => void) => (e?: BaseSyntheticEvent) => void,
+  onSubmit: (data: T) => void,
+  isDisabled: boolean,
 ) {
-	if (event.shiftKey && event.key === "Enter" && !isDisabled) {
-		event.preventDefault()
-		event.stopPropagation()
-		handleSubmit(onSubmit)()
-	}
+  if (event.shiftKey && event.key === "Enter" && !isDisabled) {
+    event.preventDefault()
+    event.stopPropagation()
+    handleSubmit(onSubmit)()
+  }
 }
 
 /**
@@ -146,17 +146,19 @@ export function handleKeyDownSubmit<T>(
  * @param updated - The updated date of the note in ISO 8601 format.
  */
 export const formatDateToShow = (created: string, updated: string) => {
-	const updatedDate = format(new Date(updated), "dd/MM/yyyy, HH:mm")
-	const createdDate = format(new Date(created), "dd/MM/yyyy, HH:mm")
-	const updatedRelative = formatDistanceToNow(new Date(updated), { addSuffix: true })
-	const createdRelative = formatDistanceToNow(new Date(created), { addSuffix: true })
+  const updatedDate = format(new Date(updated), "dd/MM/yyyy, HH:mm")
+  const createdDate = format(new Date(created), "dd/MM/yyyy, HH:mm")
+  const updatedRelative = formatDistanceToNow(new Date(updated), { addSuffix: true })
+  const createdRelative = formatDistanceToNow(new Date(created), { addSuffix: true })
 
-	return { updatedDate, createdDate, updatedRelative, createdRelative }
+  return { updatedDate, createdDate, updatedRelative, createdRelative }
 }
 
 export function hasCode(obj: unknown): obj is ErrorWithCode {
-	return (obj as ErrorWithCode)?.code !== undefined
-		&& (obj as ErrorWithCode)?.message !== undefined
-		&& typeof (obj as ErrorWithCode).code === "string"
-		&& typeof (obj as ErrorWithCode).message === "string";
+  return (
+    (obj as ErrorWithCode)?.code !== undefined &&
+    (obj as ErrorWithCode)?.message !== undefined &&
+    typeof (obj as ErrorWithCode).code === "string" &&
+    typeof (obj as ErrorWithCode).message === "string"
+  )
 }

@@ -1,6 +1,7 @@
 import { TextField } from "@mui/material"
 import { Controller, Control, FieldErrors, FieldPath } from "react-hook-form"
 import { textValidationRules } from "@/hooks/useFormValidation"
+import type { MuiSxProps } from "@/types/mui"
 import { MaxTextLength } from "@/utils/constants"
 import { TextLengthCounter } from "./TextLengthCounter"
 
@@ -14,7 +15,7 @@ interface Props<TFormData extends Record<string, any>> {
   currentText?: string
   showLengthCounter?: boolean
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
-  sx?: any
+  sx?: MuiSxProps
   inputRef?: React.RefObject<HTMLInputElement | null>
   required?: boolean
   maxLength?: number
@@ -45,7 +46,7 @@ export const NoteTextFieldController = <TFormData extends Record<string, any>>({
         rules={{
           ...(required && { required: textValidationRules.required }),
           maxLength: { value: maxLength, message: `Text cannot exceed ${maxLength} characters` },
-          minLength: required ? textValidationRules.minLength : undefined
+          minLength: required ? textValidationRules.minLength : undefined,
         }}
         render={({ field }) => (
           <TextField
@@ -64,7 +65,7 @@ export const NoteTextFieldController = <TFormData extends Record<string, any>>({
           />
         )}
       />
-      
+
       {showLengthCounter && currentText && currentText.length > 0 && (
         <TextLengthCounter currentLength={currentText.length} maxLength={maxLength} />
       )}

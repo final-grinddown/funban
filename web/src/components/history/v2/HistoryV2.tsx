@@ -1,14 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
-import {
-  FormControl,
-  Select,
-  InputLabel,
-  SelectChangeEvent,
-  MenuItem,
-  Box,
-} from "@mui/material"
+import { FormControl, Select, InputLabel, SelectChangeEvent, MenuItem, Box } from "@mui/material"
 import { Board } from "@/components/Board"
+import { useAppStore } from "@/store"
 import type { ParsedSnapshot } from "@/utils/snapshot-types"
 import { SnapshotParserV2 } from "./SnapshotParserV2"
 
@@ -18,6 +12,9 @@ interface HistoryV2Props {
 
 export function HistoryV2({ snapshot }: HistoryV2Props) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const setNotes = useAppStore((state) => state.board.setNotes)
+  const setIsFocus = useAppStore((state) => state.focus.setIsFocus)
+  const setCurrentUser = useAppStore((state) => state.focus.setCurrentUser)
 
   const { users, notes }: ParsedSnapshot = useMemo(() => {
     if (!snapshot) return { users: [], notes: [] }
@@ -25,12 +22,15 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
   }, [snapshot])
 
   const handleUserChange: (event: SelectChangeEvent) => void = (event) => {
-    setSelectedUser(event.target.value === "All" ? null : event.target.value)
+    const newUser = event.target.value === "All" ? null : event.target.value
+    setSelectedUser(newUser)
+    setIsFocus(newUser != null)
+    setCurrentUser(newUser ?? "")
   }
 
   // Convert back to the format Board expects (with owner info embedded)
   const boardNotes = useMemo(() => {
-    return notes.map(note => ({
+    return notes.map((note) => ({
       id: note.id,
       text: note.text,
       name: note.name,
@@ -43,6 +43,11 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
       tag: note.tag as any, // Board expects specific enum types
     }))
   }, [notes])
+
+  // Update store with historical data
+  useEffect(() => {
+    setNotes(boardNotes)
+  }, [boardNotes, setNotes])
 
   return (
     <>
@@ -58,16 +63,12 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
         >
           <MenuItem value="All">All</MenuItem>
           {users.map((user) => {
-            const marksDisplay = user.marks.map(m => m.mark_type).join(' ')
+            const marksDisplay = user.marks.map((m) => m.mark_type).join(" ")
             return (
               <MenuItem key={user.id} value={user.name}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
                   <span>{user.name}</span>
-                  {marksDisplay && (
-                    <span style={{ marginLeft: 'auto', fontSize: '1rem' }}>
-                      {marksDisplay}
-                    </span>
-                  )}
+                  {marksDisplay && <span style={{ marginLeft: "auto", fontSize: "1rem" }}>{marksDisplay}</span>}
                 </Box>
               </MenuItem>
             )
@@ -76,14 +77,7 @@ export function HistoryV2({ snapshot }: HistoryV2Props) {
       </FormControl>
 
       {/* Board */}
-      <Board
-        notes={boardNotes}
-        isEditable={false}
-        isAnyModalOpen={false}
-        setIsAnyModalOpen={() => {}}
-        isFocus={selectedUser != null}
-        currentUser={selectedUser ?? ""}
-      />
+      <Board isEditable={false} />
     </>
   )
 }

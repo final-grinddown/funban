@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use axum::{
     extract::{
@@ -9,6 +9,8 @@ use axum::{
     Extension,
 };
 use futures::StreamExt;
+use metrics::counter;
+use tokio::time::interval_at;
 use tracing::{error, info, instrument, warn};
 
 use crate::{
@@ -192,102 +194,131 @@ async fn handle_client(socket: WebSocket, context: Arc<WsContext>, client_id: St
         return;
     }
 
-    while let Some(Ok(msg)) = rx.next().await {
-        if let Message::Text(text) = msg {
-            if let Ok(action) = serde_json::from_str::<WsAction>(&text) {
-                let uuid = extract_uuid(&action);
-                let action_debug = format!("{:?}", action); // Capture debug string before move
-                info!(action = ?action, "Received action");
+    let ping_delay = tokio::time::Instant::now() + Duration::from_secs(30);
+    let mut ping_interval = interval_at(ping_delay, Duration::from_secs(30));
+    // Tracks whether the client acknowledged the last ping.
+    // Initialised to true so the first ping isn't treated as a missed pong.
+    let mut pong_received = true;
 
-                // Validate action content before processing
-                if let Err(validation_error) =
-                    crate::http::validation::validators::validate_ws_action_content(&action)
-                {
-                    let error_message = validation_error.message();
-                    let validation_response = vec![crate::state::WsOperation::Error {
-                        uuid: uuid.clone(),
-                        message: error_message,
-                    }];
-                    if let Err(e) = context
-                        .send_to_client(client_id.clone(), validation_response)
-                        .await
-                    {
-                        handle_ws_error(
-                            &context,
-                            &client_id,
-                            WsErrorType::SendError {
-                                target: SendTarget::Client,
-                                error: e.to_string(),
-                            },
-                            &uuid,
-                        )
-                        .await;
-                    }
-                    continue;
-                }
+    loop {
+        tokio::select! {
+            msg = rx.next() => {
+                match msg {
+                    Some(Ok(Message::Text(text))) => {
+                        if let Ok(action) = serde_json::from_str::<WsAction>(&text) {
+                            let uuid = extract_uuid(&action);
+                            let action_debug = format!("{:?}", action);
+                            info!(action = ?action, "Received action");
 
-                let mut app_state = context.notes.lock().await;
-                match app_state.apply(&context.db, action).await {
-                    Ok(OperationResult::Broadcast(ops)) => {
-                        drop(app_state);
-                        info!(op_count = ops.len(), "Broadcasting operations");
-                        if let Err(_e) = context.broadcast(ops).await {
-                            // Operation succeeded but broadcast failed = sync loss
+                            if let Err(validation_error) =
+                                crate::http::validation::validators::validate_ws_action_content(&action)
+                            {
+                                let error_message = validation_error.message();
+                                let validation_response = vec![crate::state::WsOperation::Error {
+                                    uuid: uuid.clone(),
+                                    message: error_message,
+                                }];
+                                if let Err(e) = context
+                                    .send_to_client(client_id.clone(), validation_response)
+                                    .await
+                                {
+                                    handle_ws_error(
+                                        &context,
+                                        &client_id,
+                                        WsErrorType::SendError {
+                                            target: SendTarget::Client,
+                                            error: e.to_string(),
+                                        },
+                                        &uuid,
+                                    )
+                                    .await;
+                                }
+                                continue;
+                            }
+
+                            let mut app_state = context.notes.lock().await;
+                            match app_state.apply(&context.db, action).await {
+                                Ok(OperationResult::Broadcast(ops)) => {
+                                    drop(app_state);
+                                    info!(op_count = ops.len(), "Broadcasting operations");
+                                    if let Err(_e) = context.broadcast(ops).await {
+                                        handle_ws_error(
+                                            &context,
+                                            &client_id,
+                                            WsErrorType::SyncLoss {
+                                                operation: action_debug.clone(),
+                                            },
+                                            &uuid,
+                                        )
+                                        .await;
+                                    }
+                                }
+                                Ok(OperationResult::ClientOnly(ops)) => {
+                                    drop(app_state);
+                                    info!(op_count = ops.len(), "Sending client-only operations");
+                                    if let Err(e) = context.send_to_client(client_id.clone(), ops).await {
+                                        handle_ws_error(
+                                            &context,
+                                            &client_id,
+                                            WsErrorType::SendError {
+                                                target: SendTarget::Client,
+                                                error: e.to_string(),
+                                            },
+                                            &uuid,
+                                        )
+                                        .await;
+                                    }
+                                }
+                                Err(err) => {
+                                    drop(app_state);
+                                    handle_ws_error(
+                                        &context,
+                                        &client_id,
+                                        WsErrorType::ApplicationError {
+                                            action: action_debug,
+                                            error: err.to_string(),
+                                        },
+                                        &uuid,
+                                    )
+                                    .await;
+                                }
+                            }
+                        } else {
                             handle_ws_error(
                                 &context,
                                 &client_id,
-                                WsErrorType::SyncLoss {
-                                    operation: action_debug.clone(),
+                                WsErrorType::ParseError {
+                                    raw_message: text.to_string(),
                                 },
-                                &uuid,
+                                &None,
                             )
                             .await;
                         }
                     }
-                    Ok(OperationResult::ClientOnly(ops)) => {
-                        drop(app_state);
-                        info!(op_count = ops.len(), "Sending client-only operations");
-                        if let Err(e) = context.send_to_client(client_id.clone(), ops).await {
-                            handle_ws_error(
-                                &context,
-                                &client_id,
-                                WsErrorType::SendError {
-                                    target: SendTarget::Client,
-                                    error: e.to_string(),
-                                },
-                                &uuid,
-                            )
-                            .await;
-                        }
+                    Some(Ok(Message::Pong(_))) => {
+                        pong_received = true;
                     }
-                    Err(err) => {
-                        drop(app_state);
-                        handle_ws_error(
-                            &context,
-                            &client_id,
-                            WsErrorType::ApplicationError {
-                                action: action_debug,
-                                error: err.to_string(),
-                            },
-                            &uuid,
-                        )
-                        .await;
-                    }
+                    Some(Ok(_)) => {}
+                    _ => break,
                 }
-            } else {
-                handle_ws_error(
-                    &context,
-                    &client_id,
-                    WsErrorType::ParseError {
-                        raw_message: text.to_string(),
-                    },
-                    &None,
-                )
-                .await;
+            }
+            _ = ping_interval.tick() => {
+                if !pong_received {
+                    warn!(client_id = %client_id, "No pong received since last ping, closing dead session");
+                    counter!("ws_dead_sessions_total").increment(1);
+                    break;
+                }
+                pong_received = false;
+                if let Err(e) = context.ping_session(&client_id).await {
+                    warn!(client_id = %client_id, error = %e, "Ping failed, closing session");
+                    counter!("ws_dead_sessions_total").increment(1);
+                    break;
+                }
             }
         }
     }
 
+    context.remove_session(&client_id).await;
     info!("Client disconnected");
 }
 fn extract_uuid(action: &WsAction) -> Option<String> {

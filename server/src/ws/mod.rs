@@ -1,4 +1,5 @@
 use futures::{stream::SplitSink, SinkExt};
+use metrics::gauge;
 use serde::Serialize;
 use sqlx::MySqlPool;
 use std::{collections::HashMap, sync::Arc};
@@ -91,6 +92,7 @@ impl WsContext {
 
         // Add session to our list of sessions
         txs.insert(client_id, tx);
+        gauge!("ws_connections_active").increment(1.0);
 
         Ok(())
     }
@@ -117,6 +119,7 @@ impl WsContext {
         // Remove disconnected clients
         for client_id in to_remove {
             txs.remove(&client_id);
+            gauge!("ws_connections_active").decrement(1.0);
         }
 
         Ok(())
@@ -134,19 +137,27 @@ impl WsContext {
             if let Err(err) = tx.send(Message::Text(Utf8Bytes::from(message))).await {
                 warn!("Failed to send to client {}: {}", client_id, err);
                 txs.remove(&client_id);
+                gauge!("ws_connections_active").decrement(1.0);
             }
         }
 
         Ok(())
     }
 
-    #[allow(dead_code)]
-    /// Remove a WebSocket session
     pub async fn remove_session(&self, client_id: &str) {
         let mut txs = self.txs.lock().await;
         if txs.remove(client_id).is_some() {
             info!("Removed WebSocket session: {}", client_id);
+            gauge!("ws_connections_active").decrement(1.0);
         }
+    }
+
+    pub async fn ping_session(&self, client_id: &str) -> anyhow::Result<()> {
+        let mut txs = self.txs.lock().await;
+        if let Some(tx) = txs.get_mut(client_id) {
+            tx.send(Message::Ping(bytes::Bytes::new())).await?;
+        }
+        Ok(())
     }
 
     #[allow(dead_code)]

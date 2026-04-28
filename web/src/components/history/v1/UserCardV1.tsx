@@ -10,12 +10,7 @@ interface UserCardV1Props {
 
 export function UserCardV1({ user, isSelected, onSelect }: UserCardV1Props) {
   return (
-    <MenuItem
-      key={user.name}
-      value={user.name}
-      selected={isSelected}
-      onClick={onSelect}
-    >
+    <MenuItem key={user.name} value={user.name} selected={isSelected} onClick={onSelect}>
       <AccountCircleIcon sx={{ marginRight: 1, color: user.color }} />
       {user.name}
     </MenuItem>

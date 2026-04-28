@@ -36,7 +36,7 @@ impl AppState {
 
     pub async fn get_users(&self, db: &MySqlPool) -> Result<Vec<User>> {
         let mut user_dtos = user::read_all(db).await?;
-        user_dtos.sort_by(|a, b| a.index.cmp(&b.index));
+        user_dtos.sort_by_key(|a| a.index);
 
         // Fetch all user marks
         let all_marks = crate::sql::user_mark::read_all(db).await?;

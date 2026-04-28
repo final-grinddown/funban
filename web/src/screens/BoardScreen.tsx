@@ -7,27 +7,30 @@ import { AddNewNoteModal } from "@/components/AddNewNoteModal"
 import { AddUserMarkModal } from "@/components/AddUserMarkModal"
 import { Board } from "@/components/Board"
 import { BoardActionsMenu } from "@/components/BoardActionMenu"
+import { ConnectionStatusBadge } from "@/components/ConnectionStatusBadge"
 import { EndStatusModal } from "@/components/EndStatusModal"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { FocusControls } from "@/components/FocusControls"
 import { UserSelector } from "@/components/UserSelector"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
 import { useBoardModalManagement } from "@/hooks/useBoardModalManagement"
 import { useFocusManagement } from "@/hooks/useFocusManagement"
 import { useUserSelection } from "@/hooks/useUserSelection"
-import { Note, User } from "@/utils/interfaces"
-import { useFocusStateStore } from "@/utils/store"
+import { useAppStore, selectUsers, selectNotes } from "@/store"
 
 interface Props {
-  users: User[]
-  notes: Note[]
   accessToken?: string
 }
 
-export function BoardScreen({ users, notes, accessToken }: Props) {
+export function BoardScreen({ accessToken }: Props) {
+  // Read users and notes from Zustand store
+  const users = useAppStore(selectUsers)
+  const notes = useAppStore(selectNotes)
+
   const { user, handleChange, handlePrevUser, handleNextUser } = useUserSelection(users)
-  const { currentUser, setCurrentUser } = useFocusStateStore()
+  const setCurrentUser = useAppStore((state) => state.focus.setCurrentUser)
   const { isFocus, shouldRenderFocus, handleStartFocus, handleEndFocus } = useFocusManagement(users)
-  const { sendMessageAsync } = useWebSocketContext()
+  const { sendMessageAsync, connectionStatus } = useWebSocketContext()
   const {
     isEndStatusModalOpen,
     isAddNewNoteModalOpen,
@@ -42,8 +45,6 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
     handleCloseAddUserMarkModal,
     handleOpenMenu,
     handleCloseMenu,
-    isAnyModalOpen,
-    setIsAnyModalOpen,
   } = useBoardModalManagement(isFocus, handleEndFocus)
 
   const snapshot = useMemo(
@@ -76,7 +77,13 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
 
   useHotkeys("d", () => handleNextUser(), [handleNextUser])
 
-  const handleAddUserMark = (data: { userId: number; markType: string; duration?: number; customText?: string; expiresAt?: string }) => {
+  const handleAddUserMark = (data: {
+    userId: number
+    markType: string
+    duration?: number
+    customText?: string
+    expiresAt?: string
+  }) => {
     const message = createAddUserMark(data.userId, data.markType, data.duration, data.customText, data.expiresAt)
     sendMessageAsync(message, "Mark added!")
   }
@@ -128,17 +135,14 @@ export function BoardScreen({ users, notes, accessToken }: Props) {
         </ButtonGroup>
       </Box>
 
-      <Board
-        notes={notes}
-        isEditable={true}
-        selectedUserId={parseInt(user)}
-        isAnyModalOpen={isAnyModalOpen}
-        setIsAnyModalOpen={setIsAnyModalOpen}
-        isFocus={isFocus}
-        currentUser={currentUser}
-      />
+      <ErrorBoundary>
+        <Board isEditable={true} />
+      </ErrorBoundary>
 
-      <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} users={users} />
+      {/* Connection status indicator */}
+      <ConnectionStatusBadge status={connectionStatus} />
+
+      <AddNewNoteModal isOpen={isAddNewNoteModalOpen} onClose={handleCloseAddNewNoteModal} />
 
       <EndStatusModal
         isOpen={isEndStatusModalOpen}

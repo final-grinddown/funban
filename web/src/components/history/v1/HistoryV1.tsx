@@ -1,13 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
-import {
-  FormControl,
-  Select,
-  InputLabel,
-  SelectChangeEvent,
-  MenuItem,
-} from "@mui/material"
+import { FormControl, Select, InputLabel, SelectChangeEvent, MenuItem } from "@mui/material"
 import { Board } from "@/components/Board"
+import { useAppStore } from "@/store"
 import type { ParsedSnapshot } from "@/utils/snapshot-types"
 import { SnapshotParserV1 } from "./SnapshotParserV1"
 
@@ -17,6 +12,9 @@ interface HistoryV1Props {
 
 export function HistoryV1({ snapshot }: HistoryV1Props) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const setNotes = useAppStore((state) => state.board.setNotes)
+  const setIsFocus = useAppStore((state) => state.focus.setIsFocus)
+  const setCurrentUser = useAppStore((state) => state.focus.setCurrentUser)
 
   const { users, notes }: ParsedSnapshot = useMemo(() => {
     if (!snapshot) return { users: [], notes: [] }
@@ -25,17 +23,20 @@ export function HistoryV1({ snapshot }: HistoryV1Props) {
 
   const userNames = useMemo(() => {
     const names = ["All"]
-    users.forEach(user => names.push(user.name))
+    users.forEach((user) => names.push(user.name))
     return names
   }, [users])
 
   const handleUserChange: (event: SelectChangeEvent) => void = (event) => {
-    setSelectedUser(event.target.value === "All" ? null : event.target.value)
+    const newUser = event.target.value === "All" ? null : event.target.value
+    setSelectedUser(newUser)
+    setIsFocus(newUser != null)
+    setCurrentUser(newUser ?? "")
   }
 
   // Convert back to the format Board expects (with owner info embedded)
   const boardNotes = useMemo(() => {
-    return notes.map(note => ({
+    return notes.map((note) => ({
       id: note.id,
       text: note.text,
       name: note.name,
@@ -48,6 +49,11 @@ export function HistoryV1({ snapshot }: HistoryV1Props) {
       tag: note.tag as any, // Board expects specific enum types
     }))
   }, [notes])
+
+  // Update store with historical data
+  useEffect(() => {
+    setNotes(boardNotes)
+  }, [boardNotes, setNotes])
 
   return (
     <>
@@ -67,14 +73,7 @@ export function HistoryV1({ snapshot }: HistoryV1Props) {
           ))}
         </Select>
       </FormControl>
-      <Board
-        notes={boardNotes}
-        isEditable={false}
-        isAnyModalOpen={false}
-        setIsAnyModalOpen={() => {}}
-        isFocus={selectedUser != null}
-        currentUser={selectedUser ?? ""}
-      />
+      <Board isEditable={false} />
     </>
   )
 }

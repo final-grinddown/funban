@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
+import { useEffect, useRef } from "react"
 import {
   Box,
   Button,
@@ -7,9 +6,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -19,19 +16,16 @@ import {
 import { Controller, useForm } from "react-hook-form"
 import { createSplitNote } from "@/app/api/websocket"
 import { useWebSocketContext } from "@/context/WebSocketProvider"
+import { useModalSubmission } from "@/hooks/useModalSubmission"
+import { useAppStore, selectUsers } from "@/store"
 import { MaxTextLength } from "@/utils/constants"
 import { handleKeyDownSubmit } from "@/utils/helpers"
-import { Note, User } from "@/utils/interfaces"
+import { ModalHeader } from "./modals/ModalHeader"
 import { TextLengthCounter } from "./TextLengthCounter"
 
 interface Props {
   isOpen: boolean
-  originalNote: Note
-  users: User[]
   onClose: () => void
-  hasTextFocus?: boolean
-  clearTextFocus?: () => void
-  selectedUserId?: number
 }
 
 interface FormInputs {
@@ -41,16 +35,13 @@ interface FormInputs {
   newOwner: string
 }
 
-export function SplitNoteModal({
-  isOpen,
-  originalNote,
-  users,
-  onClose,
-  hasTextFocus,
-  clearTextFocus,
-  selectedUserId,
-}: Props) {
+export function SplitNoteModal({ isOpen, onClose }: Props) {
   const { sendMessageAsync, isLoading } = useWebSocketContext()
+  const { isSubmitting, setIsSubmitting } = useModalSubmission(isLoading, onClose)
+  const modalData = useAppStore((state) => state.modals.splitNote.data)
+  const originalNote = modalData?.originalNote
+  const users = useAppStore(selectUsers)
+  const selectedUserId = modalData?.selectedUserId
   const originalTextRef = useRef<HTMLInputElement | null>(null)
   const newTextRef = useRef<HTMLInputElement | null>(null)
 
@@ -62,10 +53,10 @@ export function SplitNoteModal({
     formState: { errors, isDirty, isValid },
   } = useForm<FormInputs>({
     defaultValues: {
-      originalText: originalNote.text,
-      newText: originalNote.text,
-      newState: originalNote.state,
-      newOwner: originalNote.owner_id.toString(),
+      originalText: originalNote?.text ?? "",
+      newText: originalNote?.text ?? "",
+      newState: originalNote?.state ?? "notes",
+      newOwner: originalNote?.owner_id.toString() ?? "",
     },
     mode: "onChange",
   })
@@ -73,20 +64,22 @@ export function SplitNoteModal({
   const originalText = watch("originalText")
   const newText = watch("newText")
 
-  const onSubmit = (data: FormInputs) => {
-    setWasSubmitting(true)
+  const handleFormSubmit = (data: FormInputs) => {
+    if (!originalNote) return
+
+    setIsSubmitting(true)
     const message = createSplitNote(
       originalNote.id.toString(),
       data.originalText,
       data.newText,
       data.newState !== originalNote.state ? data.newState : undefined,
-      data.newOwner !== originalNote.owner_id.toString() ? data.newOwner : undefined
+      data.newOwner !== originalNote.owner_id.toString() ? data.newOwner : undefined,
     )
     sendMessageAsync(message, `Note split successfully!`)
   }
 
   useEffect(() => {
-    if (isOpen && !isLoading) {
+    if (isOpen && originalNote) {
       const newOwnerId = selectedUserId ? selectedUserId.toString() : originalNote.owner_id.toString()
 
       reset({
@@ -98,33 +91,18 @@ export function SplitNoteModal({
 
       // Handle focus management
       setTimeout(() => {
-        if (hasTextFocus) {
-          if (originalTextRef.current) {
-            const inputElement = originalTextRef.current
-            inputElement.focus()
-            inputElement.setSelectionRange(0, inputElement.value.length)
-          }
-          if (clearTextFocus) {
-            clearTextFocus()
-          }
+        if (originalTextRef.current) {
+          const inputElement = originalTextRef.current
+          inputElement.focus()
+          inputElement.setSelectionRange(0, inputElement.value.length)
         }
       }, 0)
     }
-  }, [clearTextFocus, hasTextFocus, isLoading, isOpen, originalNote, reset, selectedUserId])
-
-  // This useEffect should only close the modal after a successful submission
-  // We need to track if a submission was initiated
-  const [wasSubmitting, setWasSubmitting] = useState(false)
-  
-  useEffect(() => {
-    if (wasSubmitting && !isLoading && isOpen) {
-      onClose()
-      setWasSubmitting(false)
-    }
-  }, [isLoading, isOpen, onClose, wasSubmitting])
+  }, [isOpen, originalNote, reset, selectedUserId])
 
   // Check if both text fields are valid and at least one has changed
   const isFormValid =
+    originalNote &&
     isValid &&
     isDirty &&
     originalText.length > 0 &&
@@ -135,31 +113,27 @@ export function SplitNoteModal({
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md" disableRestoreFocus>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-        Split Note
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Split Note" onClose={onClose} />
       <DialogContent>
         <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-          Split this note into two separate notes. You can edit both the original and new note content, and set different states and owners.
+          Split this note into two separate notes. You can edit both the original and new note content, and set
+          different states and owners.
         </Typography>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
             {/* Original Note Column */}
             <Box sx={{ flex: 1, border: 1, borderColor: "divider", borderRadius: 1, p: 2 }}>
               <Typography variant="h6" gutterBottom>
                 Original Note
               </Typography>
-                
+
               <Controller
                 name="originalText"
                 control={control}
-                rules={{ 
+                rules={{
                   required: "Text is required",
-                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` }
+                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -173,11 +147,11 @@ export function SplitNoteModal({
                     sx={{ mb: 2 }}
                     error={!!errors.originalText}
                     helperText={errors.originalText ? errors.originalText.message : ""}
-                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isFormValid)}
+                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isFormValid)}
                   />
                 )}
               />
-              
+
               {originalText && originalText.length > 0 && (
                 <TextLengthCounter currentLength={originalText.length} maxLength={MaxTextLength} />
               )}
@@ -188,13 +162,13 @@ export function SplitNoteModal({
               <Typography variant="h6" gutterBottom>
                 New Note
               </Typography>
-              
+
               <Controller
                 name="newText"
                 control={control}
-                rules={{ 
+                rules={{
                   required: "Text is required",
-                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` }
+                  maxLength: { value: MaxTextLength, message: `Text cannot exceed ${MaxTextLength} characters` },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -208,11 +182,11 @@ export function SplitNoteModal({
                     sx={{ mb: 2 }}
                     error={!!errors.newText}
                     helperText={errors.newText ? errors.newText.message : ""}
-                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, onSubmit, !isFormValid)}
+                    onKeyDown={(event) => handleKeyDownSubmit(event, handleSubmit, handleFormSubmit, !isFormValid)}
                   />
                 )}
               />
-              
+
               <Controller
                 name="newState"
                 control={control}
@@ -245,7 +219,7 @@ export function SplitNoteModal({
                   </FormControl>
                 )}
               />
-              
+
               {newText && newText.length > 0 && (
                 <TextLengthCounter currentLength={newText.length} maxLength={MaxTextLength} />
               )}
@@ -253,19 +227,19 @@ export function SplitNoteModal({
           </Box>
         </form>
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 3, alignItems: "stretch" }}>
         <Button onClick={onClose} color="secondary" variant="contained">
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
-          disabled={!isFormValid || isLoading}
+          disabled={!isFormValid || isSubmitting}
           sx={{ width: "100px" }}
         >
-          {isLoading ? <CircularProgress size={20} /> : "Split Note"}
+          {isSubmitting ? <CircularProgress size={20} /> : "Split Note"}
         </Button>
       </DialogActions>
     </Dialog>

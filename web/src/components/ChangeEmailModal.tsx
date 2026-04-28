@@ -1,5 +1,5 @@
+"use client"
 import { useEffect, useState } from "react"
-import CloseIcon from "@mui/icons-material/Close"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import {
   Alert,
@@ -8,15 +8,15 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   FormControl,
-  IconButton,
   TextField,
 } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { clearApp } from "@/app/api/auth/clearApp"
 import { changeEmail } from "@/app/api/fetches"
+import { useConfig } from "@/context/ConfigProvider"
 import { hasCode } from "@/utils/helpers"
+import { ModalHeader } from "./modals/ModalHeader"
 
 interface Props {
   isOpen: boolean
@@ -29,6 +29,7 @@ interface FormInputs {
 }
 
 export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
+  const { apiUrl } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -47,10 +48,10 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
 
   //const isSaveAndCreateNext = watch("saveAndCreateNext")
 
-  const onSubmit = async (data: FormInputs) => {
+  const handleFormSubmit = async (data: FormInputs) => {
     setIsSubmitting(true)
     try {
-      await changeEmail(data.new_email, accessToken)
+      await changeEmail(apiUrl, data.new_email, accessToken)
       onClose()
       clearApp()
     } catch (err) {
@@ -80,12 +81,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
 
   return (
     <Dialog disableRestoreFocus open={isOpen} onClose={onClose} fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 0 }}>
-        Change email
-        <IconButton edge="end" color="inherit" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <ModalHeader title="Change email" onClose={onClose} />
       <DialogContent>
         <Alert
           icon={<InfoOutlinedIcon fontSize="small" />}
@@ -103,7 +99,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
         >
           After email/login change, you will be logged out and need to log in again.
         </Alert>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Controller
             name="new_email"
             control={control}
@@ -129,7 +125,7 @@ export function ChangeEmailModal({ isOpen, onClose, accessToken }: Props) {
           Cancel
         </Button>
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(handleFormSubmit)}
           color="primary"
           variant="contained"
           disabled={isSubmitting || !isDirty || !isValid}

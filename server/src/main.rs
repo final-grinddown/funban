@@ -12,6 +12,8 @@ use sqlx::{
     MySqlPool,
 };
 
+use metrics::gauge;
+use metrics_exporter_prometheus::PrometheusBuilder;
 use tower::ServiceBuilder;
 use tower_http::{add_extension::AddExtensionLayer, cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
@@ -49,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
                 "websocket_jsonpatch=debug,tower_http=debug,axum::rejection=trace,funban_server=debug".into()
             }),
         )
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().json())
         .init();
 
     let config = config::Configuration::setup_config().expect("Failed to load configuration");
@@ -70,6 +72,10 @@ async fn main() -> anyhow::Result<()> {
 }
 
 pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
+    let metrics_handle = PrometheusBuilder::new()
+        .install_recorder()
+        .context("Failed to install Prometheus recorder")?;
+
     let origins = parse_origins(&config.cors_origin)?;
     let cors = CorsLayer::new()
         .allow_headers([
@@ -91,6 +97,16 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             header::SET_COOKIE,
             header::COOKIE,
         ]);
+
+    let pool_for_metrics = db.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(15));
+        loop {
+            interval.tick().await;
+            gauge!("db_pool_connections_total").set(pool_for_metrics.size() as f64);
+            gauge!("db_pool_connections_idle").set(pool_for_metrics.num_idle() as f64);
+        }
+    });
 
     // Create shared WebSocket context
     let ws_context = Arc::new(WsContext::new(db.clone(), config.clone()));
@@ -114,6 +130,10 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
     let app = Router::new()
         .nest("/ws", ws_router)
         .nest("/api", api_router)
+        .route(
+            "/metrics",
+            axum::routing::get(move || async move { metrics_handle.render() }),
+        )
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))

@@ -23,21 +23,23 @@ import { useSession } from "next-auth/react"
 import { fetchHistoryItem, fetchHistoryItemLast } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { HistoryRenderer } from "@/components/history/HistoryRenderer"
+import { useConfig } from "@/context/ConfigProvider"
 import { ERoutes } from "@/utils/enums"
 import { IHistoryItem } from "@/utils/interfaces"
 
 export function HistoryDetailScreen({ id }: { id?: string }) {
   const { data: session } = useSession() as { data: Session }
+  const { apiUrl } = useConfig()
   const queryClient = useQueryClient()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const openMenu = Boolean(anchorEl)
 
   const { data, isLoading, error } = useQuery<IHistoryItem>({
     queryKey: ["historyItem", id ?? "last"],
-    queryFn: () => (id ? fetchHistoryItem(id, session?.accessToken) : fetchHistoryItemLast(session?.accessToken)),
+    queryFn: () =>
+      id ? fetchHistoryItem(apiUrl, id, session?.accessToken) : fetchHistoryItemLast(apiUrl, session?.accessToken),
     enabled: !!session?.accessToken,
   })
-
 
   const handleOpenMenu = (event: SyntheticEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget)
@@ -48,7 +50,7 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
     if (data?.next?.id) {
       await queryClient.prefetchQuery({
         queryKey: ["historyItem", String(data.next.id)],
-        queryFn: () => fetchHistoryItem(String(data.next.id), session?.accessToken),
+        queryFn: () => fetchHistoryItem(apiUrl, String(data.next.id), session?.accessToken),
       })
     }
   }
@@ -57,7 +59,7 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
     if (data?.previous?.id) {
       await queryClient.prefetchQuery({
         queryKey: ["historyItem", String(data.previous.id)],
-        queryFn: () => fetchHistoryItem(String(data.previous.id), session?.accessToken),
+        queryFn: () => fetchHistoryItem(apiUrl, String(data.previous.id), session?.accessToken),
       })
     }
   }
@@ -66,11 +68,10 @@ export function HistoryDetailScreen({ id }: { id?: string }) {
     if (data?.next?.id) {
       await queryClient.prefetchQuery({
         queryKey: ["historyItem", "last"],
-        queryFn: () => fetchHistoryItemLast(session?.accessToken),
+        queryFn: () => fetchHistoryItemLast(apiUrl, session?.accessToken),
       })
     }
   }
-
 
   if (isLoading) {
     return <BackdropLoading isInDashboard={true} />

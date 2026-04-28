@@ -24,6 +24,7 @@ import {
 } from "@mui/material"
 import Link from "next/link"
 import { clearApp } from "@/app/api/auth/clearApp"
+import { useConfig } from "@/context/ConfigProvider"
 import { ERoutes } from "@/utils/enums"
 import pkg from "../../package.json"
 interface Props {
@@ -31,9 +32,8 @@ interface Props {
   userEmail: string
 }
 
-const ENV = process.env.NEXT_PUBLIC_ENV
-
 export function DashboardLayout({ children, userEmail }: Props) {
+  const { env: APP_ENV } = useConfig()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const theme = useTheme()
 
@@ -89,9 +89,9 @@ export function DashboardLayout({ children, userEmail }: Props) {
               FUN
             </Typography>
             BAN Status tool
-            {ENV !== "production" && (
+            {APP_ENV !== "production" && (
               // Display some icon for development, with environment name as a tooltip using material ui
-              <Tooltip title={ENV} placement="top" arrow>
+              <Tooltip title={APP_ENV} placement="top" arrow>
                 <Typography component="span" variant="h6" color="red" marginLeft="2px">
                   DEV
                 </Typography>

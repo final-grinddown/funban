@@ -2,7 +2,7 @@
 
 Frontend application for Funban - a real-time collaborative Kanban board system. Built with Next.js, Material-UI, and WebSocket synchronization.
 
-*This is the web component. The Rust backend API is in the `../server/` directory.*
+_This is the web component. The Rust backend API is in the `../server/` directory._
 
 ## Features
 
@@ -24,23 +24,27 @@ Frontend application for Funban - a real-time collaborative Kanban board system.
 - **State Management**: Zustand for global state, TanStack Query for server state
 - **Authentication**: NextAuth.js with JWT
 - **Real-time**: WebSocket client for server synchronization
-- **Type Safety**: TypeScript with runtime validation via typia
+- **Type Safety**: TypeScript with runtime validation via Typia
+  - ⚠️ Note: Uses `@ryoppippi/unplugin-typia` (archived but functional). See [`docs/architecture/validation.md`](../docs/architecture/validation.md) for details.
 
 ## Getting Started
 
 1. **Install dependencies**:
+
 ```bash
 yarn install
 ```
 
 2. **Configure environment**:
-Create `.env.local` with backend URL:
+   Create `.env.local` with backend URL:
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXTAUTH_SECRET=your-secret-here
 ```
 
 3. **Run development server**:
+
 ```bash
 yarn dev
 ```
@@ -57,3 +61,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `yarn test` - Run tests
 
 See `../Makefile` for combined backend+frontend commands.
+
+## Architecture Documentation
+
+- **[Runtime Validation](../docs/architecture/validation.md)** - Typia setup, architecture, and dependency status
+- **[Refactoring Plan](../REFACTORING_PLAN.md)** - Ongoing frontend improvements and migration strategies

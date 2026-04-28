@@ -20,16 +20,12 @@ export function UserSelector({ users, selectedUser, onChange }: UserSelectorProp
         startAdornment={<AccountCircleIcon sx={{ marginRight: 1 }} />}
       >
         {users.map((user) => {
-          const marksDisplay = user.marks.map(m => m.mark_type).join(' ')
+          const marksDisplay = user.marks.map((m) => m.mark_type).join(" ")
           return (
             <MenuItem key={user.id} value={user.id}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
                 <span>{user.name}</span>
-                {marksDisplay && (
-                  <span style={{ marginLeft: 'auto', fontSize: '1rem' }}>
-                    {marksDisplay}
-                  </span>
-                )}
+                {marksDisplay && <span style={{ marginLeft: "auto", fontSize: "1rem" }}>{marksDisplay}</span>}
               </Box>
             </MenuItem>
           )

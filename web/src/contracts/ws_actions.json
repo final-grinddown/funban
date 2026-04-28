@@ -1,0 +1,230 @@
+{
+  "AddNote": {
+    "owner": 1,
+    "state": "todo",
+    "text": "Example note text",
+    "type": "AddNote",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "AddNote_full": {
+    "owner": 1,
+    "state": "todo",
+    "text": "Example note text",
+    "type": "AddNote",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "AddNote_minimal": {
+    "owner": 1,
+    "state": "todo",
+    "text": null,
+    "type": "AddNote",
+    "uuid": null
+  },
+  "AddNote_no_text": {
+    "owner": 1,
+    "state": "todo",
+    "text": null,
+    "type": "AddNote",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "AddNote_no_uuid": {
+    "owner": 1,
+    "state": "todo",
+    "text": "Example note text",
+    "type": "AddNote",
+    "uuid": null
+  },
+  "AddUser": {
+    "color": "#FF5733",
+    "name": "John Doe",
+    "type": "AddUser",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes": {
+    "owner": 1,
+    "status": "done",
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes_all": {
+    "owner": null,
+    "status": null,
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes_full": {
+    "owner": 1,
+    "status": "done",
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes_minimal": {
+    "owner": null,
+    "status": null,
+    "type": "DeleteNotes",
+    "uuid": null
+  },
+  "DeleteNotes_no_owner": {
+    "owner": null,
+    "status": "done",
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes_no_status": {
+    "owner": 1,
+    "status": null,
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "DeleteNotes_no_uuid": {
+    "owner": 1,
+    "status": "done",
+    "type": "DeleteNotes",
+    "uuid": null
+  },
+  "DeleteNotes_owner_only": {
+    "owner": 1,
+    "status": null,
+    "type": "DeleteNotes",
+    "uuid": null
+  },
+  "DeleteNotes_status_only": {
+    "owner": null,
+    "status": "done",
+    "type": "DeleteNotes",
+    "uuid": null
+  },
+  "DeleteNotes_uuid_only": {
+    "owner": null,
+    "status": null,
+    "type": "DeleteNotes",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "NoteUpdate": {
+    "id": 1,
+    "type": "NoteUpdate",
+    "updates": [
+      {
+        "target": "Text",
+        "text": "Updated text"
+      },
+      {
+        "over_id": {
+          "id": 2,
+          "type": "Before"
+        },
+        "target": "Order"
+      }
+    ],
+    "uuid": "095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+  },
+  "NotifySnapshot": {
+    "type": "NotifySnapshot"
+  },
+  "RemoveNote": {
+    "id": 1,
+    "type": "RemoveNote",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "RemoveUser": {
+    "id": 1,
+    "type": "RemoveUser",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "Reorder": {
+    "moved_item_id": 1,
+    "over_id": {
+      "id": 2,
+      "type": "Before"
+    },
+    "type": "Reorder",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "Reorder_last": {
+    "moved_item_id": 1,
+    "over_id": {
+      "state": "done",
+      "type": "Last"
+    },
+    "type": "Reorder",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "SplitNote": {
+    "new_owner": 2,
+    "new_state": "todo",
+    "new_text": "Second part of note",
+    "original_id": 1,
+    "original_text": "First part of note",
+    "type": "SplitNote",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateNoteTag": {
+    "id": 1,
+    "tag": "Important",
+    "type": "UpdateNoteTag",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateNoteTag_full": {
+    "id": 1,
+    "tag": "Important",
+    "type": "UpdateNoteTag",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateNoteTag_minimal": {
+    "id": 1,
+    "tag": null,
+    "type": "UpdateNoteTag",
+    "uuid": null
+  },
+  "UpdateNoteTag_no_tag": {
+    "id": 1,
+    "tag": null,
+    "type": "UpdateNoteTag",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateNoteTag_no_uuid": {
+    "id": 1,
+    "tag": "Important",
+    "type": "UpdateNoteTag",
+    "uuid": null
+  },
+  "UpdateNoteTag_none": {
+    "id": 1,
+    "tag": null,
+    "type": "UpdateNoteTag",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateNoteText": {
+    "id": 1,
+    "text": "Updated note text",
+    "type": "UpdateNoteText",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateUserColor": {
+    "color": "#33FF57",
+    "id": 1,
+    "type": "UpdateUserColor",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UpdateUserName": {
+    "id": 1,
+    "name": "Jane Doe",
+    "type": "UpdateUserName",
+    "uuid": "0191a379-246e-702a-af56-b9d6e10b246e"
+  },
+  "UserUpdate": {
+    "id": 1,
+    "type": "UserUpdate",
+    "updates": [
+      {
+        "name": "Updated Name",
+        "target": "Name"
+      },
+      {
+        "color": "#FF33AA",
+        "target": "Color"
+      }
+    ],
+    "uuid": "095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+  }
+}
