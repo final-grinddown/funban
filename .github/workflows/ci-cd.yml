@@ -249,7 +249,7 @@ jobs:
       # Create GitHub release (only for non-prerelease tags)
       - name: Create GitHub Release
         if: "!contains(github.ref_name, '-')"
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           body: |
