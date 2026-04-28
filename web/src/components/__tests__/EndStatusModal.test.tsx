@@ -4,6 +4,10 @@ import userEvent from "@testing-library/user-event"
 import { IRawNote } from "@/utils/interfaces"
 import { EndStatusModal } from "../EndStatusModal"
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock the postSnapshot API function
 jest.mock("@/app/api/fetches", () => ({
   postSnapshot: jest.fn(),
@@ -235,7 +239,7 @@ describe("EndStatusModal", () => {
       const sendButton = screen.getByRole("button", { name: "Send" })
       await user.click(sendButton)
 
-      expect(postSnapshot).toHaveBeenCalledWith({ label: "My snapshot", notes: mockNotes }, "test-token")
+      expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "My snapshot", notes: mockNotes }, "test-token")
     })
 
     it("shows loading state during submission", async () => {
@@ -423,7 +427,7 @@ describe("EndStatusModal", () => {
       const sendButton = screen.getByRole("button", { name: "Send" })
       await user.click(sendButton)
 
-      expect(postSnapshot).toHaveBeenCalledWith({ label: "No token test", notes: mockNotes }, undefined)
+      expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "No token test", notes: mockNotes }, undefined)
     })
 
     it("handles empty notes array", async () => {

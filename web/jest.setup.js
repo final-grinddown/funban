@@ -46,3 +46,8 @@ process.env.NEXTAUTH_URL = "http://localhost:3000"
 jest.mock("react-hotkeys-hook", () => ({
   useHotkeys: jest.fn(),
 }))
+
+// react-markdown is ESM-only and can't be parsed by Jest's CJS transform
+jest.mock("react-markdown", () => function ReactMarkdown({ children }) {
+  return children
+})

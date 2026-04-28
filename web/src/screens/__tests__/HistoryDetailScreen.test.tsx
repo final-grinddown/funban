@@ -28,6 +28,10 @@ jest.mock("@/app/api/fetches", () => ({
   fetchHistoryItemLast: jest.fn(),
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock Board component - focus on testing HistoryDetailScreen logic
 jest.mock("@/components/Board", () => ({
   Board: ({ notes, isEditable, isFocus, currentUser }: any) => (
@@ -224,7 +228,7 @@ describe("HistoryDetailScreen", () => {
       renderHistoryDetailScreen()
 
       await waitFor(() => {
-        expect(fetchHistoryItemLast).toHaveBeenCalledWith("mock-access-token")
+        expect(fetchHistoryItemLast).toHaveBeenCalledWith("http://localhost:3001", "mock-access-token")
       })
     })
 
@@ -234,7 +238,7 @@ describe("HistoryDetailScreen", () => {
       renderHistoryDetailScreen("2")
 
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("2", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "2", "mock-access-token")
       })
     })
   })
@@ -328,20 +332,20 @@ describe("HistoryDetailScreen", () => {
       // Test previous prefetch
       await user.hover(prevButton)
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("1", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "1", "mock-access-token")
       })
 
       // Test next prefetch
       await user.hover(nextButton)
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("3", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "3", "mock-access-token")
       })
 
       // Test last prefetch (calls fetchHistoryItemLast)
       const { fetchHistoryItemLast } = require("@/app/api/fetches")
       await user.hover(lastButton)
       await waitFor(() => {
-        expect(fetchHistoryItemLast).toHaveBeenCalledWith("mock-access-token")
+        expect(fetchHistoryItemLast).toHaveBeenCalledWith("http://localhost:3001", "mock-access-token")
       })
     })
 

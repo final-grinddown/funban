@@ -16,7 +16,7 @@ export function DeleteNoteModal({ isOpen, onClose }: Props) {
   const noteId = useAppStore((state) => state.modals.deleteNote.data?.noteId)
 
   const handleDelete = () => {
-    if (!noteId) return
+    if (noteId == null) return
     const message = createDeleteNote(noteId.toString())
     sendMessageAsync(message, "Note deleted successfully!")
     setIsSubmitting(true)

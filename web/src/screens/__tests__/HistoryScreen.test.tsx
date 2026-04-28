@@ -37,6 +37,10 @@ jest.mock("@/components/BackdropLoading", () => ({
   ),
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock MUI theme
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
@@ -174,7 +178,7 @@ describe("HistoryScreen", () => {
       renderHistoryScreen()
 
       await waitFor(() => {
-        expect(fetchHistory).toHaveBeenCalledWith("mock-access-token")
+        expect(fetchHistory).toHaveBeenCalledWith("http://localhost:3001", "mock-access-token")
       })
     })
   })
@@ -245,7 +249,7 @@ describe("HistoryScreen", () => {
       await user.hover(firstRow)
 
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("1", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "1", "mock-access-token")
       })
     })
 
@@ -265,7 +269,7 @@ describe("HistoryScreen", () => {
       await user.hover(thirdRow)
 
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("3", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "3", "mock-access-token")
       })
     })
   })
@@ -321,7 +325,7 @@ describe("HistoryScreen", () => {
       // Should prefetch via React Query
       const { fetchHistoryItem } = require("@/app/api/fetches")
       await waitFor(() => {
-        expect(fetchHistoryItem).toHaveBeenCalledWith("1", "mock-access-token")
+        expect(fetchHistoryItem).toHaveBeenCalledWith("http://localhost:3001", "1", "mock-access-token")
       })
     })
   })

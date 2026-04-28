@@ -37,6 +37,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   }),
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock API fetches
 const mockFetchUserMarks = jest.fn()
 const mockAddUserMark = jest.fn()

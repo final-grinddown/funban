@@ -144,6 +144,9 @@ jobs:
       - name: Lint
         run: yarn check:lint
 
+      - name: Test
+        run: yarn test --passWithNoTests --ci
+
       - name: Build
         run: yarn build
 

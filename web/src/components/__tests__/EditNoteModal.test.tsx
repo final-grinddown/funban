@@ -14,6 +14,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock the websocket functions
 jest.mock("@/app/api/websocket", () => ({
   createUpdateNote: jest.fn().mockReturnValue("mock-update-note-message"),
@@ -434,8 +438,6 @@ describe("EditNoteModal", () => {
   // Focus Management & Keyboard Shortcuts (3 tests)
   describe("Focus management and keyboard shortcuts", () => {
     it("focuses and selects text when hasTextFocus is true", async () => {
-      const clearTextFocus = jest.fn()
-
       // Set modal data in store with focusText flag
       mockStoreState.modals.editNote.data = {
         noteId: 123,
@@ -452,7 +454,6 @@ describe("EditNoteModal", () => {
       await waitFor(() => {
         const textField = screen.getByLabelText("Note Text")
         expect(textField).toHaveFocus()
-        expect(clearTextFocus).toHaveBeenCalledTimes(1)
       })
     })
 

@@ -55,6 +55,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   })),
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 jest.mock("@/hooks/useUserSelection", () => ({
   useUserSelection: jest.fn(() => mockUseUserSelection),
 }))
@@ -115,8 +119,8 @@ jest.mock("@/components/BoardActionMenu", () => ({
 }))
 
 jest.mock("@/components/AddNewNoteModal", () => ({
-  AddNewNoteModal: ({ isOpen, onClose, users }: any) => (
-    <div data-testid="add-new-note-modal" data-open={isOpen} data-users-count={users.length}>
+  AddNewNoteModal: ({ isOpen, onClose }: any) => (
+    <div data-testid="add-new-note-modal" data-open={isOpen}>
       <button onClick={onClose}>Close Modal</button>
     </div>
   ),
@@ -318,7 +322,6 @@ describe("BoardScreen", () => {
 
       const modal = screen.getByTestId("add-new-note-modal")
       expect(modal).toHaveAttribute("data-open", "true")
-      expect(modal).toHaveAttribute("data-users-count", "3")
     })
 
     it("renders EndStatusModal with correct props", () => {

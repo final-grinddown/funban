@@ -14,6 +14,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock the createDeleteNote function
 jest.mock("@/app/api/websocket", () => ({
   createDeleteNote: jest.fn().mockReturnValue("mock-delete-note-message"),

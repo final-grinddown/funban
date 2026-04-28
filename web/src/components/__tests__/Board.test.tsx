@@ -14,6 +14,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock websocket functions
 jest.mock("@/app/api/websocket", () => ({
   createUpdateNoteReorderBefore: jest.fn().mockReturnValue("mock-reorder-before-message"),
@@ -37,8 +41,14 @@ let mockStoreState: any = {
   board: { notes: [], users: [] },
   focus: { isFocus: false, currentUser: "User 1" },
   ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
-  actions: { asyncQueue: [] }, // Add actions slice with asyncQueue
-  modals: { isAnyModalOpen: jest.fn(() => false) }, // Add modals slice
+  actions: { asyncQueue: [], failedUuids: [], clearFailedUuid: jest.fn() },
+  modals: {
+    isAnyModalOpen: jest.fn(() => false),
+    closeModal: jest.fn(),
+    deleteNote: { isOpen: false },
+    editNote: { isOpen: false },
+    splitNote: { isOpen: false },
+  },
 }
 
 jest.mock("@/store", () => ({
@@ -72,6 +82,10 @@ jest.mock("../BoardColumn", () => ({
 jest.mock("../BackdropLoading", () => ({
   BackdropLoading: ({ isInDashboard }: any) => <div data-testid="backdrop-loading" data-in-dashboard={isInDashboard} />,
 }))
+
+jest.mock("../DeleteNoteModal", () => ({ DeleteNoteModal: () => null }))
+jest.mock("../EditNoteModal", () => ({ EditNoteModal: () => null }))
+jest.mock("../SplitNoteModal", () => ({ SplitNoteModal: () => null }))
 
 const mockNotes: Note[] = [
   {
@@ -151,8 +165,14 @@ describe("Board", () => {
       board: { notes: mockNotes, users: [] },
       focus: { isFocus: false, currentUser: "User 1" },
       ui: { selectedUserId: 1, hoveredColumn: null, setHoveredColumn: jest.fn() },
-      actions: { asyncQueue: [] },
-      modals: { isAnyModalOpen: jest.fn(() => false) },
+      actions: { asyncQueue: [], failedUuids: [], clearFailedUuid: jest.fn() },
+      modals: {
+        isAnyModalOpen: jest.fn(() => false),
+        closeModal: jest.fn(),
+        deleteNote: { isOpen: false },
+        editNote: { isOpen: false },
+        splitNote: { isOpen: false },
+      },
     }
   })
 

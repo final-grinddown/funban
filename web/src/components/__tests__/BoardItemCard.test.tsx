@@ -17,6 +17,10 @@ jest.mock("@/context/WebSocketProvider", () => ({
   useWebSocketContext: () => mockWebSocketContext,
 }))
 
+jest.mock("@/context/ConfigProvider", () => ({
+  useConfig: () => ({ apiUrl: "http://localhost:3001", wsUrl: "ws://localhost:3001", env: "test" }),
+}))
+
 // Mock the store
 let mockStoreState: any = {
   board: { notes: [], users: mockWebSocketContext.users },
@@ -205,9 +209,10 @@ describe("BoardItemCard", () => {
       await user.click(editMenuItem)
 
       await waitFor(() => {
-        const editModal = screen.getByTestId("edit-note-modal")
-        expect(editModal).toHaveAttribute("data-open", "true")
-        expect(editModal).toHaveAttribute("data-note-id", "1")
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("editNote", expect.objectContaining({
+          noteId: 1,
+          noteState: "todo",
+        }))
       })
     })
 
@@ -227,8 +232,7 @@ describe("BoardItemCard", () => {
       await user.click(deleteMenuItem)
 
       await waitFor(() => {
-        const deleteModal = screen.getByTestId("delete-note-modal")
-        expect(deleteModal).toHaveAttribute("data-open", "true")
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("deleteNote", { noteId: 1 })
       })
     })
 
@@ -248,8 +252,9 @@ describe("BoardItemCard", () => {
       await user.click(splitMenuItem)
 
       await waitFor(() => {
-        const splitModal = screen.getByTestId("split-note-modal")
-        expect(splitModal).toHaveAttribute("data-open", "true")
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("splitNote", expect.objectContaining({
+          originalNote: expect.objectContaining({ id: 1 }),
+        }))
       })
     })
 
@@ -257,18 +262,16 @@ describe("BoardItemCard", () => {
       const user = userEvent.setup()
       render(<BoardItemCard {...defaultProps} />)
 
-      const card = screen.getByText("Test note content").closest(".MuiCard-root")
-      await user.dblClick(card!)
+      const cardContent = screen.getByText("Test note content").closest(".MuiCardContent-root")
+      await user.dblClick(cardContent!)
 
-      // User should see the edit modal open
       await waitFor(() => {
-        expect(screen.getByText("Close Edit")).toBeInTheDocument()
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("editNote", expect.objectContaining({
+          noteId: 1,
+          noteState: "todo",
+          focusText: true,
+        }))
       })
-
-      // Modal should have the correct note data
-      const editModal = screen.getByTestId("edit-note-modal")
-      expect(editModal).toHaveAttribute("data-note-id", "1")
-      expect(editModal).toHaveAttribute("data-note-state", "todo")
     })
   })
 
