@@ -28,7 +28,8 @@ export const BoardColumn = forwardRef<HTMLDivElement, Props>(function BoardColum
   const openModal = useAppStore((state) => state.modals.openModal)
   const closeModal = useAppStore((state) => state.modals.closeModal)
   const isAnyModalOpen = useAppStore((state) => state.modals.isAnyModalOpen)
-  const deleteNoteBulkModalOpen = useAppStore((state) => state.modals.deleteNoteBulk.isOpen)
+  const deleteNoteBulkModal = useAppStore((state) => state.modals.deleteNoteBulk)
+  const deleteNoteBulkModalOpen = deleteNoteBulkModal.isOpen && deleteNoteBulkModal.data?.state === state
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const openMenu = Boolean(anchorEl)
