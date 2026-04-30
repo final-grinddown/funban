@@ -240,6 +240,9 @@ describe("EndStatusModal", () => {
       await user.click(sendButton)
 
       expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "My snapshot", notes: mockNotes }, "test-token")
+
+      // Wait for the mutation to settle so onSuccess state updates are wrapped in act
+      await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
     })
 
     it("shows loading state during submission", async () => {
@@ -266,11 +269,14 @@ describe("EndStatusModal", () => {
       const sendButton = screen.getByRole("button", { name: "Send" })
       await user.click(sendButton)
 
-      expect(screen.getByRole("progressbar")).toBeInTheDocument()
-      expect(sendButton).toBeDisabled()
+      await waitFor(() => {
+        expect(screen.getByRole("progressbar")).toBeInTheDocument()
+        expect(sendButton).toBeDisabled()
+      })
 
-      // Clean up by resolving the promise
+      // Resolve and drain the mutation's onSuccess state updates
       resolvePromise!()
+      await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
     })
 
     it("shows success snackbar and closes modal on successful submission", async () => {
@@ -428,6 +434,9 @@ describe("EndStatusModal", () => {
       await user.click(sendButton)
 
       expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "No token test", notes: mockNotes }, undefined)
+
+      // Wait for the mutation to settle so onSuccess state updates are wrapped in act
+      await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
     })
 
     it("handles empty notes array", async () => {

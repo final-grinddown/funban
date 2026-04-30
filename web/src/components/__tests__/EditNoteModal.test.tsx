@@ -415,6 +415,12 @@ describe("EditNoteModal", () => {
     it("disables save button during submission", async () => {
       const user = userEvent.setup()
 
+      // Make sendMessageAsync take time so "during submission" is observable.
+      let resolveSend!: () => void
+      mockWebSocketContext.sendMessageAsync = jest.fn(
+        () => new Promise<void>((resolve) => { resolveSend = resolve })
+      )
+
       render(<EditNoteModal {...defaultProps} />)
 
       // Wait for React Hook Form initialization
@@ -424,14 +430,15 @@ describe("EditNoteModal", () => {
       await user.type(textField, " updated")
 
       const saveButton = screen.getByRole("button", { name: "Save" })
-
-      // Button should be enabled before clicking
       expect(saveButton).toBeEnabled()
 
       await user.click(saveButton)
 
-      // Button should be disabled during submission
-      expect(saveButton).toBeDisabled()
+      // Wait for the state update triggered by submit (setIsSubmitting(true))
+      await waitFor(() => expect(saveButton).toBeDisabled())
+
+      // Cleanup: allow submission to finish to avoid dangling async work
+      resolveSend()
     })
   })
 
