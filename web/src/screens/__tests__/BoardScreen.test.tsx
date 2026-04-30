@@ -149,6 +149,14 @@ jest.mock("@/components/FocusControls", () => ({
   ),
 }))
 
+jest.mock("@/components/AddUserMarkModal", () => ({
+  AddUserMarkModal: ({ isOpen, onClose }: any) => (
+    <div data-testid="add-user-mark-modal" data-open={isOpen}>
+      <button onClick={onClose}>Close Modal</button>
+    </div>
+  ),
+}))
+
 describe("BoardScreen", () => {
   const mockUsers: User[] = [
     { id: 1, index: 1, name: "John Doe", color: "#ff0000", email: "John Doe@example.com", marks: [] },

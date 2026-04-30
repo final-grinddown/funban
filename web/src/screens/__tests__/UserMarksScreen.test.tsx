@@ -110,10 +110,13 @@ describe("UserMarksScreen", () => {
       })
     })
 
-    it("shows loading state initially", () => {
+    it("shows loading state initially", async () => {
       render(<UserMarksScreen />)
 
       expect(screen.getByRole("progressbar")).toBeInTheDocument()
+
+      // Drain the fetch so setAllMarks/setLoading don't fire after the test exits
+      await waitFor(() => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument())
     })
 
     it("fetches user marks on mount", async () => {
