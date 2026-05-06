@@ -22,7 +22,7 @@ export function handleActionPatch(op: WsOperation, store: AppState): void {
 
     case "Error":
       if (op.uuid) {
-        failAsync(op.uuid, op.message)
+        failAsync(op.uuid, op.message || undefined)
       }
       break
 

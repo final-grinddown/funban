@@ -10,6 +10,8 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  pointerWithin,
+  CollisionDetection,
 } from "@dnd-kit/core"
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { Box, Divider, Stack } from "@mui/material"
@@ -26,6 +28,18 @@ import { BoardLoadingState } from "./BoardLoadingState"
 import { DeleteNoteModal } from "./DeleteNoteModal"
 import { EditNoteModal } from "./EditNoteModal"
 import { SplitNoteModal } from "./SplitNoteModal"
+
+// Prefer the droppable the pointer is physically inside before falling back to
+// closestCenter. This prevents an adjacent column's notes from "stealing" a drop
+// intended for an empty column when closestCenter resolves to the nearby note center.
+const collisionDetection: CollisionDetection = (args) => {
+  const within = pointerWithin(args)
+  if (within.length === 0) return closestCenter(args)
+  return closestCenter({
+    ...args,
+    droppableContainers: args.droppableContainers.filter((c) => within.some((w) => w.id === c.id)),
+  })
+}
 
 interface Props {
   isEditable: boolean
@@ -411,7 +425,7 @@ export function Board({ isEditable }: Props) {
     <Box py={4}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

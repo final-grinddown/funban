@@ -24,6 +24,12 @@ impl AppState {
                         predecessor_id: change.predecessor_id.map(|id| id as u32),
                     })
                     .collect();
+                if changes.is_empty() {
+                    // no-op: server detected the note is already at the requested position.
+                    // Return a silent error so the client clears the pending action and
+                    // snaps back to store state, without showing a success notification.
+                    return respond_error(uuid, String::new());
+                }
                 changes.broadcast(uuid)
             }
             Err(sqlx::Error::RowNotFound) => {
