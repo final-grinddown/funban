@@ -209,10 +209,13 @@ describe("BoardItemCard", () => {
       await user.click(editMenuItem)
 
       await waitFor(() => {
-        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("editNote", expect.objectContaining({
-          noteId: 1,
-          noteState: "todo",
-        }))
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith(
+          "editNote",
+          expect.objectContaining({
+            noteId: 1,
+            noteState: "todo",
+          }),
+        )
       })
     })
 
@@ -252,9 +255,12 @@ describe("BoardItemCard", () => {
       await user.click(splitMenuItem)
 
       await waitFor(() => {
-        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("splitNote", expect.objectContaining({
-          originalNote: expect.objectContaining({ id: 1 }),
-        }))
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith(
+          "splitNote",
+          expect.objectContaining({
+            originalNote: expect.objectContaining({ id: 1 }),
+          }),
+        )
       })
     })
 
@@ -266,11 +272,14 @@ describe("BoardItemCard", () => {
       await user.dblClick(cardContent!)
 
       await waitFor(() => {
-        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith("editNote", expect.objectContaining({
-          noteId: 1,
-          noteState: "todo",
-          focusText: true,
-        }))
+        expect(mockStoreState.modals.openModal).toHaveBeenCalledWith(
+          "editNote",
+          expect.objectContaining({
+            noteId: 1,
+            noteState: "todo",
+            focusText: true,
+          }),
+        )
       })
     })
   })

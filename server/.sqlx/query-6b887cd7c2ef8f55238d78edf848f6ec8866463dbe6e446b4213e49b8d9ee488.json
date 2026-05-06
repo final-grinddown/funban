@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT state, predecessor_id FROM notes WHERE id = ?",
+  "query": "SELECT t.state, t.predecessor_id, m.state AS moved_state\n           FROM notes t JOIN notes m ON m.id = ?\n           WHERE t.id = ?",
   "describe": {
     "columns": [
       {
@@ -20,15 +20,25 @@
           "flags": "",
           "max_size": 11
         }
+      },
+      {
+        "ordinal": 2,
+        "name": "moved_state",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 124
+        }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "569413a57080b52f33210510ed2b211982b82f671725a4fd7b7ae56d104e3428"
+  "hash": "6b887cd7c2ef8f55238d78edf848f6ec8866463dbe6e446b4213e49b8d9ee488"
 }

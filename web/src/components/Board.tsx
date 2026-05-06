@@ -89,7 +89,15 @@ export function Board({ isEditable }: Props) {
         clearFailedUuid(uuid)
       }
     }
-  }, [hasPendingDrag, failedUuids, storeNotesNotes, storeTodoNotes, storeInProgressNotes, storeDoneNotes, clearFailedUuid])
+  }, [
+    hasPendingDrag,
+    failedUuids,
+    storeNotesNotes,
+    storeTodoNotes,
+    storeInProgressNotes,
+    storeDoneNotes,
+    clearFailedUuid,
+  ])
 
   const columns = useMemo(() => {
     const columnData: IColumnData[] = [

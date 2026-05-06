@@ -239,7 +239,11 @@ describe("EndStatusModal", () => {
       const sendButton = screen.getByRole("button", { name: "Send" })
       await user.click(sendButton)
 
-      expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "My snapshot", notes: mockNotes }, "test-token")
+      expect(postSnapshot).toHaveBeenCalledWith(
+        "http://localhost:3001",
+        { label: "My snapshot", notes: mockNotes },
+        "test-token",
+      )
 
       // Wait for the mutation to settle so onSuccess state updates are wrapped in act
       await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
@@ -433,7 +437,11 @@ describe("EndStatusModal", () => {
       const sendButton = screen.getByRole("button", { name: "Send" })
       await user.click(sendButton)
 
-      expect(postSnapshot).toHaveBeenCalledWith("http://localhost:3001", { label: "No token test", notes: mockNotes }, undefined)
+      expect(postSnapshot).toHaveBeenCalledWith(
+        "http://localhost:3001",
+        { label: "No token test", notes: mockNotes },
+        undefined,
+      )
 
       // Wait for the mutation to settle so onSuccess state updates are wrapped in act
       await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
