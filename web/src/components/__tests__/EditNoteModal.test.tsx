@@ -418,7 +418,10 @@ describe("EditNoteModal", () => {
       // Make sendMessageAsync take time so "during submission" is observable.
       let resolveSend!: () => void
       mockWebSocketContext.sendMessageAsync = jest.fn(
-        () => new Promise<void>((resolve) => { resolveSend = resolve })
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSend = resolve
+          }),
       )
 
       render(<EditNoteModal {...defaultProps} />)

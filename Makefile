@@ -9,7 +9,7 @@ dev-web:
 	cd web && yarn install --silent && yarn dev
 
 dev-server:
-	cd server && cargo run
+	cd server && cargo run --bin funban-server
 
 # Kill any running dev processes
 kill-dev:

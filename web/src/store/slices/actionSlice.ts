@@ -90,10 +90,7 @@ export const createActionSlice: StateCreator<ActionSlice> = (set, get) => {
           actions: {
             ...state.actions,
             asyncQueue: [],
-            failedUuids: [
-              ...state.actions.failedUuids,
-              ...state.actions.asyncQueue.map((a) => a.id),
-            ],
+            failedUuids: [...state.actions.failedUuids, ...state.actions.asyncQueue.map((a) => a.id)],
           },
         }))
       },

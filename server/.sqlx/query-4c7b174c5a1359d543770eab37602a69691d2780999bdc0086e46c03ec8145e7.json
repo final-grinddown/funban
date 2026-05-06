@@ -8,7 +8,7 @@
         "name": "password",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL",
           "max_size": 1020
         }
       }

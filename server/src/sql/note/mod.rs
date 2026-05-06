@@ -337,13 +337,16 @@ pub async fn transfer_before(
     let change_set = uuid::Uuid::new_v4().to_string();
 
     let target = sqlx::query!(
-        r#"SELECT state, predecessor_id FROM notes WHERE id = ?"#,
+        r#"SELECT t.state, t.predecessor_id, m.state AS moved_state
+           FROM notes t JOIN notes m ON m.id = ?
+           WHERE t.id = ?"#,
+        moved_item_id,
         over_id
     )
     .fetch_one(&mut *transaction)
     .await?;
 
-    if target.predecessor_id == Some(moved_item_id as i32) {
+    if target.predecessor_id == Some(moved_item_id as i32) && target.moved_state == target.state {
         warn!("Attempted to move note to its current position");
         return Ok(vec![]);
     }
