@@ -186,7 +186,7 @@ jobs:
       # Build and push server image (always build, Docker cache handles unchanged)
       - name: Extract metadata for server
         id: meta-server
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/server
           tags: |
@@ -217,7 +217,7 @@ jobs:
       # Build and push web image (always build, Docker cache handles unchanged)
       - name: Extract metadata for web
         id: meta-web
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/web
           tags: |
