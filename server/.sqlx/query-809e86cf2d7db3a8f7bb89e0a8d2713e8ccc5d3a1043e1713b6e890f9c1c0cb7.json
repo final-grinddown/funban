@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        DELETE FROM releases WHERE id = ? AND closed_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "809e86cf2d7db3a8f7bb89e0a8d2713e8ccc5d3a1043e1713b6e890f9c1c0cb7"
+}

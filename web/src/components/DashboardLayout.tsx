@@ -5,6 +5,7 @@ import { AccountCircle, Logout, Settings } from "@mui/icons-material"
 import DashboardIcon from "@mui/icons-material/Dashboard"
 import HistoryIcon from "@mui/icons-material/History"
 import MenuIcon from "@mui/icons-material/Menu"
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch"
 import StarIcon from "@mui/icons-material/Star"
 import {
   AppBar,
@@ -134,6 +135,14 @@ export function DashboardLayout({ children, userEmail }: Props) {
                 <HistoryIcon />
               </ListItemIcon>
               <ListItemText primary="History" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem sx={{ p: 0 }}>
+            <ListItemButton component={Link} href={ERoutes.Releases}>
+              <ListItemIcon>
+                <RocketLaunchIcon />
+              </ListItemIcon>
+              <ListItemText primary="Releases" />
             </ListItemButton>
           </ListItem>
           <ListItem sx={{ p: 0 }}>

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE releases\n        SET closed_at = NOW(), close_summary = ?\n        WHERE id = ? AND closed_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "98855d259c63911a52dd991ff9dbb00a3e1303356cda462a5c489e3ea8153fc5"
+}

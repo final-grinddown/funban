@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{note::*, user::*};
+    use crate::model::{note::*, release::*, user::*};
     use crate::sql::note::MoveTarget;
     use crate::state::{NoteUpdate, UserUpdate, WsAction, WsOperation};
 
@@ -28,6 +28,9 @@ mod tests {
         let _user_update: Option<UserUpdate> = None;
         let _note_tag: Option<NoteTag> = None;
         let _note_state: Option<NoteState> = None;
+        let _release: Option<Release> = None;
+        let _release_insert: Option<ReleaseInsert> = None;
+        let _release_type: Option<ReleaseType> = None;
 
         // Test passes if compilation succeeds
         assert!(true);

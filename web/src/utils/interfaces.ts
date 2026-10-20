@@ -1,5 +1,17 @@
 import type { WsNote, WsUser, WsNoteState } from "@/schemas/websocket"
 
+// Release contract types (REST only)
+export type { Release } from "../../../contracts/Release"
+export type { ReleaseType } from "../../../contracts/ReleaseType"
+export type { ReleaseInsert } from "../../../contracts/ReleaseInsert"
+
+/** Minimal user shape returned by `GET /user` */
+export interface ITeamMember {
+  id: number
+  name: string
+  color: string
+}
+
 // App types - contracts now use number for IDs (Rust i32 → TS number)
 export type User = WsUser
 export type Note = WsNote
