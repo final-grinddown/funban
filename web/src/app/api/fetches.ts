@@ -1,6 +1,14 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
 import { base64EncodeUnicode } from "@/utils/helpers"
-import { IHistoryItem, ISnapshotData, ITeamMember, Release, ReleaseInsert } from "@/utils/interfaces"
+import {
+  IHistoryItem,
+  ISnapshotData,
+  ITeamMember,
+  Release,
+  ReleaseInsert,
+  ReleaseSettings,
+  ReleaseStep,
+} from "@/utils/interfaces"
 
 export const fetchHistory = async (apiUrl: string, accessToken?: string): Promise<IHistoryItem[]> => {
   return fetchWithAuth<IHistoryItem[]>(`${apiUrl}/history`, accessToken)
@@ -189,8 +197,69 @@ export const closeRelease = async (
   })
 }
 
+export const updateReleaseNotes = async (
+  apiUrl: string,
+  id: number,
+  notes: string,
+  accessToken?: string,
+): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/notes`, accessToken, {
+    method: "PUT",
+    body: { notes },
+  })
+}
+
+export const updateReleaseTask = async (
+  apiUrl: string,
+  id: number,
+  taskId: number,
+  done: boolean,
+  accessToken?: string,
+): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/tasks/${taskId}`, accessToken, {
+    method: "PUT",
+    body: { done },
+  })
+}
+
+export const addReleaseTasksFromTemplate = async (apiUrl: string, id: number, accessToken?: string): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/tasks/from-template`, accessToken, {
+    method: "POST",
+  })
+}
+
 export const reopenRelease = async (apiUrl: string, id: number, accessToken?: string): Promise<Release> => {
   return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/reopen`, accessToken, {
     method: "POST",
+  })
+}
+
+export const fetchReleaseSettings = async (apiUrl: string, accessToken?: string): Promise<ReleaseSettings> => {
+  return fetchWithAuth<ReleaseSettings>(`${apiUrl}/release-settings`, accessToken)
+}
+
+export const updateReleaseSettings = async (
+  apiUrl: string,
+  data: ReleaseSettings,
+  accessToken?: string,
+): Promise<ReleaseSettings> => {
+  return fetchWithAuth<ReleaseSettings>(`${apiUrl}/release-settings`, accessToken, {
+    method: "PUT",
+    body: { ...data },
+  })
+}
+
+export const fetchReleaseSteps = async (apiUrl: string, accessToken?: string): Promise<ReleaseStep[]> => {
+  return fetchWithAuth<ReleaseStep[]>(`${apiUrl}/release-settings/steps`, accessToken)
+}
+
+export const updateReleaseSteps = async (
+  apiUrl: string,
+  steps: ReleaseStep[],
+  accessToken?: string,
+): Promise<ReleaseStep[]> => {
+  return fetchWithAuth<ReleaseStep[]>(`${apiUrl}/release-settings/steps`, accessToken, {
+    method: "PUT",
+    body: steps,
   })
 }

@@ -39,17 +39,30 @@ pub struct Release {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
-    /// `None` when the assigned user has been deleted from the team.
+    /// `None` when the release is unassigned or the assigned user has been deleted from the team.
     pub assignee_id: Option<i32>,
     /// Current name of the assignee, or the name snapshot taken at assignment time
-    /// when the user no longer exists.
-    pub assignee_name: String,
+    /// when the user no longer exists. `None` when the release is unassigned.
+    pub assignee_name: Option<String>,
     /// Set when the release is closed; closed releases are read-only
     pub closed_at: Option<NaiveDateTime>,
     /// Summary written when closing, kept after reopening
     pub close_summary: Option<String>,
+    /// Markdown notes, editable while the release is open
+    pub notes: Option<String>,
+    /// Release steps in order, copied from the template when the release is created
+    pub tasks: Vec<ReleaseTask>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS, ToSchema)]
+#[ts(export)]
+pub struct ReleaseTask {
+    pub id: i32,
+    pub title: String,
+    /// Set when the step is ticked off
+    pub done_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
@@ -58,5 +71,6 @@ pub struct ReleaseInsert {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
-    pub assignee_id: i32,
+    /// `None` leaves the release unassigned
+    pub assignee_id: Option<i32>,
 }

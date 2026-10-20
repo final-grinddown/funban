@@ -11,12 +11,24 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
-import { closeRelease, deleteRelease, fetchRelease, reopenRelease, updateRelease } from "@/app/api/fetches"
+import {
+  addReleaseTasksFromTemplate,
+  closeRelease,
+  deleteRelease,
+  fetchRelease,
+  reopenRelease,
+  updateRelease,
+  updateReleaseNotes,
+  updateReleaseTask,
+} from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { CloseReleaseModal } from "@/components/CloseReleaseModal"
 import { DeleteReleaseModal } from "@/components/DeleteReleaseModal"
 import { ReleaseAssignee } from "@/components/ReleaseAssignee"
+import { ReleaseChecklist } from "@/components/ReleaseChecklist"
 import { ReleaseFormModal } from "@/components/ReleaseFormModal"
+import { ReleaseNotes } from "@/components/ReleaseNotes"
+import { ReleaseNotifications } from "@/components/ReleaseNotifications"
 import { ReleaseStatusChip } from "@/components/ReleaseStatusChip"
 import { useConfig } from "@/context/ConfigProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
@@ -62,6 +74,22 @@ export function ReleaseDetailScreen({ id }: Props) {
 
   const closeMutation = useMutation({
     mutationFn: (summary: string) => closeRelease(apiUrl, Number(id), summary, session?.accessToken),
+    onSuccess: handleReleaseChanged,
+  })
+
+  const notesMutation = useMutation({
+    mutationFn: (notes: string) => updateReleaseNotes(apiUrl, Number(id), notes, session?.accessToken),
+    onSuccess: handleReleaseChanged,
+  })
+
+  const taskMutation = useMutation({
+    mutationFn: ({ taskId, done }: { taskId: number; done: boolean }) =>
+      updateReleaseTask(apiUrl, Number(id), taskId, done, session?.accessToken),
+    onSuccess: handleReleaseChanged,
+  })
+
+  const tasksFromTemplateMutation = useMutation({
+    mutationFn: () => addReleaseTasksFromTemplate(apiUrl, Number(id), session?.accessToken),
     onSuccess: handleReleaseChanged,
   })
 
@@ -121,6 +149,8 @@ export function ReleaseDetailScreen({ id }: Props) {
   const handleDelete = () => {
     deleteMutation.mutate()
   }
+
+  const handleToggleTask = (taskId: number, done: boolean) => taskMutation.mutateAsync({ taskId, done })
 
   if (isLoading) return <BackdropLoading isInDashboard={true} />
 
@@ -220,6 +250,20 @@ export function ReleaseDetailScreen({ id }: Props) {
         </Box>
       </Paper>
 
+      <ReleaseChecklist
+        tasks={release.tasks}
+        isReadOnly={isClosed}
+        onToggle={handleToggleTask}
+        onAddFromTemplate={tasksFromTemplateMutation.mutateAsync}
+      />
+
+      <ReleaseNotes notes={release.notes} isReadOnly={isClosed} onSave={notesMutation.mutateAsync} />
+
+      {/* Keyed so the defaults follow edits of the release date or type */}
+      {!isClosed && (
+        <ReleaseNotifications key={`${release.release_at}-${release.release_type}`} release={release} />
+      )}
+
       <ReleaseFormModal
         isOpen={isEditOpen}
         release={release}
@@ -234,6 +278,7 @@ export function ReleaseDetailScreen({ id }: Props) {
         isOpen={isCloseOpen}
         releaseCode={release.release_code}
         previousSummary={release.close_summary}
+        unfinishedStepCount={release.tasks.filter((task) => !task.done_at).length}
         onClose={handleCloseCloseModal}
         onConfirm={handleConfirmClose}
         isSubmitting={isClosing}

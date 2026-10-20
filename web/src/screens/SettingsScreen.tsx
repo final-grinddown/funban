@@ -5,6 +5,8 @@ import { Box, CircularProgress, Tab, Tabs, Typography, useMediaQuery, useTheme }
 import { useRouter } from "next/navigation"
 import { AccountSettings } from "@/components/AccountSettings"
 import { BoardConfiguration } from "@/components/BoardConfiguration"
+import { ReleaseSettingsForm } from "@/components/ReleaseSettingsForm"
+import { ReleaseStepsForm } from "@/components/ReleaseStepsForm"
 import { TeamManagement } from "@/components/TeamManagement"
 import { User } from "@/utils/interfaces"
 
@@ -12,18 +14,20 @@ interface Props {
   users: User[]
 }
 
-const tabNames = ["account", "team-management", "board-configuration"]
+const tabNames = ["account", "team-management", "board-configuration", "releases"]
 
 const tabNameToIndex: { [key: string]: number } = {
   account: 0,
   "team-management": 1,
   "board-configuration": 2,
+  releases: 3,
 }
 
 const indexToTabName: { [key: number]: string } = {
   0: "account",
   1: "team-management",
   2: "board-configuration",
+  3: "releases",
 }
 
 export function SettingsScreen({ users }: Props) {
@@ -85,6 +89,12 @@ export function SettingsScreen({ users }: Props) {
         </CustomTabPanel>
         <CustomTabPanel value={value} index={2}>
           <BoardConfiguration />
+        </CustomTabPanel>
+        <CustomTabPanel value={value} index={3}>
+          <ReleaseSettingsForm />
+          <Box sx={{ mt: 4 }}>
+            <ReleaseStepsForm />
+          </Box>
         </CustomTabPanel>
       </Box>
     </>

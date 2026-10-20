@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        DELETE FROM release_step_templates\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "3bb82e4c8fb8b36aff96eeb468fb0cd1e8747e9d3b7637ab834043c079aadb48"
+}

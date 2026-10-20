@@ -26,7 +26,11 @@ jest.mock("@/app/api/fetches", () => ({
   deleteRelease: jest.fn(),
   closeRelease: jest.fn(),
   reopenRelease: jest.fn(),
+  updateReleaseNotes: jest.fn(),
+  updateReleaseTask: jest.fn(),
+  addReleaseTasksFromTemplate: jest.fn(),
   fetchUsers: jest.fn(),
+  fetchReleaseSettings: jest.fn(),
 }))
 
 jest.mock("@/components/BackdropLoading", () => ({
@@ -47,6 +51,8 @@ describe("ReleaseDetailScreen", () => {
     assignee_name: "Alice",
     closed_at: null,
     close_summary: null,
+    notes: null,
+    tasks: [],
     created_at: "2026-10-01T10:00:00",
     updated_at: "2026-10-01T10:00:00",
   }
@@ -71,9 +77,10 @@ describe("ReleaseDetailScreen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    const { fetchRelease, fetchUsers } = require("@/app/api/fetches")
+    const { fetchRelease, fetchUsers, fetchReleaseSettings } = require("@/app/api/fetches")
     fetchRelease.mockResolvedValue(mockRelease)
     fetchUsers.mockResolvedValue(mockUsers)
+    fetchReleaseSettings.mockResolvedValue({ notification_to: ["team@example.com"], notification_cc: [] })
   })
 
   it("renders release details", async () => {
@@ -98,6 +105,16 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.getByText(/Charlie/)).toBeInTheDocument()
   })
 
+  it("shows an unassigned release", async () => {
+    const { fetchRelease } = require("@/app/api/fetches")
+    fetchRelease.mockResolvedValue({ ...mockRelease, assignee_id: null, assignee_name: null })
+
+    renderScreen()
+
+    expect(await screen.findByText("Unassigned")).toBeInTheDocument()
+    expect(screen.queryByText("(former member)")).not.toBeInTheDocument()
+  })
+
   it("shows an error when the release cannot be loaded", async () => {
     const { fetchRelease } = require("@/app/api/fetches")
     fetchRelease.mockRejectedValue(new Error("The requested resource could not be found."))
@@ -105,6 +122,39 @@ describe("ReleaseDetailScreen", () => {
     renderScreen()
 
     expect(await screen.findByText("The requested resource could not be found.")).toBeInTheDocument()
+  })
+
+  it("prepares notifications from the release", async () => {
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
+    expect(screen.getByText(/@MaintenanceFrom DATETIME = '2026-10-20 14:00:00'/)).toBeInTheDocument()
+    expect(
+      screen.getByText("Planned maintenance on Oct 20 from 13:30 to 19:00 - technical release without any changes in AEQ"),
+    ).toBeInTheDocument()
+    expect(await screen.findByText("team@example.com")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Open in mail client" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^mailto:team@example\.com\?subject=/),
+    )
+  })
+
+  it("updates notifications when a parameter changes", async () => {
+    renderScreen()
+
+    const duration = await screen.findByLabelText("Duration (min)")
+    await user.clear(duration)
+    await user.type(duration, "60")
+
+    expect(screen.getByText(/@DurationInMinutes INT = 60,/)).toBeInTheDocument()
+    expect(screen.getByText(/from 13:30 to 15:00/)).toBeInTheDocument()
+
+    await user.clear(duration)
+    expect(screen.getByText("Fix the parameters above to generate the notifications.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Copy SQL" })).toBeDisabled()
+
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }))
+    expect(screen.getByText(/@DurationInMinutes INT = 300,/)).toBeInTheDocument()
   })
 
   it("pre-fills the edit form and saves changes", async () => {
@@ -154,6 +204,183 @@ describe("ReleaseDetailScreen", () => {
     await waitFor(() => {
       expect(deleteRelease).toHaveBeenCalledWith("http://localhost:3001", 7, "mock-access-token")
       expect(mockPush).toHaveBeenCalledWith("/releases")
+    })
+  })
+
+  describe("Notes", () => {
+    it("shows a placeholder when there are no notes", async () => {
+      renderScreen()
+
+      expect(await screen.findByRole("heading", { name: "Notes" })).toBeInTheDocument()
+      expect(screen.getByText("No notes yet.")).toBeInTheDocument()
+    })
+
+    it("edits and saves the notes", async () => {
+      const { updateReleaseNotes } = require("@/app/api/fetches")
+      updateReleaseNotes.mockResolvedValue({ ...mockRelease, notes: "Run **migrations** first" })
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      await user.type(screen.getByLabelText("Notes"), "Run **migrations** first")
+      await user.click(screen.getByRole("button", { name: "Save" }))
+
+      await waitFor(() => {
+        expect(updateReleaseNotes).toHaveBeenCalledWith(
+          "http://localhost:3001",
+          7,
+          "Run **migrations** first",
+          "mock-access-token",
+        )
+      })
+      expect(await screen.findByText("Run **migrations** first")).toBeInTheDocument()
+      expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument()
+    })
+
+    it("discards changes on cancel", async () => {
+      const { fetchRelease, updateReleaseNotes } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...mockRelease, notes: "Original" })
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      expect(screen.getByLabelText("Notes")).toHaveValue("Original")
+      await user.type(screen.getByLabelText("Notes"), " changed")
+      await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+      expect(screen.getByText("Original")).toBeInTheDocument()
+      expect(updateReleaseNotes).not.toHaveBeenCalled()
+    })
+
+    it("keeps the editor open with an error when saving fails", async () => {
+      const { updateReleaseNotes } = require("@/app/api/fetches")
+      updateReleaseNotes.mockRejectedValue(new Error("Release is closed. Reopen it to make changes."))
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      await user.type(screen.getByLabelText("Notes"), "Draft")
+      await user.click(screen.getByRole("button", { name: "Save" }))
+
+      expect(await screen.findByText("Release is closed. Reopen it to make changes.")).toBeInTheDocument()
+      expect(screen.getByLabelText("Notes")).toHaveValue("Draft")
+    })
+
+    it("shows notes of a closed release without editing", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...mockRelease, closed_at: "2026-10-21T09:15:00", notes: "Went fine" })
+
+      renderScreen()
+
+      expect(await screen.findByText("Went fine")).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Edit notes" })).not.toBeInTheDocument()
+    })
+  })
+
+  describe("Steps", () => {
+    const releaseWithTasks: Release = {
+      ...mockRelease,
+      tasks: [
+        { id: 11, title: "Announce the release", done_at: "2026-10-20T13:05:00" },
+        { id: 12, title: "Deploy", done_at: null },
+      ],
+    }
+
+    it("shows the steps with progress", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue(releaseWithTasks)
+
+      renderScreen()
+
+      expect(await screen.findByRole("heading", { name: "Steps" })).toBeInTheDocument()
+      expect(screen.getByText("1 / 2 done")).toBeInTheDocument()
+      expect(screen.getByRole("checkbox", { name: "Announce the release" })).toBeChecked()
+      expect(screen.getByText("Done 20 Oct 2026, 13:05")).toBeInTheDocument()
+      expect(screen.getByRole("checkbox", { name: "Deploy" })).not.toBeChecked()
+    })
+
+    it("ticks a step off", async () => {
+      const { fetchRelease, updateReleaseTask } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue(releaseWithTasks)
+      updateReleaseTask.mockResolvedValue({
+        ...releaseWithTasks,
+        tasks: releaseWithTasks.tasks.map((task) => ({ ...task, done_at: "2026-10-20T14:10:00" })),
+      })
+
+      renderScreen()
+      await user.click(await screen.findByRole("checkbox", { name: "Deploy" }))
+
+      await waitFor(() => {
+        expect(updateReleaseTask).toHaveBeenCalledWith("http://localhost:3001", 7, 12, true, "mock-access-token")
+      })
+      expect(await screen.findByText("2 / 2 done")).toBeInTheDocument()
+      expect(screen.getByRole("checkbox", { name: "Deploy" })).toBeChecked()
+    })
+
+    it("unticks a step and shows errors", async () => {
+      const { fetchRelease, updateReleaseTask } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue(releaseWithTasks)
+      updateReleaseTask.mockRejectedValue(new Error("Release is closed. Reopen it to make changes."))
+
+      renderScreen()
+      await user.click(await screen.findByRole("checkbox", { name: "Announce the release" }))
+
+      expect(updateReleaseTask).toHaveBeenCalledWith("http://localhost:3001", 7, 11, false, "mock-access-token")
+      expect(await screen.findByText("Release is closed. Reopen it to make changes.")).toBeInTheDocument()
+      expect(screen.getByRole("checkbox", { name: "Announce the release" })).toBeChecked()
+    })
+
+    it("adds steps from the template to a release without steps", async () => {
+      const { addReleaseTasksFromTemplate } = require("@/app/api/fetches")
+      addReleaseTasksFromTemplate.mockResolvedValue(releaseWithTasks)
+
+      renderScreen()
+      expect(await screen.findByText("This release has no steps yet.")).toBeInTheDocument()
+      await user.click(screen.getByRole("button", { name: "Add steps from template" }))
+
+      expect(addReleaseTasksFromTemplate).toHaveBeenCalledWith("http://localhost:3001", 7, "mock-access-token")
+      expect(await screen.findByRole("checkbox", { name: "Deploy" })).toBeInTheDocument()
+    })
+
+    it("points to settings when the template is empty", async () => {
+      const { addReleaseTasksFromTemplate } = require("@/app/api/fetches")
+      addReleaseTasksFromTemplate.mockResolvedValue(mockRelease)
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Add steps from template" }))
+
+      expect(await screen.findByRole("link", { name: "Settings › Releases" })).toHaveAttribute(
+        "href",
+        "/settings#releases",
+      )
+    })
+
+    it("shows steps of a closed release without ticking", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...releaseWithTasks, closed_at: "2026-10-21T09:15:00" })
+
+      renderScreen()
+
+      expect(await screen.findByRole("checkbox", { name: "Deploy" })).toBeDisabled()
+    })
+
+    it("hides the section for a closed release without steps", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...mockRelease, closed_at: "2026-10-21T09:15:00" })
+
+      renderScreen()
+
+      expect(await screen.findByRole("button", { name: "Reopen" })).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: "Steps" })).not.toBeInTheDocument()
+    })
+
+    it("warns about unfinished steps when closing", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue(releaseWithTasks)
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Close" }))
+
+      const dialog = await screen.findByRole("dialog")
+      expect(within(dialog).getByText("1 step is not done yet.")).toBeInTheDocument()
+      expect(within(dialog).getByRole("button", { name: "Close" })).toBeEnabled()
     })
   })
 
@@ -211,6 +438,7 @@ describe("ReleaseDetailScreen", () => {
       expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument()
       expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument()
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument()
     })
 
     it("reopens a closed release", async () => {

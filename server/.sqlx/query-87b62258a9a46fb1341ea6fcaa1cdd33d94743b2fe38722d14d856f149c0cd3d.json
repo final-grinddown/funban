@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO release_settings (id, notification_to, notification_cc)\n        VALUES (?, ?, ?)\n        ON DUPLICATE KEY UPDATE notification_to = VALUES(notification_to), notification_cc = VALUES(notification_cc)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "87b62258a9a46fb1341ea6fcaa1cdd33d94743b2fe38722d14d856f149c0cd3d"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name!: String\",\n            r.closed_at, r.close_summary, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        WHERE r.id = ?\n        ",
+  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name?: String\",\n            r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        ORDER BY r.release_at DESC, r.id DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -50,10 +50,10 @@
       },
       {
         "ordinal": 5,
-        "name": "assignee_name!: String",
+        "name": "assignee_name?: String",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL",
+          "flags": "",
           "max_size": 1020
         }
       },
@@ -77,6 +77,15 @@
       },
       {
         "ordinal": 8,
+        "name": "notes",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "created_at",
         "type_info": {
           "type": "Datetime",
@@ -85,7 +94,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "updated_at",
         "type_info": {
           "type": "Datetime",
@@ -95,7 +104,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false,
@@ -103,12 +112,13 @@
       false,
       false,
       true,
-      false,
+      true,
+      true,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "e7e3127c38a4e7d07f1857c6a42b3b75307656f673aa11e90c4c8701fdda1370"
+  "hash": "d6046a74305522e4a61c491ec0e38788b8bb1d28771175470c80e4ddf4cea545"
 }

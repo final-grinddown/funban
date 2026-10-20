@@ -5,7 +5,7 @@ type FetchMethod = "GET" | "POST" | "PUT" | "DELETE"
 
 interface FetchOptions {
   method?: FetchMethod
-  body?: Record<string, unknown>
+  body?: Record<string, unknown> | unknown[]
   headers?: Record<string, string>
 }
 

@@ -26,6 +26,14 @@ jest.mock("@/components/BoardConfiguration", () => ({
   BoardConfiguration: () => <div data-testid="board-configuration">Board Configuration Content</div>,
 }))
 
+jest.mock("@/components/ReleaseSettingsForm", () => ({
+  ReleaseSettingsForm: () => <div data-testid="release-settings">Release Settings Content</div>,
+}))
+
+jest.mock("@/components/ReleaseStepsForm", () => ({
+  ReleaseStepsForm: () => <div data-testid="release-steps">Release Steps Content</div>,
+}))
+
 // Mock MUI breakpoint hook
 const mockUseMediaQuery = jest.fn(() => false)
 jest.mock("@mui/material", () => ({
@@ -68,6 +76,7 @@ describe("SettingsScreen", () => {
       expect(screen.getByRole("tab", { name: "ACCOUNT" })).toBeInTheDocument()
       expect(screen.getByRole("tab", { name: "TEAM MANAGEMENT" })).toBeInTheDocument()
       expect(screen.getByRole("tab", { name: "BOARD CONFIGURATION" })).toBeInTheDocument()
+      expect(screen.getByRole("tab", { name: "RELEASES" })).toBeInTheDocument()
 
       // Should have proper tablist
       expect(screen.getByRole("tablist", { name: "settings tabs" })).toBeInTheDocument()

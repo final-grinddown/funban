@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE releases\n        SET notes = ?\n        WHERE id = ? AND closed_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "61ae421f076e2f112f04aad808380a335ec27cb3e994175747ae7dba6817be5e"
+}

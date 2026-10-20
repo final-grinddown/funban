@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT r.id FROM releases r\n        WHERE r.id = ? AND r.closed_at IS NULL\n            AND NOT EXISTS (SELECT 1 FROM release_tasks t WHERE t.release_id = r.id)\n        FOR UPDATE\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "85cd3b1321646e0ea9199f42f153d192cbd5a643c217d4fce4f0d602131cb88c"
+}
