@@ -26,6 +26,7 @@ jest.mock("@/app/api/fetches", () => ({
   deleteRelease: jest.fn(),
   closeRelease: jest.fn(),
   reopenRelease: jest.fn(),
+  updateReleaseNotes: jest.fn(),
   fetchUsers: jest.fn(),
   fetchReleaseSettings: jest.fn(),
 }))
@@ -48,6 +49,7 @@ describe("ReleaseDetailScreen", () => {
     assignee_name: "Alice",
     closed_at: null,
     close_summary: null,
+    notes: null,
     created_at: "2026-10-01T10:00:00",
     updated_at: "2026-10-01T10:00:00",
   }
@@ -199,6 +201,73 @@ describe("ReleaseDetailScreen", () => {
     await waitFor(() => {
       expect(deleteRelease).toHaveBeenCalledWith("http://localhost:3001", 7, "mock-access-token")
       expect(mockPush).toHaveBeenCalledWith("/releases")
+    })
+  })
+
+  describe("Notes", () => {
+    it("shows a placeholder when there are no notes", async () => {
+      renderScreen()
+
+      expect(await screen.findByRole("heading", { name: "Notes" })).toBeInTheDocument()
+      expect(screen.getByText("No notes yet.")).toBeInTheDocument()
+    })
+
+    it("edits and saves the notes", async () => {
+      const { updateReleaseNotes } = require("@/app/api/fetches")
+      updateReleaseNotes.mockResolvedValue({ ...mockRelease, notes: "Run **migrations** first" })
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      await user.type(screen.getByLabelText("Notes"), "Run **migrations** first")
+      await user.click(screen.getByRole("button", { name: "Save" }))
+
+      await waitFor(() => {
+        expect(updateReleaseNotes).toHaveBeenCalledWith(
+          "http://localhost:3001",
+          7,
+          "Run **migrations** first",
+          "mock-access-token",
+        )
+      })
+      expect(await screen.findByText("Run **migrations** first")).toBeInTheDocument()
+      expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument()
+    })
+
+    it("discards changes on cancel", async () => {
+      const { fetchRelease, updateReleaseNotes } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...mockRelease, notes: "Original" })
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      expect(screen.getByLabelText("Notes")).toHaveValue("Original")
+      await user.type(screen.getByLabelText("Notes"), " changed")
+      await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+      expect(screen.getByText("Original")).toBeInTheDocument()
+      expect(updateReleaseNotes).not.toHaveBeenCalled()
+    })
+
+    it("keeps the editor open with an error when saving fails", async () => {
+      const { updateReleaseNotes } = require("@/app/api/fetches")
+      updateReleaseNotes.mockRejectedValue(new Error("Release is closed. Reopen it to make changes."))
+
+      renderScreen()
+      await user.click(await screen.findByRole("button", { name: "Edit notes" }))
+      await user.type(screen.getByLabelText("Notes"), "Draft")
+      await user.click(screen.getByRole("button", { name: "Save" }))
+
+      expect(await screen.findByText("Release is closed. Reopen it to make changes.")).toBeInTheDocument()
+      expect(screen.getByLabelText("Notes")).toHaveValue("Draft")
+    })
+
+    it("shows notes of a closed release without editing", async () => {
+      const { fetchRelease } = require("@/app/api/fetches")
+      fetchRelease.mockResolvedValue({ ...mockRelease, closed_at: "2026-10-21T09:15:00", notes: "Went fine" })
+
+      renderScreen()
+
+      expect(await screen.findByText("Went fine")).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Edit notes" })).not.toBeInTheDocument()
     })
   })
 

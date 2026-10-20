@@ -48,6 +48,8 @@ pub struct Release {
     pub closed_at: Option<NaiveDateTime>,
     /// Summary written when closing, kept after reopening
     pub close_summary: Option<String>,
+    /// Markdown notes, editable while the release is open
+    pub notes: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }

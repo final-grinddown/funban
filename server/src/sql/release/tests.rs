@@ -170,6 +170,37 @@ async fn closed_release_is_read_only(db: MySqlPool) -> sqlx::Result<()> {
 }
 
 #[sqlx::test(fixtures("users"))]
+async fn update_and_clear_notes(db: MySqlPool) -> sqlx::Result<()> {
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+    assert_eq!(added.notes, None);
+
+    assert!(release::update_notes(&db, added.id, Some("- step one")).await?);
+    let updated = release::read_by_id(&db, added.id).await?.unwrap();
+    assert_eq!(updated.notes.as_deref(), Some("- step one"));
+
+    assert!(release::update_notes(&db, added.id, None).await?);
+    let cleared = release::read_by_id(&db, added.id).await?.unwrap();
+    assert_eq!(cleared.notes, None);
+
+    assert!(!release::update_notes(&db, 999, Some("x")).await?);
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn closed_release_notes_are_read_only(db: MySqlPool) -> sqlx::Result<()> {
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+    release::update_notes(&db, added.id, Some("Before close")).await?;
+    release::close(&db, added.id, "Done.").await?;
+
+    assert!(!release::update_notes(&db, added.id, Some("After close")).await?);
+    let closed = release::read_by_id(&db, added.id).await?.unwrap();
+    assert_eq!(closed.notes.as_deref(), Some("Before close"));
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
 async fn closed_release_keeps_name_of_deleted_assignee(db: MySqlPool) -> sqlx::Result<()> {
     let added = release::add(&db, &release_insert("20261020", 1)).await?;
     release::close(&db, added.id, "Done.").await?;

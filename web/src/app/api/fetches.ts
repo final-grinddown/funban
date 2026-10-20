@@ -189,6 +189,18 @@ export const closeRelease = async (
   })
 }
 
+export const updateReleaseNotes = async (
+  apiUrl: string,
+  id: number,
+  notes: string,
+  accessToken?: string,
+): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/notes`, accessToken, {
+    method: "PUT",
+    body: { notes },
+  })
+}
+
 export const reopenRelease = async (apiUrl: string, id: number, accessToken?: string): Promise<Release> => {
   return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/reopen`, accessToken, {
     method: "POST",

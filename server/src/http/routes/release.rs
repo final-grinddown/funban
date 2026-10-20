@@ -19,6 +19,7 @@ use crate::http::ApiContext;
 
 const RELEASE_CODE_MAX_LEN: usize = 32;
 const CLOSE_SUMMARY_MAX_LEN: usize = 2000;
+const NOTES_MAX_LEN: usize = 20000;
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ReleaseRequest {
@@ -82,6 +83,25 @@ impl CloseReleaseRequest {
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ReleaseNotesRequest {
+    /// Markdown text; empty or whitespace-only clears the notes
+    notes: String,
+}
+
+impl ReleaseNotesRequest {
+    fn validated_notes(&self) -> Result<Option<String>> {
+        let notes = self.notes.trim();
+        if notes.chars().count() > NOTES_MAX_LEN {
+            return Err(Error::BadRequest(format!(
+                "notes must be {} characters or less",
+                NOTES_MAX_LEN
+            )));
+        }
+        Ok((!notes.is_empty()).then(|| notes.to_string()))
+    }
+}
+
 fn parse_release_at(value: &str) -> Option<NaiveDateTime> {
     NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.fZ")
         .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f"))
@@ -135,6 +155,7 @@ pub fn protected_router() -> Router {
         .route("/releases/{id}", delete(remove))
         .route("/releases/{id}/close", post(close))
         .route("/releases/{id}/reopen", post(reopen))
+        .route("/releases/{id}/notes", put(update_notes))
         .route_layer(middleware::from_fn(auth))
 }
 
@@ -276,6 +297,36 @@ pub async fn close(
     read_release(&ctx, id).await
 }
 
+/// Replace the notes of an open release.
+#[utoipa::path(put,
+	path = "/releases/{id}/notes",
+	params(("id" = i32, Path, description = "Id of the release.")),
+	request_body = ReleaseNotesRequest,
+	responses(
+		(status = 200, body = Release, description = "Success"),
+		(status = 400, description = "Notes too long"),
+		(status = 404, description = "Release not found"),
+		(status = 409, description = "Release is closed")
+	),
+	security(("jwt" = []))
+)]
+pub async fn update_notes(
+    Path(id): Path<i32>,
+    ctx: Extension<ApiContext>,
+    Json(payload): Json<ReleaseNotesRequest>,
+) -> Result<Json<Release>> {
+    let notes = payload.validated_notes()?;
+    read_open_release(&ctx, id).await?;
+
+    if !sql::release::update_notes(&ctx.db, id, notes.as_deref()).await? {
+        // Closed concurrently between the check and the update
+        return Err(closed_error());
+    }
+
+    info!(release_id = id, "Release notes updated");
+    read_release(&ctx, id).await
+}
+
 /// Reopen a closed release so it can be edited again. The summary is kept.
 #[utoipa::path(post,
 	path = "/releases/{id}/reopen",
@@ -339,6 +390,23 @@ mod tests {
         assert_eq!(request("  Done.  ").validated_summary().unwrap(), "Done.");
         assert!(request("   ").validated_summary().is_err());
         assert!(request(&"x".repeat(2001)).validated_summary().is_err());
+    }
+
+    #[test]
+    fn notes_are_trimmed_and_empty_clears() {
+        let request = |notes: &str| ReleaseNotesRequest {
+            notes: notes.to_string(),
+        };
+
+        assert_eq!(
+            request("  **Done**  ")
+                .validated_notes()
+                .unwrap()
+                .as_deref(),
+            Some("**Done**")
+        );
+        assert_eq!(request(" \n ").validated_notes().unwrap(), None);
+        assert!(request(&"x".repeat(20001)).validated_notes().is_err());
     }
 
     #[test]

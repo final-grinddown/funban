@@ -11,12 +11,13 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Session } from "next-auth"
 import { useSession } from "next-auth/react"
-import { closeRelease, deleteRelease, fetchRelease, reopenRelease, updateRelease } from "@/app/api/fetches"
+import { closeRelease, deleteRelease, fetchRelease, reopenRelease, updateRelease, updateReleaseNotes } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { CloseReleaseModal } from "@/components/CloseReleaseModal"
 import { DeleteReleaseModal } from "@/components/DeleteReleaseModal"
 import { ReleaseAssignee } from "@/components/ReleaseAssignee"
 import { ReleaseFormModal } from "@/components/ReleaseFormModal"
+import { ReleaseNotes } from "@/components/ReleaseNotes"
 import { ReleaseNotifications } from "@/components/ReleaseNotifications"
 import { ReleaseStatusChip } from "@/components/ReleaseStatusChip"
 import { useConfig } from "@/context/ConfigProvider"
@@ -63,6 +64,11 @@ export function ReleaseDetailScreen({ id }: Props) {
 
   const closeMutation = useMutation({
     mutationFn: (summary: string) => closeRelease(apiUrl, Number(id), summary, session?.accessToken),
+    onSuccess: handleReleaseChanged,
+  })
+
+  const notesMutation = useMutation({
+    mutationFn: (notes: string) => updateReleaseNotes(apiUrl, Number(id), notes, session?.accessToken),
     onSuccess: handleReleaseChanged,
   })
 
@@ -220,6 +226,8 @@ export function ReleaseDetailScreen({ id }: Props) {
           )}
         </Box>
       </Paper>
+
+      <ReleaseNotes notes={release.notes} isReadOnly={isClosed} onSave={notesMutation.mutateAsync} />
 
       {/* Keyed so the defaults follow edits of the release date or type */}
       {!isClosed && (

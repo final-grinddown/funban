@@ -18,6 +18,7 @@ pub struct ReleaseDto {
     pub assignee_name: Option<String>,
     pub closed_at: Option<NaiveDateTime>,
     pub close_summary: Option<String>,
+    pub notes: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -35,6 +36,7 @@ impl TryFrom<ReleaseDto> for Release {
             assignee_name: release.assignee_name,
             closed_at: release.closed_at,
             close_summary: release.close_summary,
+            notes: release.notes,
             created_at: release.created_at,
             updated_at: release.updated_at,
         })
@@ -47,7 +49,7 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseDto>> {
         r#"
         SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
             COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
-            r.closed_at, r.close_summary, r.created_at, r.updated_at
+            r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at
         FROM releases r
         LEFT JOIN users u ON u.id = r.assignee_id
         ORDER BY r.release_at DESC, r.id DESC
@@ -65,7 +67,7 @@ pub async fn read_by_id(db: &MySqlPool, id: i32) -> sqlx::Result<Option<ReleaseD
         r#"
         SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
             COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
-            r.closed_at, r.close_summary, r.created_at, r.updated_at
+            r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at
         FROM releases r
         LEFT JOIN users u ON u.id = r.assignee_id
         WHERE r.id = ?
@@ -177,6 +179,23 @@ pub async fn close(db: &MySqlPool, id: i32, summary: &str) -> sqlx::Result<bool>
         WHERE id = ? AND closed_at IS NULL
         "#,
         summary,
+        id
+    )
+    .execute(db)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// Replaces the notes of an open release, `None` clears them. Returns `false` when it does not exist or is closed.
+pub async fn update_notes(db: &MySqlPool, id: i32, notes: Option<&str>) -> sqlx::Result<bool> {
+    let result = sqlx::query!(
+        r#"
+        UPDATE releases
+        SET notes = ?
+        WHERE id = ? AND closed_at IS NULL
+        "#,
+        notes,
         id
     )
     .execute(db)

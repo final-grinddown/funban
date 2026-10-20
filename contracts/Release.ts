@@ -18,4 +18,8 @@ closed_at: string | null,
 /**
  * Summary written when closing, kept after reopening
  */
-close_summary: string | null, created_at: string, updated_at: string, };
+close_summary: string | null, 
+/**
+ * Markdown notes, editable while the release is open
+ */
+notes: string | null, created_at: string, updated_at: string, };
