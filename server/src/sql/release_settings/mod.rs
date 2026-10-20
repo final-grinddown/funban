@@ -1,6 +1,9 @@
 use sqlx::MySqlPool;
 
-use crate::model::release_settings::ReleaseSettings;
+use crate::model::{
+    release::ReleaseType,
+    release_settings::{ReleaseSettings, ReleaseStep},
+};
 
 #[cfg(test)]
 pub mod tests;
@@ -56,4 +59,64 @@ pub async fn update(db: &MySqlPool, settings: &ReleaseSettings) -> sqlx::Result<
     .await?;
 
     read(db).await
+}
+
+/// Reads the release step template in step order.
+pub async fn read_steps(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseStep>> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT title, release_type FROM release_step_templates ORDER BY position, id
+        "#,
+    )
+    .fetch_all(db)
+    .await?;
+
+    rows.into_iter()
+        .map(|r| {
+            let release_type = r
+                .release_type
+                .as_deref()
+                .map(ReleaseType::try_from)
+                .transpose()
+                .map_err(|e| sqlx::Error::Decode(e.into()))?;
+            Ok(ReleaseStep {
+                title: r.title,
+                release_type,
+            })
+        })
+        .collect()
+}
+
+/// Replaces the whole step template; tasks of existing releases are not affected.
+pub async fn replace_steps(
+    db: &MySqlPool,
+    steps: &[ReleaseStep],
+) -> sqlx::Result<Vec<ReleaseStep>> {
+    let mut tx = db.begin().await?;
+
+    sqlx::query!(
+        r#"
+        DELETE FROM release_step_templates
+        "#,
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    for (position, step) in steps.iter().enumerate() {
+        sqlx::query!(
+            r#"
+            INSERT INTO release_step_templates (title, release_type, position)
+            VALUES (?, ?, ?)
+            "#,
+            step.title,
+            step.release_type.map(|t| t.as_str()),
+            position as i32,
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+
+    read_steps(db).await
 }

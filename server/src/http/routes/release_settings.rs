@@ -1,6 +1,6 @@
 use crate::{
     http::{errors::Error, middleware::auth, Result},
-    model::release_settings::ReleaseSettings,
+    model::release_settings::{ReleaseSettings, ReleaseStep},
     sql,
 };
 
@@ -15,11 +15,15 @@ use crate::http::ApiContext;
 
 const MAX_RECIPIENTS: usize = 50;
 const EMAIL_MAX_LEN: usize = 254;
+const MAX_STEPS: usize = 100;
+const STEP_TITLE_MAX_LEN: usize = 255;
 
 pub fn protected_router() -> Router {
     Router::new()
         .route("/release-settings", get(get_settings))
         .route("/release-settings", put(update_settings))
+        .route("/release-settings/steps", get(get_steps))
+        .route("/release-settings/steps", put(update_steps))
         .route_layer(middleware::from_fn(auth))
 }
 
@@ -43,6 +47,37 @@ fn validated_emails(field: &str, emails: &[String]) -> Result<Vec<String>> {
         return Err(Error::BadRequest(format!(
             "{} can have at most {} recipients",
             field, MAX_RECIPIENTS
+        )));
+    }
+
+    Ok(result)
+}
+
+/// Trims step titles, drops blank steps and validates lengths.
+fn validated_steps(steps: Vec<ReleaseStep>) -> Result<Vec<ReleaseStep>> {
+    let result: Vec<ReleaseStep> = steps
+        .into_iter()
+        .map(|step| ReleaseStep {
+            title: step.title.trim().to_string(),
+            release_type: step.release_type,
+        })
+        .filter(|step| !step.title.is_empty())
+        .collect();
+
+    if let Some(step) = result
+        .iter()
+        .find(|step| step.title.chars().count() > STEP_TITLE_MAX_LEN)
+    {
+        return Err(Error::BadRequest(format!(
+            "Step title must be {} characters or less: {}",
+            STEP_TITLE_MAX_LEN, step.title
+        )));
+    }
+
+    if result.len() > MAX_STEPS {
+        return Err(Error::BadRequest(format!(
+            "There can be at most {} steps",
+            MAX_STEPS
         )));
     }
 
@@ -102,6 +137,38 @@ pub async fn update_settings(
     Ok(Json(updated))
 }
 
+/// Get the release step template, copied into each new release.
+#[utoipa::path(get,
+	path = "/release-settings/steps",
+	responses((status = 200, body = Vec<ReleaseStep>, description = "Success")),
+	security(("jwt" = []))
+)]
+pub async fn get_steps(ctx: Extension<ApiContext>) -> Result<Json<Vec<ReleaseStep>>> {
+    Ok(Json(sql::release_settings::read_steps(&ctx.db).await?))
+}
+
+/// Replace the release step template. Existing releases keep their tasks.
+#[utoipa::path(put,
+	path = "/release-settings/steps",
+	request_body = Vec<ReleaseStep>,
+	responses(
+		(status = 200, body = Vec<ReleaseStep>, description = "Success"),
+		(status = 400, description = "Step title too long or too many steps")
+	),
+	security(("jwt" = []))
+)]
+pub async fn update_steps(
+    ctx: Extension<ApiContext>,
+    Json(payload): Json<Vec<ReleaseStep>>,
+) -> Result<Json<Vec<ReleaseStep>>> {
+    let steps = validated_steps(payload)?;
+
+    let updated = sql::release_settings::replace_steps(&ctx.db, &steps).await?;
+
+    info!(steps = updated.len(), "Release steps updated");
+    Ok(Json(updated))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,6 +206,32 @@ mod tests {
                 invalid
             );
         }
+    }
+
+    fn step(title: &str) -> ReleaseStep {
+        ReleaseStep {
+            title: title.to_string(),
+            release_type: None,
+        }
+    }
+
+    #[test]
+    fn steps_are_trimmed_and_blank_dropped() {
+        let result =
+            validated_steps(vec![step("  Deploy  "), step("   "), step("Verify")]).unwrap();
+
+        assert_eq!(result, vec![step("Deploy"), step("Verify")]);
+    }
+
+    #[test]
+    fn rejects_invalid_steps() {
+        assert!(validated_steps(vec![step(&"x".repeat(STEP_TITLE_MAX_LEN + 1))]).is_err());
+        assert!(validated_steps(
+            (0..=MAX_STEPS)
+                .map(|i| step(&format!("Step {}", i)))
+                .collect()
+        )
+        .is_err());
     }
 
     #[test]

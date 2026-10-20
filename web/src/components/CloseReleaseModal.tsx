@@ -9,6 +9,8 @@ interface Props {
   releaseCode: string
   /** Summary from a previous close, used instead of the default after reopening */
   previousSummary?: string | null
+  /** Steps not ticked off yet; closing is still allowed */
+  unfinishedStepCount?: number
   onClose: () => void
   onConfirm: (summary: string) => void
   isSubmitting: boolean
@@ -23,6 +25,7 @@ export function CloseReleaseModal({
   isOpen,
   releaseCode,
   previousSummary,
+  unfinishedStepCount = 0,
   onClose,
   onConfirm,
   isSubmitting,
@@ -56,6 +59,11 @@ export function CloseReleaseModal({
         <Typography variant="subtitle1" sx={{ mt: 1 }}>
           Close the release <strong>{releaseCode}</strong>? It becomes read-only until it is reopened.
         </Typography>
+        {unfinishedStepCount > 0 && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            {unfinishedStepCount === 1 ? "1 step is" : `${unfinishedStepCount} steps are`} not done yet.
+          </Alert>
+        )}
         {errorMessage && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {errorMessage}

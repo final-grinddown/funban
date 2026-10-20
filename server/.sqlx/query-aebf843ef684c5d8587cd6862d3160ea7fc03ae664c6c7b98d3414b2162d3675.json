@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO release_step_templates (title, release_type, position)\n            VALUES (?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "aebf843ef684c5d8587cd6862d3160ea7fc03ae664c6c7b98d3414b2162d3675"
+}

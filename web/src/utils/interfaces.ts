@@ -5,6 +5,8 @@ export type { Release } from "../../../contracts/Release"
 export type { ReleaseType } from "../../../contracts/ReleaseType"
 export type { ReleaseInsert } from "../../../contracts/ReleaseInsert"
 export type { ReleaseSettings } from "../../../contracts/ReleaseSettings"
+export type { ReleaseStep } from "../../../contracts/ReleaseStep"
+export type { ReleaseTask } from "../../../contracts/ReleaseTask"
 
 /** Minimal user shape returned by `GET /user` */
 export interface ITeamMember {

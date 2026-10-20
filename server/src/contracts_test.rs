@@ -32,6 +32,8 @@ mod tests {
         let _release_insert: Option<ReleaseInsert> = None;
         let _release_type: Option<ReleaseType> = None;
         let _release_settings: Option<ReleaseSettings> = None;
+        let _release_task: Option<ReleaseTask> = None;
+        let _release_step: Option<ReleaseStep> = None;
 
         // Test passes if compilation succeeds
         assert!(true);

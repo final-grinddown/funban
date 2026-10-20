@@ -2,7 +2,37 @@ use chrono::NaiveDateTime;
 use sqlx::MySqlPool;
 
 use crate::model::release::{ReleaseInsert, ReleaseType};
-use crate::sql::{release, user};
+use crate::model::release_settings::ReleaseStep;
+use crate::sql::{release, release_settings, user};
+
+fn step(title: &str, release_type: Option<ReleaseType>) -> ReleaseStep {
+    ReleaseStep {
+        title: title.to_string(),
+        release_type,
+    }
+}
+
+async fn set_up_template(db: &MySqlPool) -> sqlx::Result<()> {
+    release_settings::replace_steps(
+        db,
+        &[
+            step("Announce", None),
+            step("Build application", Some(ReleaseType::Application)),
+            step("Run maintenance script", Some(ReleaseType::Maintenance)),
+            step("Verify", None),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+async fn task_titles(db: &MySqlPool, release_id: i32) -> sqlx::Result<Vec<String>> {
+    Ok(release::read_tasks(db, release_id)
+        .await?
+        .into_iter()
+        .map(|t| t.title)
+        .collect())
+}
 
 fn release_insert(code: &str, assignee_id: impl Into<Option<i32>>) -> ReleaseInsert {
     ReleaseInsert {
@@ -254,6 +284,131 @@ async fn assign_and_unassign_release(db: MySqlPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(unassigned.assignee_id, None);
     assert_eq!(unassigned.assignee_name, None);
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn add_copies_template_steps_for_release_type(db: MySqlPool) -> sqlx::Result<()> {
+    set_up_template(&db).await?;
+
+    let application = release::add(&db, &release_insert("20261020", 1)).await?;
+    assert_eq!(
+        task_titles(&db, application.id).await?,
+        vec!["Announce", "Build application", "Verify"]
+    );
+
+    let mut maintenance_insert = release_insert("20261021", 1);
+    maintenance_insert.release_type = ReleaseType::Maintenance;
+    let maintenance = release::add(&db, &maintenance_insert).await?;
+    assert_eq!(
+        task_titles(&db, maintenance.id).await?,
+        vec!["Announce", "Run maintenance script", "Verify"]
+    );
+
+    let all = release::read_all_tasks(&db).await?;
+    assert_eq!(all.len(), 6);
+    assert!(all[..3].iter().all(|t| t.release_id == application.id));
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn template_changes_do_not_affect_existing_releases(db: MySqlPool) -> sqlx::Result<()> {
+    set_up_template(&db).await?;
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+
+    release_settings::replace_steps(&db, &[step("Something else", None)]).await?;
+
+    assert_eq!(
+        task_titles(&db, added.id).await?,
+        vec!["Announce", "Build application", "Verify"]
+    );
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn tick_and_untick_task(db: MySqlPool) -> sqlx::Result<()> {
+    set_up_template(&db).await?;
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+    let task_id = release::read_tasks(&db, added.id).await?[0].id;
+
+    assert!(release::set_task_done(&db, added.id, task_id, true).await?);
+    let done_at = release::read_tasks(&db, added.id).await?[0].done_at;
+    assert!(done_at.is_some());
+
+    // Ticking again keeps the original time and still reports the task as found
+    assert!(release::set_task_done(&db, added.id, task_id, true).await?);
+    assert_eq!(
+        release::read_tasks(&db, added.id).await?[0].done_at,
+        done_at
+    );
+
+    assert!(release::set_task_done(&db, added.id, task_id, false).await?);
+    assert_eq!(release::read_tasks(&db, added.id).await?[0].done_at, None);
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn task_of_other_or_closed_release_is_not_updated(db: MySqlPool) -> sqlx::Result<()> {
+    set_up_template(&db).await?;
+    let first = release::add(&db, &release_insert("20261020", 1)).await?;
+    let second = release::add(&db, &release_insert("20261021", 1)).await?;
+    let task_id = release::read_tasks(&db, first.id).await?[0].id;
+
+    assert!(!release::set_task_done(&db, second.id, task_id, true).await?);
+
+    release::close(&db, first.id, "Done.").await?;
+    assert!(!release::set_task_done(&db, first.id, task_id, true).await?);
+    assert_eq!(release::read_tasks(&db, first.id).await?[0].done_at, None);
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn add_tasks_from_template_fills_only_empty_open_release(db: MySqlPool) -> sqlx::Result<()> {
+    // Created before the template was set up
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+    assert!(task_titles(&db, added.id).await?.is_empty());
+
+    set_up_template(&db).await?;
+    assert_eq!(
+        release::add_tasks_from_template(&db, added.id, ReleaseType::Application).await?,
+        3
+    );
+    assert_eq!(task_titles(&db, added.id).await?.len(), 3);
+
+    // Already has tasks
+    assert_eq!(
+        release::add_tasks_from_template(&db, added.id, ReleaseType::Application).await?,
+        0
+    );
+    assert_eq!(task_titles(&db, added.id).await?.len(), 3);
+
+    let closed = release::add(&db, &release_insert("20261021", 1)).await?;
+    sqlx::query("DELETE FROM release_tasks WHERE release_id = ?")
+        .bind(closed.id)
+        .execute(&db)
+        .await?;
+    release::close(&db, closed.id, "Done.").await?;
+    assert_eq!(
+        release::add_tasks_from_template(&db, closed.id, ReleaseType::Application).await?,
+        0
+    );
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn removing_release_removes_its_tasks(db: MySqlPool) -> sqlx::Result<()> {
+    set_up_template(&db).await?;
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+
+    release::remove(&db, added.id).await?;
+
+    assert!(release::read_all_tasks(&db).await?.is_empty());
 
     Ok(())
 }

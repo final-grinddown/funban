@@ -1,7 +1,10 @@
 use crate::{
     http::{errors::Error, middleware::auth, Result},
     model::release::{Release, ReleaseInsert, ReleaseType},
-    sql::{self, release::ReleaseDto},
+    sql::{
+        self,
+        release::{ReleaseDto, ReleaseTaskDto},
+    },
 };
 
 use axum::{
@@ -12,6 +15,7 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::Deserialize;
+use std::collections::HashMap;
 use tracing::info;
 use utoipa::ToSchema;
 
@@ -102,6 +106,12 @@ impl ReleaseNotesRequest {
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ReleaseTaskRequest {
+    /// `true` ticks the step off, `false` unticks it
+    done: bool,
+}
+
 fn parse_release_at(value: &str) -> Option<NaiveDateTime> {
     NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.fZ")
         .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f"))
@@ -121,8 +131,14 @@ fn map_write_error(e: sqlx::Error) -> Error {
     }
 }
 
-fn to_release(dto: ReleaseDto) -> Result<Release> {
-    Release::try_from(dto).map_err(Error::Internal)
+fn to_release(dto: ReleaseDto, tasks: Vec<ReleaseTaskDto>) -> Result<Release> {
+    dto.into_release(tasks).map_err(Error::Internal)
+}
+
+/// Loads the tasks of a single release and converts it into the API model.
+async fn with_tasks(ctx: &ApiContext, dto: ReleaseDto) -> Result<Release> {
+    let tasks = sql::release::read_tasks(&ctx.db, dto.id).await?;
+    to_release(dto, tasks)
 }
 
 fn closed_error() -> Error {
@@ -141,7 +157,7 @@ async fn read_open_release(ctx: &ApiContext, id: i32) -> Result<ReleaseDto> {
 /// Re-reads a release after a state change.
 async fn read_release(ctx: &ApiContext, id: i32) -> Result<Json<Release>> {
     match sql::release::read_by_id(&ctx.db, id).await? {
-        Some(release) => Ok(Json(to_release(release)?)),
+        Some(release) => Ok(Json(with_tasks(ctx, release).await?)),
         None => Err(Error::NotFound),
     }
 }
@@ -156,6 +172,11 @@ pub fn protected_router() -> Router {
         .route("/releases/{id}/close", post(close))
         .route("/releases/{id}/reopen", post(reopen))
         .route("/releases/{id}/notes", put(update_notes))
+        .route("/releases/{id}/tasks/{task_id}", put(update_task))
+        .route(
+            "/releases/{id}/tasks/from-template",
+            post(add_tasks_from_template),
+        )
         .route_layer(middleware::from_fn(auth))
 }
 
@@ -168,9 +189,20 @@ pub fn protected_router() -> Router {
 pub async fn get_all(ctx: Extension<ApiContext>) -> Result<Json<Vec<Release>>> {
     let result = sql::release::read_all(&ctx.db).await?;
 
+    let mut tasks_by_release: HashMap<i32, Vec<ReleaseTaskDto>> = HashMap::new();
+    for task in sql::release::read_all_tasks(&ctx.db).await? {
+        tasks_by_release
+            .entry(task.release_id)
+            .or_default()
+            .push(task);
+    }
+
     let mapped = result
         .into_iter()
-        .map(to_release)
+        .map(|dto| {
+            let tasks = tasks_by_release.remove(&dto.id).unwrap_or_default();
+            to_release(dto, tasks)
+        })
         .collect::<Result<Vec<_>>>()?;
 
     Ok(Json(mapped))
@@ -209,7 +241,7 @@ pub async fn create(
         .map_err(map_write_error)?;
 
     info!(release_id = release.id, release_code = %release.release_code, "Release created");
-    Ok(Json(to_release(release)?))
+    Ok(Json(with_tasks(&ctx, release).await?))
 }
 
 /// Update an open release.
@@ -239,7 +271,7 @@ pub async fn update(
     {
         Some(release) => {
             info!(release_id = id, "Release updated");
-            Ok(Json(to_release(release)?))
+            Ok(Json(with_tasks(&ctx, release).await?))
         }
         None => Err(Error::NotFound),
     }
@@ -324,6 +356,73 @@ pub async fn update_notes(
     }
 
     info!(release_id = id, "Release notes updated");
+    read_release(&ctx, id).await
+}
+
+/// Tick a step of an open release off or back on.
+#[utoipa::path(put,
+	path = "/releases/{id}/tasks/{task_id}",
+	params(
+		("id" = i32, Path, description = "Id of the release."),
+		("task_id" = i32, Path, description = "Id of the task.")
+	),
+	request_body = ReleaseTaskRequest,
+	responses(
+		(status = 200, body = Release, description = "Success"),
+		(status = 404, description = "Release or task not found"),
+		(status = 409, description = "Release is closed")
+	),
+	security(("jwt" = []))
+)]
+pub async fn update_task(
+    Path((id, task_id)): Path<(i32, i32)>,
+    ctx: Extension<ApiContext>,
+    Json(payload): Json<ReleaseTaskRequest>,
+) -> Result<Json<Release>> {
+    read_open_release(&ctx, id).await?;
+
+    if !sql::release::set_task_done(&ctx.db, id, task_id, payload.done).await? {
+        return Err(Error::NotFound);
+    }
+
+    info!(
+        release_id = id,
+        task_id,
+        done = payload.done,
+        "Release task updated"
+    );
+    read_release(&ctx, id).await
+}
+
+/// Fill an open release without tasks from the step template.
+#[utoipa::path(post,
+	path = "/releases/{id}/tasks/from-template",
+	params(("id" = i32, Path, description = "Id of the release.")),
+	responses(
+		(status = 200, body = Release, description = "Success"),
+		(status = 404, description = "Release not found"),
+		(status = 409, description = "Release is closed or already has tasks")
+	),
+	security(("jwt" = []))
+)]
+pub async fn add_tasks_from_template(
+    Path(id): Path<i32>,
+    ctx: Extension<ApiContext>,
+) -> Result<Json<Release>> {
+    let release = read_open_release(&ctx, id).await?;
+    let release_type =
+        ReleaseType::try_from(release.release_type.as_str()).map_err(Error::Internal)?;
+
+    if !sql::release::read_tasks(&ctx.db, id).await?.is_empty() {
+        return Err(Error::Conflict("Release already has tasks".to_string()));
+    }
+
+    let created = sql::release::add_tasks_from_template(&ctx.db, id, release_type).await?;
+
+    info!(
+        release_id = id,
+        created, "Release tasks added from template"
+    );
     read_release(&ctx, id).await
 }
 

@@ -1,6 +1,9 @@
 use sqlx::MySqlPool;
 
-use crate::model::release_settings::ReleaseSettings;
+use crate::model::{
+    release::ReleaseType,
+    release_settings::{ReleaseSettings, ReleaseStep},
+};
 use crate::sql::release_settings;
 
 #[sqlx::test]
@@ -54,6 +57,37 @@ async fn update_recreates_missing_row(db: MySqlPool) -> sqlx::Result<()> {
         notification_cc: Vec::new(),
     };
     assert_eq!(release_settings::update(&db, &changes).await?, changes);
+
+    Ok(())
+}
+
+#[sqlx::test]
+async fn replace_and_read_steps_in_order(db: MySqlPool) -> sqlx::Result<()> {
+    assert!(release_settings::read_steps(&db).await?.is_empty());
+
+    let steps = vec![
+        ReleaseStep {
+            title: "Announce".to_string(),
+            release_type: None,
+        },
+        ReleaseStep {
+            title: "Build application".to_string(),
+            release_type: Some(ReleaseType::Application),
+        },
+        ReleaseStep {
+            title: "Verify".to_string(),
+            release_type: None,
+        },
+    ];
+    assert_eq!(release_settings::replace_steps(&db, &steps).await?, steps);
+
+    let reordered: Vec<ReleaseStep> = steps.iter().rev().cloned().collect();
+    assert_eq!(
+        release_settings::replace_steps(&db, &reordered).await?,
+        reordered
+    );
+
+    assert!(release_settings::replace_steps(&db, &[]).await?.is_empty());
 
     Ok(())
 }

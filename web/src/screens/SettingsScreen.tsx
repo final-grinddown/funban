@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { AccountSettings } from "@/components/AccountSettings"
 import { BoardConfiguration } from "@/components/BoardConfiguration"
 import { ReleaseSettingsForm } from "@/components/ReleaseSettingsForm"
+import { ReleaseStepsForm } from "@/components/ReleaseStepsForm"
 import { TeamManagement } from "@/components/TeamManagement"
 import { User } from "@/utils/interfaces"
 
@@ -91,6 +92,9 @@ export function SettingsScreen({ users }: Props) {
         </CustomTabPanel>
         <CustomTabPanel value={value} index={3}>
           <ReleaseSettingsForm />
+          <Box sx={{ mt: 4 }}>
+            <ReleaseStepsForm />
+          </Box>
         </CustomTabPanel>
       </Box>
     </>

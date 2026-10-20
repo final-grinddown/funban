@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE release_tasks t\n        JOIN releases r ON r.id = t.release_id\n        SET t.done_at = IF(?, COALESCE(t.done_at, NOW()), NULL)\n        WHERE t.id = ? AND t.release_id = ? AND r.closed_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "4b91abb33a410babc91a42db5dc003f7b60f89e06ea5719afdbfdecb269e9bf0"
+}

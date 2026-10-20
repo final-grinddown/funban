@@ -30,6 +30,10 @@ jest.mock("@/components/ReleaseSettingsForm", () => ({
   ReleaseSettingsForm: () => <div data-testid="release-settings">Release Settings Content</div>,
 }))
 
+jest.mock("@/components/ReleaseStepsForm", () => ({
+  ReleaseStepsForm: () => <div data-testid="release-steps">Release Steps Content</div>,
+}))
+
 // Mock MUI breakpoint hook
 const mockUseMediaQuery = jest.fn(() => false)
 jest.mock("@mui/material", () => ({

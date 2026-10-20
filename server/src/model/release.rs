@@ -50,8 +50,19 @@ pub struct Release {
     pub close_summary: Option<String>,
     /// Markdown notes, editable while the release is open
     pub notes: Option<String>,
+    /// Release steps in order, copied from the template when the release is created
+    pub tasks: Vec<ReleaseTask>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS, ToSchema)]
+#[ts(export)]
+pub struct ReleaseTask {
+    pub id: i32,
+    pub title: String,
+    /// Set when the step is ticked off
+    pub done_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
