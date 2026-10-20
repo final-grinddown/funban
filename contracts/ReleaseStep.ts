@@ -4,7 +4,15 @@ import type { ReleaseType } from "./ReleaseType";
 /**
  * One step of the team-wide release template; the list order is the step order
  */
-export type ReleaseStep = { title: string, 
+export type ReleaseStep = { 
+/**
+ * Markdown text of the step, may span multiple lines
+ */
+title: string, 
+/**
+ * Free-text hint of when to do the step, e.g. "3 days before release"
+ */
+timing: string | null, 
 /**
  * `None` applies the step to every release type
  */

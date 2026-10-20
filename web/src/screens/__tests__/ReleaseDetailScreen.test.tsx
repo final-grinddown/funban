@@ -47,6 +47,7 @@ describe("ReleaseDetailScreen", () => {
     release_code: "20261020",
     release_type: "maintenance",
     release_at: "2026-10-20T14:00:00",
+    deployed_by_us: true,
     assignee_id: 1,
     assignee_name: "Alice",
     closed_at: null,
@@ -130,7 +131,9 @@ describe("ReleaseDetailScreen", () => {
     expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
     expect(screen.getByText(/@MaintenanceFrom DATETIME = '2026-10-20 14:00:00'/)).toBeInTheDocument()
     expect(
-      screen.getByText("Planned maintenance on Oct 20 from 13:30 to 19:00 - technical release without any changes in AEQ"),
+      screen.getByText(
+        "Planned maintenance on Oct 20 from 13:30 to 19:00 - technical release without any changes in AEQ",
+      ),
     ).toBeInTheDocument()
     expect(await screen.findByText("team@example.com")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Open in mail client" })).toHaveAttribute(
@@ -183,6 +186,7 @@ describe("ReleaseDetailScreen", () => {
           release_code: "20261021",
           release_type: "maintenance",
           release_at: "2026-10-20T14:00",
+          deployed_by_us: true,
           assignee_id: 1,
         },
         "mock-access-token",
@@ -278,8 +282,9 @@ describe("ReleaseDetailScreen", () => {
     const releaseWithTasks: Release = {
       ...mockRelease,
       tasks: [
-        { id: 11, title: "Announce the release", done_at: "2026-10-20T13:05:00" },
-        { id: 12, title: "Deploy", done_at: null },
+        { id: 11, title: "Announce the release", timing: "1 day before release", done_at: "2026-10-20T13:05:00" },
+        { id: 12, title: "Deploy", timing: null, done_at: null },
+        { id: 13, title: "Verify\n\n- **logs**\n- metrics", timing: "After release", done_at: null },
       ],
     }
 
@@ -290,10 +295,11 @@ describe("ReleaseDetailScreen", () => {
       renderScreen()
 
       expect(await screen.findByRole("heading", { name: "Steps" })).toBeInTheDocument()
-      expect(screen.getByText("1 / 2 done")).toBeInTheDocument()
+      expect(screen.getByText("1 / 3 done")).toBeInTheDocument()
       expect(screen.getByRole("checkbox", { name: "Announce the release" })).toBeChecked()
-      expect(screen.getByText("Done 20 Oct 2026, 13:05")).toBeInTheDocument()
+      expect(screen.getByText("1 day before release · Done 20 Oct 2026, 13:05")).toBeInTheDocument()
       expect(screen.getByRole("checkbox", { name: "Deploy" })).not.toBeChecked()
+      expect(screen.getByText("After release")).toBeInTheDocument()
     })
 
     it("ticks a step off", async () => {
@@ -310,7 +316,7 @@ describe("ReleaseDetailScreen", () => {
       await waitFor(() => {
         expect(updateReleaseTask).toHaveBeenCalledWith("http://localhost:3001", 7, 12, true, "mock-access-token")
       })
-      expect(await screen.findByText("2 / 2 done")).toBeInTheDocument()
+      expect(await screen.findByText("3 / 3 done")).toBeInTheDocument()
       expect(screen.getByRole("checkbox", { name: "Deploy" })).toBeChecked()
     })
 
@@ -379,7 +385,7 @@ describe("ReleaseDetailScreen", () => {
       await user.click(await screen.findByRole("button", { name: "Close" }))
 
       const dialog = await screen.findByRole("dialog")
-      expect(within(dialog).getByText("1 step is not done yet.")).toBeInTheDocument()
+      expect(within(dialog).getByText("2 steps are not done yet.")).toBeInTheDocument()
       expect(within(dialog).getByRole("button", { name: "Close" })).toBeEnabled()
     })
   })

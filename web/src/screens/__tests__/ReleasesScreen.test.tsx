@@ -47,6 +47,7 @@ describe("ReleasesScreen", () => {
       release_code: "20261020",
       release_type: "application",
       release_at: "2026-10-20T14:00:00",
+      deployed_by_us: true,
       assignee_id: 1,
       assignee_name: "Alice",
       closed_at: null,
@@ -61,6 +62,7 @@ describe("ReleasesScreen", () => {
       release_code: "20260901",
       release_type: "maintenance",
       release_at: "2026-09-01T08:30:00",
+      deployed_by_us: false,
       assignee_id: null,
       assignee_name: "Charlie",
       closed_at: "2026-09-02T09:00:00",
@@ -214,6 +216,7 @@ describe("ReleasesScreen", () => {
             release_code: "20261105",
             release_type: "application",
             release_at: "2026-11-05T09:00",
+            deployed_by_us: true,
             assignee_id: 2,
           },
           "mock-access-token",
@@ -222,7 +225,7 @@ describe("ReleasesScreen", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     })
 
-    it("creates an unassigned release when no developer is chosen", async () => {
+    it("creates an unassigned, overseen-only release", async () => {
       const { createRelease } = require("@/app/api/fetches")
       createRelease.mockResolvedValue({ ...mockReleases[0], id: 3, assignee_id: null, assignee_name: null })
 
@@ -233,6 +236,7 @@ describe("ReleasesScreen", () => {
       const dialog = await screen.findByRole("dialog")
       await user.type(within(dialog).getByLabelText("Release code"), "20261105")
       fireEvent.change(within(dialog).getByLabelText("Date & time"), { target: { value: "2026-11-05T09:00" } })
+      await user.click(within(dialog).getByRole("checkbox", { name: "We deploy" }))
 
       const submit = within(dialog).getByRole("button", { name: "Create" })
       await waitFor(() => expect(submit).toBeEnabled())
@@ -241,7 +245,7 @@ describe("ReleasesScreen", () => {
       await waitFor(() => {
         expect(createRelease).toHaveBeenCalledWith(
           "http://localhost:3001",
-          expect.objectContaining({ release_code: "20261105", assignee_id: null }),
+          expect.objectContaining({ release_code: "20261105", assignee_id: null, deployed_by_us: false }),
           "mock-access-token",
         )
       })

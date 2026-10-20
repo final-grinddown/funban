@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name?: String\",\n            r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        WHERE r.id = ?\n        ",
+  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at,\n            r.deployed_by_us AS \"deployed_by_us: bool\", r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name?: String\",\n            r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        ORDER BY r.release_at DESC, r.id DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -41,6 +41,15 @@
       },
       {
         "ordinal": 4,
+        "name": "deployed_by_us: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 5,
         "name": "assignee_id",
         "type_info": {
           "type": "Long",
@@ -49,7 +58,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "assignee_name?: String",
         "type_info": {
           "type": "VarString",
@@ -58,7 +67,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "closed_at",
         "type_info": {
           "type": "Datetime",
@@ -67,7 +76,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "close_summary",
         "type_info": {
           "type": "Blob",
@@ -76,7 +85,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "notes",
         "type_info": {
           "type": "Blob",
@@ -85,7 +94,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": {
           "type": "Datetime",
@@ -94,7 +103,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": {
           "type": "Datetime",
@@ -104,9 +113,10 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -120,5 +130,5 @@
       false
     ]
   },
-  "hash": "8043d57b25e2a45ab010caf32bc885e432273c4c28f245fa8594945f9310acba"
+  "hash": "1725cf1d8a3dbb03cda2bf364ef70700e744a1732f202657dee2d5ab648fc77b"
 }

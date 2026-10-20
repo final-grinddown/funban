@@ -13,6 +13,7 @@ pub struct ReleaseDto {
     pub release_code: String,
     pub release_type: String,
     pub release_at: NaiveDateTime,
+    pub deployed_by_us: bool,
     pub assignee_id: Option<i32>,
     /// Live user name when the assignee exists, otherwise the stored snapshot; `None` when unassigned
     pub assignee_name: Option<String>,
@@ -28,6 +29,7 @@ pub struct ReleaseTaskDto {
     pub id: i32,
     pub release_id: i32,
     pub title: String,
+    pub timing: Option<String>,
     pub done_at: Option<NaiveDateTime>,
 }
 
@@ -36,6 +38,7 @@ impl From<ReleaseTaskDto> for ReleaseTask {
         Self {
             id: task.id,
             title: task.title,
+            timing: task.timing,
             done_at: task.done_at,
         }
     }
@@ -49,6 +52,7 @@ impl ReleaseDto {
             release_code: self.release_code,
             release_type: ReleaseType::try_from(self.release_type.as_str())?,
             release_at: self.release_at,
+            deployed_by_us: self.deployed_by_us,
             assignee_id: self.assignee_id,
             assignee_name: self.assignee_name,
             closed_at: self.closed_at,
@@ -65,7 +69,8 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseDto>> {
     let releases = sqlx::query_as!(
         ReleaseDto,
         r#"
-        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
+        SELECT r.id, r.release_code, r.release_type, r.release_at,
+            r.deployed_by_us AS "deployed_by_us: bool", r.assignee_id,
             COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
             r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at
         FROM releases r
@@ -83,7 +88,8 @@ pub async fn read_by_id(db: &MySqlPool, id: i32) -> sqlx::Result<Option<ReleaseD
     let release = sqlx::query_as!(
         ReleaseDto,
         r#"
-        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
+        SELECT r.id, r.release_code, r.release_type, r.release_at,
+            r.deployed_by_us AS "deployed_by_us: bool", r.assignee_id,
             COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
             r.closed_at, r.close_summary, r.notes, r.created_at, r.updated_at
         FROM releases r
@@ -126,12 +132,13 @@ pub async fn add(db: &MySqlPool, release: &ReleaseInsert) -> sqlx::Result<Releas
 
     let result = sqlx::query!(
         r#"
-        INSERT INTO releases (release_code, release_type, release_at, assignee_id, assignee_name)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO releases (release_code, release_type, release_at, deployed_by_us, assignee_id, assignee_name)
+        VALUES (?, ?, ?, ?, ?, ?)
         "#,
         release.release_code,
         release.release_type.as_str(),
         release.release_at,
+        release.deployed_by_us,
         release.assignee_id,
         assignee_name,
     )
@@ -157,8 +164,8 @@ async fn copy_template_tasks<'e, E: sqlx::MySqlExecutor<'e>>(
 ) -> sqlx::Result<u64> {
     let result = sqlx::query!(
         r#"
-        INSERT INTO release_tasks (release_id, title, position)
-        SELECT ?, title, position
+        INSERT INTO release_tasks (release_id, title, timing, position)
+        SELECT ?, title, timing, position
         FROM release_step_templates
         WHERE release_type IS NULL OR release_type = ?
         "#,
@@ -187,12 +194,13 @@ pub async fn update(
     sqlx::query!(
         r#"
         UPDATE releases
-        SET release_code = ?, release_type = ?, release_at = ?, assignee_id = ?, assignee_name = ?
+        SET release_code = ?, release_type = ?, release_at = ?, deployed_by_us = ?, assignee_id = ?, assignee_name = ?
         WHERE id = ? AND closed_at IS NULL
         "#,
         release.release_code,
         release.release_type.as_str(),
         release.release_at,
+        release.deployed_by_us,
         release.assignee_id,
         assignee_name,
         id
@@ -271,7 +279,7 @@ pub async fn read_tasks(db: &MySqlPool, release_id: i32) -> sqlx::Result<Vec<Rel
     sqlx::query_as!(
         ReleaseTaskDto,
         r#"
-        SELECT id, release_id, title, done_at
+        SELECT id, release_id, title, timing, done_at
         FROM release_tasks
         WHERE release_id = ?
         ORDER BY position, id
@@ -287,7 +295,7 @@ pub async fn read_all_tasks(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseTaskDto>>
     sqlx::query_as!(
         ReleaseTaskDto,
         r#"
-        SELECT id, release_id, title, done_at
+        SELECT id, release_id, title, timing, done_at
         FROM release_tasks
         ORDER BY release_id, position, id
         "#,

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO releases (release_code, release_type, release_at, deployed_by_us, assignee_id, assignee_name)\n        VALUES (?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "c8dc8d927076f75e4a5e68126186f757dbc9e067d76a18ab3540d2e28a7abd63"
+}

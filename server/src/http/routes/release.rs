@@ -32,6 +32,8 @@ pub struct ReleaseRequest {
     release_type: String,
     /// ISO-like local datetime, e.g. `2026-10-20T14:00` or `2026-10-20T14:00:00`
     release_at: String,
+    /// `false` when the team only oversees the deployment; defaults to `true`
+    deployed_by_us: Option<bool>,
     /// Omit or send `null` to leave the release unassigned
     assignee_id: Option<i32>,
 }
@@ -61,6 +63,7 @@ impl ReleaseRequest {
             release_code,
             release_type,
             release_at,
+            deployed_by_us: self.deployed_by_us.unwrap_or(true),
             assignee_id: self.assignee_id,
         })
     }
@@ -458,6 +461,7 @@ mod tests {
             release_code: code.to_string(),
             release_type: release_type.to_string(),
             release_at: release_at.to_string(),
+            deployed_by_us: None,
             assignee_id: Some(1),
         }
     }
@@ -471,6 +475,20 @@ mod tests {
         assert_eq!(insert.release_code, "20261020");
         assert_eq!(insert.release_type, ReleaseType::Maintenance);
         assert_eq!(insert.release_at.to_string(), "2026-10-20 14:30:00");
+    }
+
+    #[test]
+    fn deployed_by_us_defaults_to_true() {
+        let mut overseen = request("20261020", "application", "2026-10-20T14:30");
+        overseen.deployed_by_us = Some(false);
+
+        assert!(
+            request("20261020", "application", "2026-10-20T14:30")
+                .into_insert()
+                .unwrap()
+                .deployed_by_us
+        );
+        assert!(!overseen.into_insert().unwrap().deployed_by_us);
     }
 
     #[test]

@@ -27,7 +27,8 @@ import { handleError } from "@/utils/errorHandler"
 import { ReleaseStep, ReleaseType } from "@/utils/interfaces"
 import { releaseTypeLabels } from "@/utils/release"
 
-const STEP_TITLE_MAX_LENGTH = 255
+const STEP_TITLE_MAX_LENGTH = 2000
+const STEP_TIMING_MAX_LENGTH = 100
 const ALL_TYPES = "all"
 
 /** Steps being edited, with a stable key so rows keep focus while reordering */
@@ -74,18 +75,24 @@ export function ReleaseStepsForm() {
   }
 
   const handleAdd = () => {
-    setRows((current) => [...current, toRow({ title: "", release_type: null })])
+    setRows((current) => [...current, toRow({ title: "", timing: null, release_type: null })])
   }
 
   const handleSave = () => {
     saveMutation.mutate(
       rows
-        .map(({ title, release_type }) => ({ title: title.trim(), release_type }))
+        .map(({ title, timing, release_type }) => ({
+          title: title.trim(),
+          timing: timing?.trim() || null,
+          release_type,
+        }))
         .filter((step) => step.title.length > 0),
     )
   }
 
-  const hasTooLongTitle = rows.some((row) => row.title.trim().length > STEP_TITLE_MAX_LENGTH)
+  const isTitleTooLong = (row: StepRow) => row.title.trim().length > STEP_TITLE_MAX_LENGTH
+  const isTimingTooLong = (row: StepRow) => (row.timing?.trim().length ?? 0) > STEP_TIMING_MAX_LENGTH
+  const hasInvalidRow = rows.some((row) => isTitleTooLong(row) || isTimingTooLong(row))
 
   if (isLoading) return <CircularProgress />
 
@@ -97,45 +104,61 @@ export function ReleaseStepsForm() {
     <>
       <Typography variant="h2">Release steps</Typography>
       <Typography color="text.secondary" sx={{ mt: 1 }}>
-        Copied into each new release as its checklist. Changes do not affect existing releases.
+        Copied into each new release as its checklist. Changes do not affect existing releases. Steps support **bold**,
+        *italic* and - lists.
       </Typography>
-      <Box display="flex" flexDirection="column" gap={2} sx={{ mt: 2, maxWidth: 800 }}>
+      <Box display="flex" flexDirection="column" gap={3} sx={{ mt: 2, maxWidth: 800 }}>
         {rows.length === 0 && <Typography color="text.secondary">No steps yet.</Typography>}
         {rows.map((row, index) => (
           <Stack key={row.key} direction="row" spacing={1} alignItems="flex-start">
-            <TextField
-              label={`Step ${index + 1}`}
-              value={row.title}
-              onChange={(event) => updateRow(row.key, { title: event.target.value })}
-              error={row.title.trim().length > STEP_TITLE_MAX_LENGTH}
-              helperText={
-                row.title.trim().length > STEP_TITLE_MAX_LENGTH
-                  ? `Step must be ${STEP_TITLE_MAX_LENGTH} characters or less`
-                  : undefined
-              }
-              size="small"
-              fullWidth
-            />
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id={`step-type-${row.key}`}>Applies to</InputLabel>
-              <Select
-                labelId={`step-type-${row.key}`}
-                label="Applies to"
-                value={row.release_type ?? ALL_TYPES}
-                onChange={(event) =>
-                  updateRow(row.key, {
-                    release_type: event.target.value === ALL_TYPES ? null : (event.target.value as ReleaseType),
-                  })
+            <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+              <TextField
+                label={`Step ${index + 1}`}
+                value={row.title}
+                onChange={(event) => updateRow(row.key, { title: event.target.value })}
+                error={isTitleTooLong(row)}
+                helperText={
+                  isTitleTooLong(row) ? `Step must be ${STEP_TITLE_MAX_LENGTH} characters or less` : undefined
                 }
-              >
-                <MenuItem value={ALL_TYPES}>All types</MenuItem>
-                {(Object.keys(releaseTypeLabels) as ReleaseType[]).map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {releaseTypeLabels[type]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                size="small"
+                multiline
+                minRows={1}
+                fullWidth
+              />
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <TextField
+                  label="When"
+                  placeholder="e.g. 3 days before release"
+                  value={row.timing ?? ""}
+                  onChange={(event) => updateRow(row.key, { timing: event.target.value })}
+                  error={isTimingTooLong(row)}
+                  helperText={isTimingTooLong(row) ? `Must be ${STEP_TIMING_MAX_LENGTH} characters or less` : undefined}
+                  size="small"
+                  fullWidth
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel id={`step-type-${row.key}`}>Applies to</InputLabel>
+                  <Select
+                    labelId={`step-type-${row.key}`}
+                    label="Applies to"
+                    value={row.release_type ?? ALL_TYPES}
+                    onChange={(event) =>
+                      updateRow(row.key, {
+                        release_type: event.target.value === ALL_TYPES ? null : (event.target.value as ReleaseType),
+                      })
+                    }
+                  >
+                    <MenuItem value={ALL_TYPES}>All types</MenuItem>
+                    {(Object.keys(releaseTypeLabels) as ReleaseType[]).map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {releaseTypeLabels[type]}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Stack>
             <IconButton
               aria-label={`Move step ${index + 1} up`}
               onClick={() => handleMove(index, -1)}
@@ -164,7 +187,7 @@ export function ReleaseStepsForm() {
           variant="contained"
           color="primary"
           onClick={handleSave}
-          disabled={saveMutation.isPending || hasTooLongTitle}
+          disabled={saveMutation.isPending || hasInvalidRow}
           startIcon={saveMutation.isPending ? <CircularProgress size={16} /> : undefined}
           sx={{ alignSelf: "flex-start" }}
         >

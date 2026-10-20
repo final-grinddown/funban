@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        UPDATE releases\n        SET release_code = ?, release_type = ?, release_at = ?, deployed_by_us = ?, assignee_id = ?, assignee_name = ?\n        WHERE id = ? AND closed_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "47358b7215922870f1dbfda1c067616f30703fe27ea2dafb2169a0fa13652b5e"
+}

@@ -16,7 +16,8 @@ use crate::http::ApiContext;
 const MAX_RECIPIENTS: usize = 50;
 const EMAIL_MAX_LEN: usize = 254;
 const MAX_STEPS: usize = 100;
-const STEP_TITLE_MAX_LEN: usize = 255;
+const STEP_TITLE_MAX_LEN: usize = 2000;
+const STEP_TIMING_MAX_LEN: usize = 100;
 
 pub fn protected_router() -> Router {
     Router::new()
@@ -53,12 +54,16 @@ fn validated_emails(field: &str, emails: &[String]) -> Result<Vec<String>> {
     Ok(result)
 }
 
-/// Trims step titles, drops blank steps and validates lengths.
+/// Trims step titles and timings, drops blank steps and validates lengths. A blank timing is cleared.
 fn validated_steps(steps: Vec<ReleaseStep>) -> Result<Vec<ReleaseStep>> {
     let result: Vec<ReleaseStep> = steps
         .into_iter()
         .map(|step| ReleaseStep {
             title: step.title.trim().to_string(),
+            timing: step
+                .timing
+                .map(|timing| timing.trim().to_string())
+                .filter(|timing| !timing.is_empty()),
             release_type: step.release_type,
         })
         .filter(|step| !step.title.is_empty())
@@ -71,6 +76,17 @@ fn validated_steps(steps: Vec<ReleaseStep>) -> Result<Vec<ReleaseStep>> {
         return Err(Error::BadRequest(format!(
             "Step title must be {} characters or less: {}",
             STEP_TITLE_MAX_LEN, step.title
+        )));
+    }
+
+    if let Some(timing) = result
+        .iter()
+        .filter_map(|step| step.timing.as_deref())
+        .find(|timing| timing.chars().count() > STEP_TIMING_MAX_LEN)
+    {
+        return Err(Error::BadRequest(format!(
+            "Step timing must be {} characters or less: {}",
+            STEP_TIMING_MAX_LEN, timing
         )));
     }
 
@@ -153,7 +169,7 @@ pub async fn get_steps(ctx: Extension<ApiContext>) -> Result<Json<Vec<ReleaseSte
 	request_body = Vec<ReleaseStep>,
 	responses(
 		(status = 200, body = Vec<ReleaseStep>, description = "Success"),
-		(status = 400, description = "Step title too long or too many steps")
+		(status = 400, description = "Step title or timing too long, or too many steps")
 	),
 	security(("jwt" = []))
 )]
@@ -211,21 +227,57 @@ mod tests {
     fn step(title: &str) -> ReleaseStep {
         ReleaseStep {
             title: title.to_string(),
+            timing: None,
             release_type: None,
+        }
+    }
+
+    fn timed_step(title: &str, timing: &str) -> ReleaseStep {
+        ReleaseStep {
+            timing: Some(timing.to_string()),
+            ..step(title)
         }
     }
 
     #[test]
     fn steps_are_trimmed_and_blank_dropped() {
-        let result =
-            validated_steps(vec![step("  Deploy  "), step("   "), step("Verify")]).unwrap();
+        let result = validated_steps(vec![
+            step("  Deploy  "),
+            step("   "),
+            timed_step(
+                "Verify
+- logs
+- metrics
+",
+                "  1 day after  ",
+            ),
+            timed_step("Announce", "   "),
+        ])
+        .unwrap();
 
-        assert_eq!(result, vec![step("Deploy"), step("Verify")]);
+        assert_eq!(
+            result,
+            vec![
+                step("Deploy"),
+                timed_step(
+                    "Verify
+- logs
+- metrics",
+                    "1 day after"
+                ),
+                step("Announce"),
+            ]
+        );
     }
 
     #[test]
     fn rejects_invalid_steps() {
         assert!(validated_steps(vec![step(&"x".repeat(STEP_TITLE_MAX_LEN + 1))]).is_err());
+        assert!(validated_steps(vec![timed_step(
+            "Deploy",
+            &"x".repeat(STEP_TIMING_MAX_LEN + 1)
+        )])
+        .is_err());
         assert!(validated_steps(
             (0..=MAX_STEPS)
                 .map(|i| step(&format!("Step {}", i)))

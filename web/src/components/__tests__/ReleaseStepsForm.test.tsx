@@ -34,8 +34,8 @@ describe("ReleaseStepsForm", () => {
     jest.clearAllMocks()
     const { fetchReleaseSteps, updateReleaseSteps } = require("@/app/api/fetches")
     fetchReleaseSteps.mockResolvedValue([
-      { title: "Announce", release_type: null },
-      { title: "Build application", release_type: "application" },
+      { title: "Announce", timing: "3 days before release", release_type: null },
+      { title: "Build application", timing: null, release_type: "application" },
     ])
     updateReleaseSteps.mockImplementation((_url: string, data: unknown) => Promise.resolve(data))
   })
@@ -45,6 +45,10 @@ describe("ReleaseStepsForm", () => {
 
     expect(await screen.findByLabelText("Step 1")).toHaveValue("Announce")
     expect(screen.getByLabelText("Step 2")).toHaveValue("Build application")
+    expect(screen.getAllByLabelText("When").map((input) => (input as HTMLInputElement).value)).toEqual([
+      "3 days before release",
+      "",
+    ])
     expect(screen.getByRole("button", { name: "Move step 1 up" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Move step 2 down" })).toBeDisabled()
   })
@@ -56,7 +60,8 @@ describe("ReleaseStepsForm", () => {
     await screen.findByLabelText("Step 1")
 
     await user.click(screen.getByRole("button", { name: "Add step" }))
-    await user.type(screen.getByLabelText("Step 3"), "  Run maintenance script ")
+    await user.type(screen.getByLabelText("Step 3"), " Migrate{Enter}- logs ")
+    await user.type(screen.getAllByLabelText("When")[2], " Day 0 ")
     await user.click(within(screen.getAllByRole("combobox")[2]).getByText("All types"))
     await user.click(await screen.findByRole("option", { name: "Maintenance" }))
 
@@ -71,8 +76,8 @@ describe("ReleaseStepsForm", () => {
     expect(updateReleaseSteps).toHaveBeenCalledWith(
       "http://localhost:3001",
       [
-        { title: "Run maintenance script", release_type: "maintenance" },
-        { title: "Build application", release_type: "application" },
+        { title: "Migrate\n- logs", timing: "Day 0", release_type: "maintenance" },
+        { title: "Build application", timing: null, release_type: "application" },
       ],
       "mock-access-token",
     )

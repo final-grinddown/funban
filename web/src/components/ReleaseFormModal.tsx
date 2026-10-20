@@ -2,10 +2,13 @@ import { useEffect } from "react"
 import {
   Alert,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
+  FormControlLabel,
+  FormHelperText,
   MenuItem,
   Stack,
   TextField,
@@ -30,6 +33,7 @@ interface FormInputs {
   release_code: string
   release_type: ReleaseType
   release_at: string
+  deployed_by_us: boolean
   assignee_id: number | ""
 }
 
@@ -37,6 +41,7 @@ const emptyForm: FormInputs = {
   release_code: "",
   release_type: "application",
   release_at: "",
+  deployed_by_us: true,
   assignee_id: "",
 }
 
@@ -47,6 +52,7 @@ function toFormInputs(release?: Release): FormInputs {
     release_code: release.release_code,
     release_type: release.release_type,
     release_at: toDateTimeInputValue(release.release_at),
+    deployed_by_us: release.deployed_by_us,
     // "" means unassigned; a deleted assignee also shows as unassigned until replaced
     assignee_id: release.assignee_id ?? "",
   }
@@ -75,6 +81,7 @@ export function ReleaseFormModal({ isOpen, release, users, onClose, onSave, isSu
       release_code: data.release_code.trim(),
       release_type: data.release_type,
       release_at: data.release_at,
+      deployed_by_us: data.deployed_by_us,
       assignee_id: data.assignee_id === "" ? null : Number(data.assignee_id),
     })
   }
@@ -141,6 +148,22 @@ export function ReleaseFormModal({ isOpen, release, users, onClose, onSave, isSu
                   helperText={error?.message}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
+              )}
+            />
+
+            <Controller
+              name="deployed_by_us"
+              control={control}
+              render={({ field: { value, onChange, ...field } }) => (
+                <div>
+                  <FormControlLabel
+                    control={
+                      <Checkbox {...field} checked={value} onChange={(event) => onChange(event.target.checked)} />
+                    }
+                    label="We deploy"
+                  />
+                  <FormHelperText sx={{ mt: 0 }}>Uncheck when we only oversee the deployment.</FormHelperText>
+                </div>
               )}
             />
 

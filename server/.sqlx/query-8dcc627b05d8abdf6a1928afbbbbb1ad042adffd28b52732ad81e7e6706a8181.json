@@ -1,0 +1,44 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT title, timing, release_type FROM release_step_templates ORDER BY position, id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title",
+        "type_info": {
+          "type": "Blob",
+          "flags": "NOT_NULL | BLOB | NO_DEFAULT_VALUE",
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "timing",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "max_size": 400
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "release_type",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "max_size": 80
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "8dcc627b05d8abdf6a1928afbbbbb1ad042adffd28b52732ad81e7e6706a8181"
+}
