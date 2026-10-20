@@ -3,5 +3,6 @@ pub mod health;
 pub mod history;
 pub mod note;
 pub mod openapi;
+pub mod release;
 pub mod user;
 pub mod user_mark;

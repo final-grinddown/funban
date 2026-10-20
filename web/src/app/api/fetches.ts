@@ -1,6 +1,6 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
 import { base64EncodeUnicode } from "@/utils/helpers"
-import { IHistoryItem, ISnapshotData } from "@/utils/interfaces"
+import { IHistoryItem, ISnapshotData, ITeamMember, Release, ReleaseInsert } from "@/utils/interfaces"
 
 export const fetchHistory = async (apiUrl: string, accessToken?: string): Promise<IHistoryItem[]> => {
   return fetchWithAuth<IHistoryItem[]>(`${apiUrl}/history`, accessToken)
@@ -137,5 +137,60 @@ export const expireAllUserMarks = async (apiUrl: string, userId: number, accessT
 export const deleteExpiredUserMarks = async (apiUrl: string, userId: number, accessToken?: string): Promise<void> => {
   return fetchWithAuth<void>(`${apiUrl}/user-marks/user/${userId}/expired`, accessToken, {
     method: "DELETE",
+  })
+}
+
+export const fetchUsers = async (apiUrl: string, accessToken?: string): Promise<ITeamMember[]> => {
+  return fetchWithAuth<ITeamMember[]>(`${apiUrl}/user`, accessToken)
+}
+
+export const fetchReleases = async (apiUrl: string, accessToken?: string): Promise<Release[]> => {
+  return fetchWithAuth<Release[]>(`${apiUrl}/releases`, accessToken)
+}
+
+export const fetchRelease = async (apiUrl: string, id: string, accessToken?: string): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}`, accessToken)
+}
+
+export const createRelease = async (apiUrl: string, data: ReleaseInsert, accessToken?: string): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases`, accessToken, {
+    method: "POST",
+    body: { ...data },
+  })
+}
+
+export const updateRelease = async (
+  apiUrl: string,
+  id: number,
+  data: ReleaseInsert,
+  accessToken?: string,
+): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}`, accessToken, {
+    method: "PUT",
+    body: { ...data },
+  })
+}
+
+export const deleteRelease = async (apiUrl: string, id: number, accessToken?: string): Promise<void> => {
+  return fetchWithAuth<void>(`${apiUrl}/releases/${id}`, accessToken, {
+    method: "DELETE",
+  })
+}
+
+export const closeRelease = async (
+  apiUrl: string,
+  id: number,
+  summary: string,
+  accessToken?: string,
+): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/close`, accessToken, {
+    method: "POST",
+    body: { summary },
+  })
+}
+
+export const reopenRelease = async (apiUrl: string, id: number, accessToken?: string): Promise<Release> => {
+  return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/reopen`, accessToken, {
+    method: "POST",
   })
 }

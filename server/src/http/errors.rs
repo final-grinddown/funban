@@ -61,6 +61,10 @@ pub enum Error {
     #[error("Bad Request: {0}")]
     BadRequest(String),
 
+    /// Return `409 Conflict`, e.g. on a unique constraint violation
+    #[error("{0}")]
+    Conflict(String),
+
     #[error("{0}")]
     Internal(String),
 }
@@ -75,6 +79,7 @@ impl Error {
             Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
+            Self::Conflict(_) => StatusCode::CONFLICT,
         }
     }
 }

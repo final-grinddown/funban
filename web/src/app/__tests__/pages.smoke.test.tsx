@@ -74,6 +74,14 @@ jest.mock("@/screens/HistoryDetailScreen", () => ({
   HistoryDetailScreen: ({ id }: any) => <div data-testid="history-detail-screen" data-id={id} />,
 }))
 
+jest.mock("@/screens/ReleasesScreen", () => ({
+  ReleasesScreen: () => <div data-testid="releases-screen" />,
+}))
+
+jest.mock("@/screens/ReleaseDetailScreen", () => ({
+  ReleaseDetailScreen: ({ id }: any) => <div data-testid="release-detail-screen" data-id={id} />,
+}))
+
 jest.mock("@/screens/SettingsScreen", () => ({
   SettingsScreen: () => <div data-testid="settings-screen" />,
 }))
@@ -176,6 +184,27 @@ describe("Page Routes Smoke Tests", () => {
       expect(() => {
         require("../history/last/page")
       }).not.toThrow()
+    })
+  })
+
+  describe("Releases Page (/releases)", () => {
+    it("renders releases screen", () => {
+      const Releases = require("../releases/page").default
+
+      const { getByTestId } = render(<Releases />)
+
+      expect(getByTestId("dashboard-layout")).toBeInTheDocument()
+      expect(getByTestId("releases-screen")).toBeInTheDocument()
+    })
+  })
+
+  describe("Release Detail Page (/releases/[id])", () => {
+    it("renders release detail screen with id", () => {
+      const { ReleaseDetailPageClient } = require("../releases/[id]/ReleaseDetailPageClient")
+
+      const { getByTestId } = render(<ReleaseDetailPageClient id="7" />)
+
+      expect(getByTestId("release-detail-screen")).toHaveAttribute("data-id", "7")
     })
   })
 
