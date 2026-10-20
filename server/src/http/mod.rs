@@ -44,6 +44,7 @@ pub fn api_router() -> Router {
         .merge(routes::user_mark::router())
         .merge(routes::history::protected_router())
         .merge(routes::release::protected_router())
+        .merge(routes::release_settings::protected_router())
         .merge(routes::openapi::router())
         .merge(routes::auth::router())
         .merge(routes::auth::protected_router())

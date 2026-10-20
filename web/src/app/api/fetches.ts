@@ -1,6 +1,6 @@
 import { fetchWithAuth } from "@/app/api/fetchWithAuth"
 import { base64EncodeUnicode } from "@/utils/helpers"
-import { IHistoryItem, ISnapshotData, ITeamMember, Release, ReleaseInsert } from "@/utils/interfaces"
+import { IHistoryItem, ISnapshotData, ITeamMember, Release, ReleaseInsert, ReleaseSettings } from "@/utils/interfaces"
 
 export const fetchHistory = async (apiUrl: string, accessToken?: string): Promise<IHistoryItem[]> => {
   return fetchWithAuth<IHistoryItem[]>(`${apiUrl}/history`, accessToken)
@@ -192,5 +192,20 @@ export const closeRelease = async (
 export const reopenRelease = async (apiUrl: string, id: number, accessToken?: string): Promise<Release> => {
   return fetchWithAuth<Release>(`${apiUrl}/releases/${id}/reopen`, accessToken, {
     method: "POST",
+  })
+}
+
+export const fetchReleaseSettings = async (apiUrl: string, accessToken?: string): Promise<ReleaseSettings> => {
+  return fetchWithAuth<ReleaseSettings>(`${apiUrl}/release-settings`, accessToken)
+}
+
+export const updateReleaseSettings = async (
+  apiUrl: string,
+  data: ReleaseSettings,
+  accessToken?: string,
+): Promise<ReleaseSettings> => {
+  return fetchWithAuth<ReleaseSettings>(`${apiUrl}/release-settings`, accessToken, {
+    method: "PUT",
+    body: { ...data },
   })
 }

@@ -17,6 +17,7 @@ import { CloseReleaseModal } from "@/components/CloseReleaseModal"
 import { DeleteReleaseModal } from "@/components/DeleteReleaseModal"
 import { ReleaseAssignee } from "@/components/ReleaseAssignee"
 import { ReleaseFormModal } from "@/components/ReleaseFormModal"
+import { ReleaseNotifications } from "@/components/ReleaseNotifications"
 import { ReleaseStatusChip } from "@/components/ReleaseStatusChip"
 import { useConfig } from "@/context/ConfigProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
@@ -219,6 +220,11 @@ export function ReleaseDetailScreen({ id }: Props) {
           )}
         </Box>
       </Paper>
+
+      {/* Keyed so the defaults follow edits of the release date or type */}
+      {!isClosed && (
+        <ReleaseNotifications key={`${release.release_at}-${release.release_type}`} release={release} />
+      )}
 
       <ReleaseFormModal
         isOpen={isEditOpen}

@@ -27,6 +27,7 @@ jest.mock("@/app/api/fetches", () => ({
   closeRelease: jest.fn(),
   reopenRelease: jest.fn(),
   fetchUsers: jest.fn(),
+  fetchReleaseSettings: jest.fn(),
 }))
 
 jest.mock("@/components/BackdropLoading", () => ({
@@ -71,9 +72,10 @@ describe("ReleaseDetailScreen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    const { fetchRelease, fetchUsers } = require("@/app/api/fetches")
+    const { fetchRelease, fetchUsers, fetchReleaseSettings } = require("@/app/api/fetches")
     fetchRelease.mockResolvedValue(mockRelease)
     fetchUsers.mockResolvedValue(mockUsers)
+    fetchReleaseSettings.mockResolvedValue({ notification_to: ["team@example.com"], notification_cc: [] })
   })
 
   it("renders release details", async () => {
@@ -115,6 +117,39 @@ describe("ReleaseDetailScreen", () => {
     renderScreen()
 
     expect(await screen.findByText("The requested resource could not be found.")).toBeInTheDocument()
+  })
+
+  it("prepares notifications from the release", async () => {
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
+    expect(screen.getByText(/@MaintenanceFrom DATETIME = '2026-10-20 14:00:00'/)).toBeInTheDocument()
+    expect(
+      screen.getByText("Planned maintenance on Oct 20 from 13:30 to 19:00 - technical release without any changes in AEQ"),
+    ).toBeInTheDocument()
+    expect(await screen.findByText("team@example.com")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Open in mail client" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^mailto:team@example\.com\?subject=/),
+    )
+  })
+
+  it("updates notifications when a parameter changes", async () => {
+    renderScreen()
+
+    const duration = await screen.findByLabelText("Duration (min)")
+    await user.clear(duration)
+    await user.type(duration, "60")
+
+    expect(screen.getByText(/@DurationInMinutes INT = 60,/)).toBeInTheDocument()
+    expect(screen.getByText(/from 13:30 to 15:00/)).toBeInTheDocument()
+
+    await user.clear(duration)
+    expect(screen.getByText("Fix the parameters above to generate the notifications.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Copy SQL" })).toBeDisabled()
+
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }))
+    expect(screen.getByText(/@DurationInMinutes INT = 300,/)).toBeInTheDocument()
   })
 
   it("pre-fills the edit form and saves changes", async () => {
@@ -221,6 +256,7 @@ describe("ReleaseDetailScreen", () => {
       expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument()
       expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument()
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument()
     })
 
     it("reopens a closed release", async () => {

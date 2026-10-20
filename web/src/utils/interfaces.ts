@@ -4,6 +4,7 @@ import type { WsNote, WsUser, WsNoteState } from "@/schemas/websocket"
 export type { Release } from "../../../contracts/Release"
 export type { ReleaseType } from "../../../contracts/ReleaseType"
 export type { ReleaseInsert } from "../../../contracts/ReleaseInsert"
+export type { ReleaseSettings } from "../../../contracts/ReleaseSettings"
 
 /** Minimal user shape returned by `GET /user` */
 export interface ITeamMember {
