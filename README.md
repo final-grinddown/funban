@@ -122,11 +122,13 @@ Configure via `web/.env.local`:
 
 ## Deployment
 
-The project uses GitHub Actions for CI/CD:
+The project uses GitHub Actions for CI/CD (`.github/workflows/ci-cd.yml`):
 
-- **PR Checks**: Automated testing and linting for changed components
-- **Development**: Auto-deploy to dev environment on `develop` branch
-- **Production**: Deploy on GitHub releases with signed containers
+- **PR checks**: Automated testing and linting for the changed components
+- **Releases**: Pushing a `vX.Y.Z` tag runs all tests, publishes signed Docker images to GHCR and creates a GitHub Release
+- **Deployment**: Manual: pull the new images on the server and restart (migrations run on server start)
+
+Cut a release with `make release VERSION=x.y.z`. See [docs/RELEASING.md](docs/RELEASING.md) for the full process.
 
 ## Technology Stack
 
