@@ -231,6 +231,8 @@ export function ReleaseDetailScreen({ id }: Props) {
               size="small"
             />
           </dd>
+          <dt>Deployment</dt>
+          <dd>{release.deployed_by_us ? "We deploy" : "We only oversee"}</dd>
           <dt>Date & time</dt>
           <dd>{formatReleaseAt(release.release_at)}</dd>
           <dt>Assigned developer</dt>

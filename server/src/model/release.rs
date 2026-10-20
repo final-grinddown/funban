@@ -39,6 +39,8 @@ pub struct Release {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
+    /// `true` when the team performs the deployment, `false` when it only oversees it; informational, for statistics
+    pub deployed_by_us: bool,
     /// `None` when the release is unassigned or the assigned user has been deleted from the team.
     pub assignee_id: Option<i32>,
     /// Current name of the assignee, or the name snapshot taken at assignment time
@@ -60,7 +62,10 @@ pub struct Release {
 #[ts(export)]
 pub struct ReleaseTask {
     pub id: i32,
+    /// Markdown text of the step, may span multiple lines
     pub title: String,
+    /// Free-text hint of when to do the step, e.g. "3 days before release"
+    pub timing: Option<String>,
     /// Set when the step is ticked off
     pub done_at: Option<NaiveDateTime>,
 }
@@ -71,6 +76,7 @@ pub struct ReleaseInsert {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
+    pub deployed_by_us: bool,
     /// `None` leaves the release unassigned
     pub assignee_id: Option<i32>,
 }

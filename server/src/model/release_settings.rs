@@ -8,7 +8,10 @@ use crate::model::release::ReleaseType;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS, ToSchema)]
 #[ts(export)]
 pub struct ReleaseStep {
+    /// Markdown text of the step, may span multiple lines
     pub title: String,
+    /// Free-text hint of when to do the step, e.g. "3 days before release"
+    pub timing: Option<String>,
     /// `None` applies the step to every release type
     pub release_type: Option<ReleaseType>,
 }

@@ -8,6 +8,7 @@ use crate::sql::{release, release_settings, user};
 fn step(title: &str, release_type: Option<ReleaseType>) -> ReleaseStep {
     ReleaseStep {
         title: title.to_string(),
+        timing: None,
         release_type,
     }
 }
@@ -16,7 +17,10 @@ async fn set_up_template(db: &MySqlPool) -> sqlx::Result<()> {
     release_settings::replace_steps(
         db,
         &[
-            step("Announce", None),
+            ReleaseStep {
+                timing: Some("3 days before release".to_string()),
+                ..step("Announce", None)
+            },
             step("Build application", Some(ReleaseType::Application)),
             step("Run maintenance script", Some(ReleaseType::Maintenance)),
             step("Verify", None),
@@ -40,6 +44,7 @@ fn release_insert(code: &str, assignee_id: impl Into<Option<i32>>) -> ReleaseIns
         release_type: ReleaseType::Application,
         release_at: NaiveDateTime::parse_from_str("2026-10-20 14:00:00", "%Y-%m-%d %H:%M:%S")
             .unwrap(),
+        deployed_by_us: true,
         assignee_id: assignee_id.into(),
     }
 }
@@ -50,6 +55,7 @@ async fn add_and_read_release(db: MySqlPool) -> sqlx::Result<()> {
 
     assert_eq!(added.release_code, "20261020");
     assert_eq!(added.release_type, "application");
+    assert!(added.deployed_by_us);
     assert_eq!(added.assignee_id, Some(1));
     assert_eq!(added.assignee_name.as_deref(), Some("Alice"));
 
@@ -104,10 +110,12 @@ async fn update_release_reassigns(db: MySqlPool) -> sqlx::Result<()> {
 
     let mut changes = release_insert("20261021", 2);
     changes.release_type = ReleaseType::Maintenance;
+    changes.deployed_by_us = false;
     let updated = release::update(&db, added.id, &changes).await?.unwrap();
 
     assert_eq!(updated.release_code, "20261021");
     assert_eq!(updated.release_type, "maintenance");
+    assert!(!updated.deployed_by_us);
     assert_eq!(updated.assignee_id, Some(2));
     assert_eq!(updated.assignee_name.as_deref(), Some("Bob"));
 
@@ -308,6 +316,8 @@ async fn add_copies_template_steps_for_release_type(db: MySqlPool) -> sqlx::Resu
 
     let all = release::read_all_tasks(&db).await?;
     assert_eq!(all.len(), 6);
+    assert_eq!(all[0].timing.as_deref(), Some("3 days before release"));
+    assert_eq!(all[1].timing, None);
     assert!(all[..3].iter().all(|t| t.release_id == application.id));
 
     Ok(())

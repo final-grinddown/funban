@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material"
 import Link from "next/link"
+import { NoteText } from "@/components/NoteText"
 import { ERoutes } from "@/utils/enums"
 import { handleError } from "@/utils/errorHandler"
 import { ReleaseTask } from "@/utils/interfaces"
@@ -27,6 +28,12 @@ interface Props {
   onToggle: (taskId: number, done: boolean) => Promise<unknown>
   /** Fills a release without steps from the template in settings */
   onAddFromTemplate: () => Promise<unknown>
+}
+
+/** When the step should be done and when it was done, e.g. "3 days before release · Done 17 Oct 2026, 09:12" */
+function taskDetails(task: ReleaseTask): string | undefined {
+  const details = [task.timing, task.done_at ? `Done ${formatReleaseAt(task.done_at)}` : null].filter(Boolean)
+  return details.length > 0 ? details.join(" · ") : undefined
 }
 
 /**
@@ -99,8 +106,8 @@ export function ReleaseChecklist({ tasks, isReadOnly, onToggle, onAddFromTemplat
             />
             <List dense disablePadding>
               {tasks.map((task) => (
-                <ListItem key={task.id} disableGutters>
-                  <ListItemIcon sx={{ minWidth: 40 }}>
+                <ListItem key={task.id} disableGutters alignItems="flex-start">
+                  <ListItemIcon sx={{ minWidth: 40, mt: 0 }}>
                     <Checkbox
                       edge="start"
                       checked={!!task.done_at}
@@ -110,8 +117,9 @@ export function ReleaseChecklist({ tasks, isReadOnly, onToggle, onAddFromTemplat
                     />
                   </ListItemIcon>
                   <ListItemText
-                    primary={task.title}
-                    secondary={task.done_at ? `Done ${formatReleaseAt(task.done_at)}` : undefined}
+                    primary={<NoteText text={task.title} />}
+                    secondary={taskDetails(task)}
+                    slotProps={{ primary: { component: "div" } }}
                     sx={task.done_at ? { "& .MuiListItemText-primary": { textDecoration: "line-through" } } : undefined}
                   />
                 </ListItem>

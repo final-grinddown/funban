@@ -4,6 +4,10 @@ import type { ReleaseType } from "./ReleaseType";
 
 export type Release = { id: number, release_code: string, release_type: ReleaseType, release_at: string, 
 /**
+ * `true` when the team performs the deployment, `false` when it only oversees it; informational, for statistics
+ */
+deployed_by_us: boolean, 
+/**
  * `None` when the release is unassigned or the assigned user has been deleted from the team.
  */
 assignee_id: number | null, 

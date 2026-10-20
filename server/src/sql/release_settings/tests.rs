@@ -68,14 +68,21 @@ async fn replace_and_read_steps_in_order(db: MySqlPool) -> sqlx::Result<()> {
     let steps = vec![
         ReleaseStep {
             title: "Announce".to_string(),
+            timing: Some("3 days before release".to_string()),
             release_type: None,
         },
         ReleaseStep {
             title: "Build application".to_string(),
+            timing: None,
             release_type: Some(ReleaseType::Application),
         },
         ReleaseStep {
-            title: "Verify".to_string(),
+            title: "Verify
+
+- check logs
+- check metrics"
+                .to_string(),
+            timing: None,
             release_type: None,
         },
     ];

@@ -65,7 +65,7 @@ pub async fn update(db: &MySqlPool, settings: &ReleaseSettings) -> sqlx::Result<
 pub async fn read_steps(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseStep>> {
     let rows = sqlx::query!(
         r#"
-        SELECT title, release_type FROM release_step_templates ORDER BY position, id
+        SELECT title, timing, release_type FROM release_step_templates ORDER BY position, id
         "#,
     )
     .fetch_all(db)
@@ -81,6 +81,7 @@ pub async fn read_steps(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseStep>> {
                 .map_err(|e| sqlx::Error::Decode(e.into()))?;
             Ok(ReleaseStep {
                 title: r.title,
+                timing: r.timing,
                 release_type,
             })
         })
@@ -105,10 +106,11 @@ pub async fn replace_steps(
     for (position, step) in steps.iter().enumerate() {
         sqlx::query!(
             r#"
-            INSERT INTO release_step_templates (title, release_type, position)
-            VALUES (?, ?, ?)
+            INSERT INTO release_step_templates (title, timing, release_type, position)
+            VALUES (?, ?, ?, ?)
             "#,
             step.title,
+            step.timing,
             step.release_type.map(|t| t.as_str()),
             position as i32,
         )
