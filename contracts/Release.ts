@@ -3,14 +3,14 @@ import type { ReleaseType } from "./ReleaseType";
 
 export type Release = { id: number, release_code: string, release_type: ReleaseType, release_at: string, 
 /**
- * `None` when the assigned user has been deleted from the team.
+ * `None` when the release is unassigned or the assigned user has been deleted from the team.
  */
 assignee_id: number | null, 
 /**
  * Current name of the assignee, or the name snapshot taken at assignment time
- * when the user no longer exists.
+ * when the user no longer exists. `None` when the release is unassigned.
  */
-assignee_name: string, 
+assignee_name: string | null, 
 /**
  * Set when the release is closed; closed releases are read-only
  */

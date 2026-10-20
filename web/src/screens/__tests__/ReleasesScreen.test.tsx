@@ -218,6 +218,31 @@ describe("ReleasesScreen", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     })
 
+    it("creates an unassigned release when no developer is chosen", async () => {
+      const { createRelease } = require("@/app/api/fetches")
+      createRelease.mockResolvedValue({ ...mockReleases[0], id: 3, assignee_id: null, assignee_name: null })
+
+      renderScreen()
+      await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument())
+
+      await user.click(screen.getByRole("button", { name: "New release" }))
+      const dialog = await screen.findByRole("dialog")
+      await user.type(within(dialog).getByLabelText("Release code"), "20261105")
+      fireEvent.change(within(dialog).getByLabelText("Date & time"), { target: { value: "2026-11-05T09:00" } })
+
+      const submit = within(dialog).getByRole("button", { name: "Create" })
+      await waitFor(() => expect(submit).toBeEnabled())
+      await user.click(submit)
+
+      await waitFor(() => {
+        expect(createRelease).toHaveBeenCalledWith(
+          "http://localhost:3001",
+          expect.objectContaining({ release_code: "20261105", assignee_id: null }),
+          "mock-access-token",
+        )
+      })
+    })
+
     it("keeps the modal open and shows the server error on conflict", async () => {
       const { createRelease } = require("@/app/api/fetches")
       createRelease.mockRejectedValue(new AppError("Release code already exists", "CONFLICT", 409))

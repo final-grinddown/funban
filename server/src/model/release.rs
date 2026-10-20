@@ -39,11 +39,11 @@ pub struct Release {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
-    /// `None` when the assigned user has been deleted from the team.
+    /// `None` when the release is unassigned or the assigned user has been deleted from the team.
     pub assignee_id: Option<i32>,
     /// Current name of the assignee, or the name snapshot taken at assignment time
-    /// when the user no longer exists.
-    pub assignee_name: String,
+    /// when the user no longer exists. `None` when the release is unassigned.
+    pub assignee_name: Option<String>,
     /// Set when the release is closed; closed releases are read-only
     pub closed_at: Option<NaiveDateTime>,
     /// Summary written when closing, kept after reopening
@@ -58,5 +58,6 @@ pub struct ReleaseInsert {
     pub release_code: String,
     pub release_type: ReleaseType,
     pub release_at: NaiveDateTime,
-    pub assignee_id: i32,
+    /// `None` leaves the release unassigned
+    pub assignee_id: Option<i32>,
 }

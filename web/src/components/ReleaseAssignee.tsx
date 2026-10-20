@@ -6,9 +6,17 @@ interface Props {
 }
 
 /**
- * Shows the assignee, marking people who have since left the team
+ * Shows the assignee, marking unassigned releases and people who have since left the team
  */
 export function ReleaseAssignee({ release }: Props) {
+  if (release.assignee_name === null) {
+    return (
+      <Typography component="span" variant="inherit" color="textSecondary" fontStyle="italic">
+        Unassigned
+      </Typography>
+    )
+  }
+
   if (release.assignee_id !== null) {
     return <>{release.assignee_name}</>
   }

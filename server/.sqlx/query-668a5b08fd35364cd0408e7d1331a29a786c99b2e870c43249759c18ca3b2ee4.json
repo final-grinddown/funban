@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name!: String\",\n            r.closed_at, r.close_summary, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        WHERE r.id = ?\n        ",
+  "query": "\n        SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,\n            COALESCE(u.name, r.assignee_name) AS \"assignee_name?: String\",\n            r.closed_at, r.close_summary, r.created_at, r.updated_at\n        FROM releases r\n        LEFT JOIN users u ON u.id = r.assignee_id\n        WHERE r.id = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -50,10 +50,10 @@
       },
       {
         "ordinal": 5,
-        "name": "assignee_name!: String",
+        "name": "assignee_name?: String",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL",
+          "flags": "",
           "max_size": 1020
         }
       },
@@ -103,12 +103,12 @@
       false,
       false,
       true,
-      false,
+      true,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "e7e3127c38a4e7d07f1857c6a42b3b75307656f673aa11e90c4c8701fdda1370"
+  "hash": "668a5b08fd35364cd0408e7d1331a29a786c99b2e870c43249759c18ca3b2ee4"
 }

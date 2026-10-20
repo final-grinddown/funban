@@ -27,7 +27,8 @@ pub struct ReleaseRequest {
     release_type: String,
     /// ISO-like local datetime, e.g. `2026-10-20T14:00` or `2026-10-20T14:00:00`
     release_at: String,
-    assignee_id: i32,
+    /// Omit or send `null` to leave the release unassigned
+    assignee_id: Option<i32>,
 }
 
 impl ReleaseRequest {
@@ -307,7 +308,7 @@ mod tests {
             release_code: code.to_string(),
             release_type: release_type.to_string(),
             release_at: release_at.to_string(),
-            assignee_id: 1,
+            assignee_id: Some(1),
         }
     }
 

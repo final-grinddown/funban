@@ -4,13 +4,13 @@ use sqlx::MySqlPool;
 use crate::model::release::{ReleaseInsert, ReleaseType};
 use crate::sql::{release, user};
 
-fn release_insert(code: &str, assignee_id: i32) -> ReleaseInsert {
+fn release_insert(code: &str, assignee_id: impl Into<Option<i32>>) -> ReleaseInsert {
     ReleaseInsert {
         release_code: code.to_string(),
         release_type: ReleaseType::Application,
         release_at: NaiveDateTime::parse_from_str("2026-10-20 14:00:00", "%Y-%m-%d %H:%M:%S")
             .unwrap(),
-        assignee_id,
+        assignee_id: assignee_id.into(),
     }
 }
 
@@ -21,7 +21,7 @@ async fn add_and_read_release(db: MySqlPool) -> sqlx::Result<()> {
     assert_eq!(added.release_code, "20261020");
     assert_eq!(added.release_type, "application");
     assert_eq!(added.assignee_id, Some(1));
-    assert_eq!(added.assignee_name, "Alice");
+    assert_eq!(added.assignee_name.as_deref(), Some("Alice"));
 
     let by_id = release::read_by_id(&db, added.id).await?;
     assert_eq!(by_id.map(|r| r.release_code), Some("20261020".to_string()));
@@ -79,7 +79,7 @@ async fn update_release_reassigns(db: MySqlPool) -> sqlx::Result<()> {
     assert_eq!(updated.release_code, "20261021");
     assert_eq!(updated.release_type, "maintenance");
     assert_eq!(updated.assignee_id, Some(2));
-    assert_eq!(updated.assignee_name, "Bob");
+    assert_eq!(updated.assignee_name.as_deref(), Some("Bob"));
 
     Ok(())
 }
@@ -100,7 +100,7 @@ async fn renamed_assignee_shows_current_name(db: MySqlPool) -> sqlx::Result<()> 
         .await?;
 
     let release = release::read_by_id(&db, added.id).await?.unwrap();
-    assert_eq!(release.assignee_name, "Alicia");
+    assert_eq!(release.assignee_name.as_deref(), Some("Alicia"));
 
     Ok(())
 }
@@ -112,7 +112,7 @@ async fn deleted_assignee_keeps_name_snapshot(db: MySqlPool) -> sqlx::Result<()>
 
     let release = release::read_by_id(&db, added.id).await?.unwrap();
     assert_eq!(release.assignee_id, None);
-    assert_eq!(release.assignee_name, "Alice");
+    assert_eq!(release.assignee_name.as_deref(), Some("Alice"));
 
     Ok(())
 }
@@ -177,8 +177,52 @@ async fn closed_release_keeps_name_of_deleted_assignee(db: MySqlPool) -> sqlx::R
 
     let release = release::read_by_id(&db, added.id).await?.unwrap();
     assert_eq!(release.assignee_id, None);
-    assert_eq!(release.assignee_name, "Alice");
+    assert_eq!(release.assignee_name.as_deref(), Some("Alice"));
     assert!(release.closed_at.is_some());
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn assignee_name_keeps_emoji(db: MySqlPool) -> sqlx::Result<()> {
+    sqlx::query("UPDATE users SET name = '\u{1F977} Alice' WHERE id = 1")
+        .execute(&db)
+        .await?;
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+    user::remove(&db, 1).await?;
+
+    // The snapshot has to keep 4-byte characters too, not just the live name
+    let release = release::read_by_id(&db, added.id).await?.unwrap();
+    assert_eq!(release.assignee_name.as_deref(), Some("\u{1F977} Alice"));
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn add_unassigned_release(db: MySqlPool) -> sqlx::Result<()> {
+    let added = release::add(&db, &release_insert("20261020", None)).await?;
+
+    assert_eq!(added.assignee_id, None);
+    assert_eq!(added.assignee_name, None);
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn assign_and_unassign_release(db: MySqlPool) -> sqlx::Result<()> {
+    let added = release::add(&db, &release_insert("20261020", None)).await?;
+
+    let assigned = release::update(&db, added.id, &release_insert("20261020", 2))
+        .await?
+        .unwrap();
+    assert_eq!(assigned.assignee_id, Some(2));
+    assert_eq!(assigned.assignee_name.as_deref(), Some("Bob"));
+
+    let unassigned = release::update(&db, added.id, &release_insert("20261020", None))
+        .await?
+        .unwrap();
+    assert_eq!(unassigned.assignee_id, None);
+    assert_eq!(unassigned.assignee_name, None);
 
     Ok(())
 }

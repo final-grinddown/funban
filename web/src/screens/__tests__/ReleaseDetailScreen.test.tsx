@@ -98,6 +98,16 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.getByText(/Charlie/)).toBeInTheDocument()
   })
 
+  it("shows an unassigned release", async () => {
+    const { fetchRelease } = require("@/app/api/fetches")
+    fetchRelease.mockResolvedValue({ ...mockRelease, assignee_id: null, assignee_name: null })
+
+    renderScreen()
+
+    expect(await screen.findByText("Unassigned")).toBeInTheDocument()
+    expect(screen.queryByText("(former member)")).not.toBeInTheDocument()
+  })
+
   it("shows an error when the release cannot be loaded", async () => {
     const { fetchRelease } = require("@/app/api/fetches")
     fetchRelease.mockRejectedValue(new Error("The requested resource could not be found."))

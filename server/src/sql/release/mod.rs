@@ -14,8 +14,8 @@ pub struct ReleaseDto {
     pub release_type: String,
     pub release_at: NaiveDateTime,
     pub assignee_id: Option<i32>,
-    /// Live user name when the assignee exists, otherwise the stored snapshot
-    pub assignee_name: String,
+    /// Live user name when the assignee exists, otherwise the stored snapshot; `None` when unassigned
+    pub assignee_name: Option<String>,
     pub closed_at: Option<NaiveDateTime>,
     pub close_summary: Option<String>,
     pub created_at: NaiveDateTime,
@@ -46,7 +46,7 @@ pub async fn read_all(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseDto>> {
         ReleaseDto,
         r#"
         SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
-            COALESCE(u.name, r.assignee_name) AS "assignee_name!: String",
+            COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
             r.closed_at, r.close_summary, r.created_at, r.updated_at
         FROM releases r
         LEFT JOIN users u ON u.id = r.assignee_id
@@ -64,7 +64,7 @@ pub async fn read_by_id(db: &MySqlPool, id: i32) -> sqlx::Result<Option<ReleaseD
         ReleaseDto,
         r#"
         SELECT r.id, r.release_code, r.release_type, r.release_at, r.assignee_id,
-            COALESCE(u.name, r.assignee_name) AS "assignee_name!: String",
+            COALESCE(u.name, r.assignee_name) AS "assignee_name?: String",
             r.closed_at, r.close_summary, r.created_at, r.updated_at
         FROM releases r
         LEFT JOIN users u ON u.id = r.assignee_id
@@ -79,8 +79,12 @@ pub async fn read_by_id(db: &MySqlPool, id: i32) -> sqlx::Result<Option<ReleaseD
 }
 
 /// Looks up the current name of the assignee, used as the history snapshot.
-/// Returns `RowNotFound` when the user does not exist.
-async fn read_assignee_name(db: &MySqlPool, user_id: i32) -> sqlx::Result<String> {
+/// Returns `None` for an unassigned release and `RowNotFound` when the user does not exist.
+async fn read_assignee_name(db: &MySqlPool, user_id: Option<i32>) -> sqlx::Result<Option<String>> {
+    let Some(user_id) = user_id else {
+        return Ok(None);
+    };
+
     let row = sqlx::query!(
         r#"
         SELECT name FROM users WHERE id = ?
@@ -90,10 +94,10 @@ async fn read_assignee_name(db: &MySqlPool, user_id: i32) -> sqlx::Result<String
     .fetch_optional(db)
     .await?;
 
-    row.map(|r| r.name).ok_or(sqlx::Error::RowNotFound)
+    row.map(|r| Some(r.name)).ok_or(sqlx::Error::RowNotFound)
 }
 
-/// Inserts a new release. Fails with `RowNotFound` when the assignee does not exist.
+/// Inserts a new release, optionally unassigned. Fails with `RowNotFound` when the assignee does not exist.
 pub async fn add(db: &MySqlPool, release: &ReleaseInsert) -> sqlx::Result<ReleaseDto> {
     let assignee_name = read_assignee_name(db, release.assignee_id).await?;
 
@@ -118,7 +122,7 @@ pub async fn add(db: &MySqlPool, release: &ReleaseInsert) -> sqlx::Result<Releas
         .ok_or(sqlx::Error::RowNotFound)
 }
 
-/// Updates an open release and refreshes the assignee name snapshot; closed releases are left untouched.
+/// Updates an open release and refreshes the assignee name snapshot (cleared when unassigned); closed releases are left untouched.
 /// Returns `None` when the release does not exist and `RowNotFound` when the assignee does not.
 pub async fn update(
     db: &MySqlPool,

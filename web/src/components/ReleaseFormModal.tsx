@@ -47,7 +47,7 @@ function toFormInputs(release?: Release): FormInputs {
     release_code: release.release_code,
     release_type: release.release_type,
     release_at: toDateTimeInputValue(release.release_at),
-    // A deleted assignee has to be replaced before saving
+    // "" means unassigned; a deleted assignee also shows as unassigned until replaced
     assignee_id: release.assignee_id ?? "",
   }
 }
@@ -75,7 +75,7 @@ export function ReleaseFormModal({ isOpen, release, users, onClose, onSave, isSu
       release_code: data.release_code.trim(),
       release_type: data.release_type,
       release_at: data.release_at,
-      assignee_id: Number(data.assignee_id),
+      assignee_id: data.assignee_id === "" ? null : Number(data.assignee_id),
     })
   }
 
@@ -147,22 +147,23 @@ export function ReleaseFormModal({ isOpen, release, users, onClose, onSave, isSu
             <Controller
               name="assignee_id"
               control={control}
-              rules={{ required: "Assignee is required." }}
-              render={({ field, fieldState: { error } }) => (
+              render={({ field }) => (
                 <TextField
                   {...field}
                   select={true}
                   label="Assigned developer"
                   size="small"
                   fullWidth={true}
-                  error={!!error}
                   helperText={
-                    error?.message ??
-                    (isEdit && release?.assignee_id === null
-                      ? `${release.assignee_name} is no longer a team member. Choose a new assignee.`
-                      : undefined)
+                    isEdit && release?.assignee_id === null && release.assignee_name !== null
+                      ? `${release.assignee_name} is no longer a team member. Choose a new assignee or save to leave the release unassigned.`
+                      : undefined
                   }
+                  slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
                 >
+                  <MenuItem value="">
+                    <em>Unassigned</em>
+                  </MenuItem>
                   {users.map((user) => (
                     <MenuItem key={user.id} value={user.id}>
                       {user.name}
