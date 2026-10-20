@@ -1,4 +1,4 @@
-.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server fix fix-web fix-server scripts format contracts sqlx-prepare precommit precommit-web precommit-server docker-up docker-down docker-build clean kill-dev
+.PHONY: dev dev-web dev-server build build-web build-server test test-web test-server check check-web check-server fix fix-web fix-server scripts format contracts sqlx-prepare precommit precommit-web precommit-server docker-up docker-down docker-build release clean kill-dev
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Development
@@ -122,6 +122,15 @@ docker-down:
 
 docker-build:
 	docker compose build
+
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Release (see docs/RELEASING.md)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Bump version, commit and tag: make release VERSION=1.2.10 [PUSH=1]
+release:
+	@test -n "$(VERSION)" || (echo "Usage: make release VERSION=x.y.z [PUSH=1]" && exit 1)
+	./scripts/release.sh $(VERSION) $(if $(PUSH),--push)
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Clean
