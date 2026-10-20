@@ -10,21 +10,34 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    reviewers:
-      - "your-team-or-username"  # TODO: Update with actual reviewer
     labels:
       - "dependencies"
       - "frontend"
-    # Special handling for archived unplugin-typia
     ignore:
+      # Special handling for archived unplugin-typia
       - dependency-name: "@ryoppippi/unplugin-typia"
         # Archived but functional - version pinned intentionally
         # See: docs/architecture/validation.md
       - dependency-name: "typia"
         # Pinned to work with unplugin-typia
         # Update only when testing new versions
+      # Major upgrades are done manually as dedicated migrations
+      - dependency-name: "@mui/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zustand"
+        update-types: ["version-update:semver-major"]
+      # Must track the Node runtime major (see web/Dockerfile and CI)
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     # Group minor and patch updates
     groups:
+      react:
+        # react and react-dom must always share the exact same version
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
       mui:
         patterns:
           - "@mui/*"
@@ -44,17 +57,26 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    reviewers:
-      - "your-team-or-username"  # TODO: Update with actual reviewer
     labels:
       - "dependencies"
       - "backend"
-    # Group axum ecosystem updates
+    ignore:
+      # Major upgrades change the generated TypeScript contracts; done manually
+      - dependency-name: "ts-rs"
+        update-types: ["version-update:semver-major"]
     groups:
+      # Group axum ecosystem updates
       axum:
         patterns:
           - "axum*"
           - "tower*"
+      # Everything else: minor and patch updates in a single PR
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Monitor GitHub Actions
   - package-ecosystem: "github-actions"
@@ -64,3 +86,7 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
