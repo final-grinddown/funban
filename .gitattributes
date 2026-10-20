@@ -1,3 +1,10 @@
+# Store text files with LF in the repository; Windows checkouts may still convert to CRLF in the working tree.
+* text=auto
+
 # Shell scripts must keep LF line endings, even in Windows checkouts with core.autocrlf=true;
 # with CRLF the shebang becomes "bash\r" and the script cannot run under Linux/WSL/macOS.
 *.sh text eol=lf
+
+# sqlx embeds migration SQL and its checksum into the binary at compile time. A CRLF checkout
+# changes every checksum and the server refuses to start against an already-migrated database.
+server/migrations/*.sql text eol=lf
