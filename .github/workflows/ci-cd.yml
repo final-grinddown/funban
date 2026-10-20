@@ -81,6 +81,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # sqlx embeds migration checksums; CRLF would break every already-migrated database
+      - name: Check migrations use LF line endings
+        run: |
+          if grep -l $'\r' migrations/*.sql; then
+            echo "::error::Migrations above contain CRLF line endings"
+            exit 1
+          fi
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
