@@ -1,5 +1,5 @@
 import { format, isValid, parseISO } from "date-fns"
-import type { ReleaseType } from "@/utils/interfaces"
+import type { Release, ReleaseType } from "@/utils/interfaces"
 
 export const releaseTypeLabels: Record<ReleaseType, string> = {
   application: "Application",
@@ -32,4 +32,55 @@ export function formatReleaseAt(value: string): string {
  */
 export function toDateTimeInputValue(value: string): string {
   return value.slice(0, 16)
+}
+
+export interface LeaderboardEntry {
+  assigneeId: number
+  name: string
+  /** Shared by people with the same total (1, 1, 3) */
+  rank: number
+  total: number
+  /** Releases where the team only oversaw the deployment */
+  overseen: number
+  lastReleaseAt: string
+}
+
+/**
+ * Ranks current team members by the number of releases assigned to them.
+ * Pass `year` to count only releases happening in that calendar year, `null` for all time.
+ * Unassigned releases and releases of former members are left out.
+ */
+export function buildReleaseLeaderboard(
+  releases: Pick<Release, "assignee_id" | "assignee_name" | "deployed_by_us" | "release_at">[],
+  year: number | null,
+): LeaderboardEntry[] {
+  const byAssignee = new Map<number, LeaderboardEntry>()
+
+  for (const release of releases) {
+    if (release.assignee_id === null || release.assignee_name === null) continue
+    if (year !== null && !release.release_at.startsWith(`${year}-`)) continue
+
+    const entry = byAssignee.get(release.assignee_id) ?? {
+      assigneeId: release.assignee_id,
+      name: release.assignee_name,
+      rank: 0,
+      total: 0,
+      overseen: 0,
+      lastReleaseAt: release.release_at,
+    }
+    entry.total += 1
+    if (!release.deployed_by_us) entry.overseen += 1
+    // Naive ISO datetimes compare correctly as strings
+    if (release.release_at > entry.lastReleaseAt) entry.lastReleaseAt = release.release_at
+    byAssignee.set(release.assignee_id, entry)
+  }
+
+  const entries = [...byAssignee.values()].sort(
+    (a, b) => b.total - a.total || b.lastReleaseAt.localeCompare(a.lastReleaseAt),
+  )
+  entries.forEach((entry, index) => {
+    const previous = entries[index - 1]
+    entry.rank = previous && previous.total === entry.total ? previous.rank : index + 1
+  })
+  return entries
 }
