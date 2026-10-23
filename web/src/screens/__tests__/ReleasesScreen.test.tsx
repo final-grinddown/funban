@@ -149,6 +149,20 @@ describe("ReleasesScreen", () => {
     expect(within(closedRow).getByText("Closed")).toBeInTheDocument()
   })
 
+  it("shows whether we deploy each release", async () => {
+    renderScreen()
+
+    await waitFor(() => {
+      expect(screen.getByRole("table")).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole("columnheader", { name: "Deployment" })).toBeInTheDocument()
+    const deployedRow = screen.getByText("20261020").closest("tr") as HTMLElement
+    expect(within(deployedRow).getByText("We deploy")).toBeInTheDocument()
+    const overseenRow = screen.getByText("20260901").closest("tr") as HTMLElement
+    expect(within(overseenRow).getByText("We only oversee")).toBeInTheDocument()
+  })
+
   it("navigates to the detail page on row click", async () => {
     renderScreen()
 
