@@ -25,6 +25,7 @@ import { createRelease, fetchRelease, fetchReleases } from "@/app/api/fetches"
 import { BackdropLoading } from "@/components/BackdropLoading"
 import { ReleaseAssignee } from "@/components/ReleaseAssignee"
 import { ReleaseFormModal } from "@/components/ReleaseFormModal"
+import { ReleaseLeaderboard } from "@/components/ReleaseLeaderboard"
 import { ReleaseStatusChip } from "@/components/ReleaseStatusChip"
 import { useConfig } from "@/context/ConfigProvider"
 import { useModalSubmission } from "@/hooks/useModalSubmission"
@@ -101,6 +102,7 @@ export function ReleasesScreen() {
         <Typography variant="h1" component="h1">
           Releases
         </Typography>
+        {data && <ReleaseLeaderboard releases={data} />}
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenCreate}>
           New release
         </Button>
