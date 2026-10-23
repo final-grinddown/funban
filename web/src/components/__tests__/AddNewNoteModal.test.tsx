@@ -336,12 +336,10 @@ describe("AddNewNoteModal", () => {
     it("shows loading state during submission", async () => {
       const user = userEvent.setup()
 
-      // Create a promise that we can control
-      let resolvePromise: () => void
-      const delayedPromise = new Promise<void>((resolve) => {
-        resolvePromise = resolve
-      })
-      mockWebSocketContext.sendMessageAsync = jest.fn().mockReturnValue(delayedPromise)
+      // Loading state is driven by the WebSocket isLoading flag, not the sendMessageAsync promise.
+      // With isLoading=false, useModalSubmission resets isSubmitting right after submit and the
+      // progress bar only flashes for one render, which makes the assertion below flaky.
+      mockWebSocketContext.isLoading = true
 
       render(<AddNewNoteModal {...defaultProps} />)
 
@@ -369,11 +367,7 @@ describe("AddNewNoteModal", () => {
       await waitFor(() => {
         expect(screen.getByRole("progressbar")).toBeInTheDocument()
       })
-
-      // Resolve the promise to clean up
-      await act(async () => {
-        resolvePromise!()
-      })
+      expect(createButton).toBeDisabled()
     })
 
     it("closes modal after successful submission (without save and create next)", async () => {
