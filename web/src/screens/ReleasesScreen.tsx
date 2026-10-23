@@ -32,7 +32,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers"
 import { ERoutes } from "@/utils/enums"
 import { handleError } from "@/utils/errorHandler"
 import { ReleaseInsert } from "@/utils/interfaces"
-import { formatReleaseAt, releaseTypeColors, releaseTypeLabels } from "@/utils/release"
+import { deploymentLabel, formatReleaseAt, releaseTypeColors, releaseTypeLabels } from "@/utils/release"
 
 export function ReleasesScreen() {
   const theme = useTheme()
@@ -117,6 +117,7 @@ export function ReleasesScreen() {
               <TableRow sx={{ backgroundColor: theme.palette.primary.main }}>
                 <TableCell sx={headerCellSx}>Code</TableCell>
                 <TableCell sx={headerCellSx}>Type</TableCell>
+                <TableCell sx={headerCellSx}>Deployment</TableCell>
                 <TableCell sx={headerCellSx}>Date & time</TableCell>
                 <TableCell sx={headerCellSx}>Assignee</TableCell>
                 <TableCell sx={headerCellSx}>Status</TableCell>
@@ -149,6 +150,7 @@ export function ReleasesScreen() {
                       size="small"
                     />
                   </TableCell>
+                  <TableCell>{deploymentLabel(release.deployed_by_us)}</TableCell>
                   <TableCell>{formatReleaseAt(release.release_at)}</TableCell>
                   <TableCell>
                     <ReleaseAssignee release={release} />

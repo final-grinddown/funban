@@ -11,6 +11,10 @@ export const releaseTypeColors: Record<ReleaseType, "primary" | "secondary"> = {
   maintenance: "secondary",
 }
 
+export function deploymentLabel(deployedByUs: boolean): string {
+  return deployedByUs ? "We deploy" : "We only oversee"
+}
+
 export const ReleaseCodeMaxLength = 32
 export const CloseSummaryMaxLength = 2000
 export const DefaultCloseSummary = "No problems during the release. Done."

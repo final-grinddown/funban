@@ -36,7 +36,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers"
 import { ERoutes } from "@/utils/enums"
 import { handleError } from "@/utils/errorHandler"
 import { Release, ReleaseInsert } from "@/utils/interfaces"
-import { formatReleaseAt, releaseTypeColors, releaseTypeLabels } from "@/utils/release"
+import { deploymentLabel, formatReleaseAt, releaseTypeColors, releaseTypeLabels } from "@/utils/release"
 
 interface Props {
   id: string
@@ -232,7 +232,7 @@ export function ReleaseDetailScreen({ id }: Props) {
             />
           </dd>
           <dt>Deployment</dt>
-          <dd>{release.deployed_by_us ? "We deploy" : "We only oversee"}</dd>
+          <dd>{deploymentLabel(release.deployed_by_us)}</dd>
           <dt>Date & time</dt>
           <dd>{formatReleaseAt(release.release_at)}</dd>
           <dt>Assigned developer</dt>
