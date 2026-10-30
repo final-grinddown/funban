@@ -22,9 +22,10 @@ export const config = {
      * - / (root)
      * - /sign-in
      * - /api/auth (NextAuth API routes)
+     * - /api/health (probe endpoint)
      * - /_next (Next.js internals)
      * - /favicon.ico, /robots.txt (static files)
      */
-    "/((?!$|api/auth|_next/static|_next/image|favicon.ico|robots.txt|sign-in$).+)",
+    "/((?!$|api/auth|api/health$|_next/static|_next/image|favicon.ico|robots.txt|sign-in$).+)",
   ],
 }
