@@ -2,6 +2,7 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use axum::{
+    extract::Request,
     http::{header, Method},
     Router,
 };
@@ -48,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-                "websocket_jsonpatch=debug,tower_http=debug,axum::rejection=trace,funban_server=debug".into()
+                "websocket_jsonpatch=info,tower_http=info,axum::rejection=trace,funban_server=info"
+                    .into()
             }),
         )
         .with(tracing_subscriber::fmt::layer().json())
@@ -117,19 +119,21 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
             .layer(AddExtensionLayer::new(
                 ApiContext::new(config.clone(), db.clone()).with_ws_context(ws_context.clone()),
             ))
-            .layer(TraceLayer::new_for_http()),
+            .layer(TraceLayer::new_for_http().make_span_with(request_span)),
     );
 
     // Create router for WebSocket routes
     let ws_router = ws_router().layer(
         ServiceBuilder::new()
             .layer(AddExtensionLayer::new(ws_context))
-            .layer(TraceLayer::new_for_http()),
+            .layer(TraceLayer::new_for_http().make_span_with(request_span)),
     );
 
     let app = Router::new()
         .nest("/ws", ws_router)
         .nest("/api", api_router)
+        // Cheap probe target for Kubernetes / uptime checks; outside auth and trace layers
+        .route("/health", axum::routing::get(|| async { "ok" }))
         .route(
             "/metrics",
             axum::routing::get(move || async move { metrics_handle.render() }),
@@ -150,6 +154,12 @@ pub async fn serve(config: Configuration, db: MySqlPool) -> anyhow::Result<()> {
     .with_graceful_shutdown(shutdown_signal())
     .await
     .context("Failed to serve the application")
+}
+
+/// Request span that records only method and path.
+/// The WebSocket token travels in the query string, so the full URI must never be logged.
+fn request_span(req: &Request) -> tracing::Span {
+    tracing::info_span!("request", method = %req.method(), path = %req.uri().path())
 }
 
 /// Graceful shutdown signal handler
