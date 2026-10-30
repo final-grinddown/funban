@@ -1,6 +1,6 @@
 {
   "name": "funban-webapp",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "private": true,
   "//": "Note: typia (9.7.2) and @ryoppippi/unplugin-typia (2.6.5) versions are pinned. unplugin-typia was archived in June 2025 but remains functional. See REFACTORING_PLAN.md Phase 6 for details and migration strategy.",
   "scripts": {
