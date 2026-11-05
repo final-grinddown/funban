@@ -227,3 +227,11 @@ Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. říj
 
 V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
 `;
+
+exports[`releaseNotifications templates snapshots renders every team template: text: Teams message 1`] = `
+"Ahoj Everyone,
+ve středu 21. října 2026 proběhne release nové verze AEQ a to ve večerních hodinách.
+Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.
+Prosím, ukončete ve středu 21. října v 20:00 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+Díky za pochopení a spolupráci."
+`;

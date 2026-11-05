@@ -181,15 +181,22 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.queryByLabelText("All systems back at")).not.toBeInTheDocument()
   })
 
-  it("shows no notifications for a team release", async () => {
+  it("shows only the Teams message of a team release", async () => {
     const { fetchRelease } = require("@/app/api/fetches")
     fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "team" })
 
     renderScreen()
 
-    expect(await screen.findByRole("heading", { name: "Release 20261020" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
     expect(screen.getByText("Team release")).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Teams message" })).toBeInTheDocument()
+    expect(screen.getByText(/v úterý 20\. října 2026 proběhne release nové verze AEQ/)).toBeInTheDocument()
+    expect(screen.getByText(/ukončete v úterý 20\. října v 14:00 veškeré činnosti/)).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Application notification (SQL)" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Email" })).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Start")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Duration (min)")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Safety duration (min)")).not.toBeInTheDocument()
   })
 
   it("updates notifications when a parameter changes", async () => {

@@ -93,8 +93,19 @@ export const notificationTemplates: Record<ReleaseType, readonly NotificationTem
     teamsMessage(maintenance.introCS),
     announcementEmail(maintenance.introCS, maintenance.introEN),
   ],
-  // Nothing until the team agrees what a team release sends and to whom
-  team: [],
+  team: [
+    {
+      kind: "text",
+      name: "Teams message",
+      body: [
+        "Ahoj Everyone,",
+        "{{start.csWeekdayOn}} {{start.csDate}} {{start.year}} proběhne release nové verze AEQ a to ve večerních hodinách.",
+        "Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.",
+        "Prosím, ukončete {{start.csWeekdayOn}} {{start.csDate}} v {{start.csTime}} veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
+        "Díky za pochopení a spolupráci.",
+      ].join("\n"),
+    },
+  ],
   hotfix: [
     {
       kind: "sql",

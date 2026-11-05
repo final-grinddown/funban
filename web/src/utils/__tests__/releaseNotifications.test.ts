@@ -385,8 +385,27 @@ describe("releaseNotifications", () => {
   })
 
   describe("team release", () => {
-    it("has no templates yet", () => {
-      expect(notificationTemplates.team).toEqual([])
+    // Monday
+    const team = defaultNotificationParams({ release_at: "2026-11-02T20:00:00", release_type: "team" })
+
+    it("has only the Teams message", () => {
+      expect(notificationTemplates.team.map((t) => [t.kind, t.name])).toEqual([["text", "Teams message"]])
+    })
+
+    it("asks only for the start", () => {
+      expect(requiredInputs(notificationTemplates.team)).toEqual(["maintenanceFrom"])
+    })
+
+    it("renders the agreed message", () => {
+      expect(buildTeamsMessage(team, "team")).toBe(
+        [
+          "Ahoj Everyone,",
+          "v pondělí 2. listopadu 2026 proběhne release nové verze AEQ a to ve večerních hodinách.",
+          "Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.",
+          "Prosím, ukončete v pondělí 2. listopadu v 20:00 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
+          "Díky za pochopení a spolupráci.",
+        ].join("\n"),
+      )
     })
   })
 
