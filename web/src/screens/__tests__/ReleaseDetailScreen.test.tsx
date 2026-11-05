@@ -160,7 +160,7 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.getByLabelText("All systems back at")).toBeInTheDocument()
   })
 
-  it("shows only the Teams message of a hotfix", async () => {
+  it("shows the system notification and the Teams message of a hotfix", async () => {
     const { fetchRelease } = require("@/app/api/fetches")
     fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "hotfix", release_code: "20261020-hotfix" })
 
@@ -171,25 +171,32 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.getByRole("heading", { name: "Teams message" })).toBeInTheDocument()
     expect(screen.getByText(/Ahoj, bohužel máme další opravu AEQ\./)).toBeInTheDocument()
     expect(screen.getByText(/\(úterý po 14:00\) odstavit tak na 10 minut AEQ/)).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "Application notification (SQL)" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Application notification (SQL)" })).toBeInTheDocument()
+    expect(screen.getByText(/DECLARE/)).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "Email" })).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "Open in mail client" })).not.toBeInTheDocument()
-    expect(screen.queryByText(/DECLARE/)).not.toBeInTheDocument()
     expect(screen.getByLabelText("Start")).toBeInTheDocument()
     expect(screen.getByLabelText("Duration (min)")).toHaveValue(10)
+    expect(screen.getByLabelText("Safety duration (min)")).toHaveValue(0)
     expect(screen.queryByLabelText("All systems back at")).not.toBeInTheDocument()
-    expect(screen.queryByLabelText("Safety duration (min)")).not.toBeInTheDocument()
   })
 
-  it("shows no notifications for a team release", async () => {
+  it("shows only the Teams message of a team release", async () => {
     const { fetchRelease } = require("@/app/api/fetches")
     fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "team" })
 
     renderScreen()
 
-    expect(await screen.findByRole("heading", { name: "Release 20261020" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
     expect(screen.getByText("Team release")).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Teams message" })).toBeInTheDocument()
+    expect(screen.getByText(/toto úterý 20\. října 2026 proběhne release nové verze AEQ/)).toBeInTheDocument()
+    expect(screen.getByText(/ukončete toto úterý 20\. října v 14:00 veškeré činnosti/)).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Application notification (SQL)" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Email" })).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Start")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Duration (min)")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Safety duration (min)")).not.toBeInTheDocument()
   })
 
   it("updates notifications when a parameter changes", async () => {

@@ -93,9 +93,29 @@ export const notificationTemplates: Record<ReleaseType, readonly NotificationTem
     teamsMessage(maintenance.introCS),
     announcementEmail(maintenance.introCS, maintenance.introEN),
   ],
-  // Nothing until the team agrees what a team release sends and to whom
-  team: [],
+  team: [
+    {
+      kind: "text",
+      name: "Teams message",
+      body: [
+        "Ahoj Everyone,",
+        "{{start.csWeekdayUpcoming}} {{start.csDate}} {{start.year}} proběhne release nové verze AEQ a to ve večerních hodinách.",
+        "Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.",
+        "Prosím, ukončete {{start.csWeekdayUpcoming}} {{start.csDate}} v {{start.csTime}} veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
+        "Díky za pochopení a spolupráci.",
+      ].join("\n"),
+    },
+  ],
   hotfix: [
+    {
+      kind: "sql",
+      name: "Application notification (SQL)",
+      code: "MAINTENANCE",
+      titleEN: "Short outage of AEQ is planned on {date} from {from} to {to} - hotfixing of current version",
+      titleCS: "Krátký výpadek AEQ je plánován na {date} od {from} do {to} - oprava aktuální verze",
+      linkToDetail: "",
+      notifyInAdvanceDays: 1,
+    },
     {
       kind: "text",
       name: "Teams message",
@@ -113,4 +133,12 @@ export const defaultDurationInMinutes: Record<ReleaseType, number> = {
   maintenance: 300,
   team: 300,
   hotfix: 10,
+}
+
+/** Default minutes before the start when users are asked to stop working, the `safetyDuration` parameter */
+export const defaultSafetyDurationInMinutes: Record<ReleaseType, number> = {
+  application: 30,
+  maintenance: 30,
+  team: 30,
+  hotfix: 0,
 }

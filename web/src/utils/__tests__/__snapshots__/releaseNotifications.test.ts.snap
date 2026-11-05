@@ -91,6 +91,50 @@ Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. říj
 V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
 `;
 
+exports[`releaseNotifications templates snapshots renders every hotfix template: sql: Application notification (SQL) 1`] = `
+{
+  "preview": {
+    "notifyFrom": "2026-10-20 00:00",
+    "titleCS": "Krátký výpadek AEQ je plánován na 21.10 od 20:00 do 20:10 - oprava aktuální verze",
+    "titleEN": "Short outage of AEQ is planned on Oct 21 from 20:00 to 20:10 - hotfixing of current version",
+    "validFrom": "2026-10-21 20:00",
+    "validTo": "2026-10-21 20:10",
+  },
+  "sql": "DECLARE
+    @MaintenanceFrom DATETIME = '2026-10-21 20:00:00',
+    @SafetyDuration INT = 0,
+    @DurationInMinutes INT = 10,
+    @NotifyInAdvanceDays INT = 1,
+    @Code NVARCHAR(32) = N'MAINTENANCE',
+    @TitleEN NVARCHAR(1024) = N'Short outage of AEQ is planned on {date} from {from} to {to} - hotfixing of current version',
+    @TitleCS NVARCHAR(1024) = N'Krátký výpadek AEQ je plánován na {date} od {from} do {to} - oprava aktuální verze',
+    @LinkToDetail NVARCHAR(1024) = NULL
+
+INSERT INTO [dbo].[SystemNotification]([NotificationType], [TitleEN], [TitleCS], [ValidFrom], [ValidTo], [NotifyFrom], [LinkToDetail])
+    SELECT
+        (SELECT [Id] FROM [dbo].[SystemNotificationType] WHERE [Code] = @Code),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleEN,'{date}',SUBSTRING(CONVERT(VARCHAR(100),@MaintenanceFrom,7),1,CHARINDEX(',',CONVERT(VARCHAR(100),@MaintenanceFrom,7))-1)),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleCS,'{date}',CONCAT(CAST(DAY(@MaintenanceFrom) AS VARCHAR(2)),'.',CAST(MONTH(@MaintenanceFrom) AS VARCHAR(2)))),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        @MaintenanceFrom,
+        DATEADD(MINUTE, @DurationInMinutes, @MaintenanceFrom),
+        CAST(DATEADD(DAY, -1 * @NotifyInAdvanceDays, @MaintenanceFrom) AS DATE),
+        @LinkToDetail
+
+SELECT * FROM [dbo].[SystemNotification]
+    WHERE [Deleted] = 0
+    ORDER BY [ValidFrom] DESC
+",
+}
+`;
+
 exports[`releaseNotifications templates snapshots renders every hotfix template: text: Teams message 1`] = `"Ahoj, bohužel máme další opravu AEQ. Sice jde o drobnost, ale mohla by znepříjemnit život některým z vás. Bylo by možné ve středu 21. října večer (středa po 20:00) odstavit tak na 10 minut AEQ a nasadit opravu?"`;
 
 exports[`releaseNotifications templates snapshots renders every maintenance template: email: Email 1`] = `
@@ -182,4 +226,12 @@ Prosím, ukončete ve středu 21. října v 19:30 veškeré činnosti jak v AEQ,
 Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. října od 4:00 ráno.
 
 V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
+`;
+
+exports[`releaseNotifications templates snapshots renders every team template: text: Teams message 1`] = `
+"Ahoj Everyone,
+tuto středu 21. října 2026 proběhne release nové verze AEQ a to ve večerních hodinách.
+Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.
+Prosím, ukončete tuto středu 21. října v 20:00 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+Díky za pochopení a spolupráci."
 `;
