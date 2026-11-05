@@ -167,7 +167,7 @@ async fn copy_template_tasks<'e, E: sqlx::MySqlExecutor<'e>>(
         INSERT INTO release_tasks (release_id, title, timing, position)
         SELECT ?, title, timing, position
         FROM release_step_templates
-        WHERE release_type IS NULL OR release_type = ?
+        WHERE release_types IS NULL OR FIND_IN_SET(?, release_types) > 0
         "#,
         release_id,
         release_type.as_str(),

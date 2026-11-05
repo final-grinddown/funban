@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO release_tasks (release_id, title, timing, position)\n        SELECT ?, title, timing, position\n        FROM release_step_templates\n        WHERE release_types IS NULL OR FIND_IN_SET(?, release_types) > 0\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "6a59f28d755098e786aa6cfe55101f7000e0b41aaad316ffa9f892cd7f8ede8e"
+}

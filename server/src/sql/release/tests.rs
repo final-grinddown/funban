@@ -5,11 +5,11 @@ use crate::model::release::{ReleaseInsert, ReleaseType};
 use crate::model::release_settings::ReleaseStep;
 use crate::sql::{release, release_settings, user};
 
-fn step(title: &str, release_type: Option<ReleaseType>) -> ReleaseStep {
+fn step(title: &str, release_types: &[ReleaseType]) -> ReleaseStep {
     ReleaseStep {
         title: title.to_string(),
         timing: None,
-        release_type,
+        release_types: release_types.to_vec(),
     }
 }
 
@@ -19,13 +19,13 @@ async fn set_up_template(db: &MySqlPool) -> sqlx::Result<()> {
         &[
             ReleaseStep {
                 timing: Some("3 days before release".to_string()),
-                ..step("Announce", None)
+                ..step("Announce", &[])
             },
-            step("Build application", Some(ReleaseType::Application)),
-            step("Run maintenance script", Some(ReleaseType::Maintenance)),
-            step("Notify team channel", Some(ReleaseType::Team)),
-            step("Patch AEQ", Some(ReleaseType::Hotfix)),
-            step("Verify", None),
+            step("Build application", &[ReleaseType::Application]),
+            step("Run maintenance script", &[ReleaseType::Maintenance]),
+            step("Notify team channel", &[ReleaseType::Team]),
+            step("Patch AEQ", &[ReleaseType::Hotfix]),
+            step("Verify", &[]),
         ],
     )
     .await?;
@@ -364,11 +364,62 @@ async fn add_copies_template_steps_for_release_type(db: MySqlPool) -> sqlx::Resu
 }
 
 #[sqlx::test(fixtures("users"))]
+async fn add_copies_steps_targeting_several_release_types(db: MySqlPool) -> sqlx::Result<()> {
+    release_settings::replace_steps(
+        &db,
+        &[
+            step(
+                "Plan downtime",
+                &[
+                    ReleaseType::Application,
+                    ReleaseType::Maintenance,
+                    ReleaseType::Team,
+                ],
+            ),
+            step("Patch AEQ", &[ReleaseType::Hotfix]),
+            step("Verify", &[]),
+        ],
+    )
+    .await?;
+
+    for (code, release_type, expected) in [
+        (
+            "20261020",
+            ReleaseType::Application,
+            vec!["Plan downtime", "Verify"],
+        ),
+        (
+            "20261021",
+            ReleaseType::Maintenance,
+            vec!["Plan downtime", "Verify"],
+        ),
+        (
+            "20261022",
+            ReleaseType::Team,
+            vec!["Plan downtime", "Verify"],
+        ),
+        ("20261023", ReleaseType::Hotfix, vec!["Patch AEQ", "Verify"]),
+    ] {
+        let mut insert = release_insert(code, 1);
+        insert.release_type = release_type;
+        let added = release::add(&db, &insert).await?;
+        assert_eq!(
+            task_titles(&db, added.id).await?,
+            expected,
+            "{:?}",
+            release_type
+        );
+    }
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
 async fn template_changes_do_not_affect_existing_releases(db: MySqlPool) -> sqlx::Result<()> {
     set_up_template(&db).await?;
     let added = release::add(&db, &release_insert("20261020", 1)).await?;
 
-    release_settings::replace_steps(&db, &[step("Something else", None)]).await?;
+    release_settings::replace_steps(&db, &[step("Something else", &[])]).await?;
 
     assert_eq!(
         task_titles(&db, added.id).await?,

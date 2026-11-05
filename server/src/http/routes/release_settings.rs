@@ -54,7 +54,8 @@ fn validated_emails(field: &str, emails: &[String]) -> Result<Vec<String>> {
     Ok(result)
 }
 
-/// Trims step titles and timings, drops blank steps and validates lengths. A blank timing is cleared.
+/// Trims step titles and timings, drops blank steps and validates lengths. A blank timing is cleared
+/// and repeated release types are removed.
 fn validated_steps(steps: Vec<ReleaseStep>) -> Result<Vec<ReleaseStep>> {
     let result: Vec<ReleaseStep> = steps
         .into_iter()
@@ -64,7 +65,15 @@ fn validated_steps(steps: Vec<ReleaseStep>) -> Result<Vec<ReleaseStep>> {
                 .timing
                 .map(|timing| timing.trim().to_string())
                 .filter(|timing| !timing.is_empty()),
-            release_type: step.release_type,
+            release_types: step.release_types.into_iter().fold(
+                Vec::new(),
+                |mut types, release_type| {
+                    if !types.contains(&release_type) {
+                        types.push(release_type);
+                    }
+                    types
+                },
+            ),
         })
         .filter(|step| !step.title.is_empty())
         .collect();
@@ -188,6 +197,7 @@ pub async fn update_steps(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::release::ReleaseType;
 
     fn emails(values: &[&str]) -> Vec<String> {
         values.iter().map(|v| v.to_string()).collect()
@@ -228,7 +238,7 @@ mod tests {
         ReleaseStep {
             title: title.to_string(),
             timing: None,
-            release_type: None,
+            release_types: Vec::new(),
         }
     }
 
@@ -267,6 +277,24 @@ mod tests {
                 ),
                 step("Announce"),
             ]
+        );
+    }
+
+    #[test]
+    fn repeated_release_types_are_removed() {
+        let result = validated_steps(vec![ReleaseStep {
+            release_types: vec![
+                ReleaseType::Team,
+                ReleaseType::Application,
+                ReleaseType::Team,
+            ],
+            ..step("Deploy")
+        }])
+        .unwrap();
+
+        assert_eq!(
+            result[0].release_types,
+            vec![ReleaseType::Team, ReleaseType::Application]
         );
     }
 
