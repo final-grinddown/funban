@@ -1,0 +1,183 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`releaseNotifications templates snapshots renders every application template: email: Email 1`] = `
+{
+  "body": "Ahoj všem,
+
+tuto středu 21. října 2026 proběhne celofiremní aplikační release, kdy dojde k nasazení nové verze AEQ. Odstávka se dotkne všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, ...
+
+Prosím, ukončete ve středu 21. října v 19:30 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+
+Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. října od 4:00 ráno.
+
+V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu.
+
+Děkujeme za spolupráci
+
+AEQ crew
+
+----------------------------------------------------------------------------------------------------
+
+Hello everyone,
+
+This Wednesday, October 21, 2026, there will be a company-wide application release, during which the new version of AEQ will be deployed. The downtime will affect all key systems such as SAP, NAV, CRM, DMS, ODS, ...
+
+Please, stop all activities in AEQ and the invoice extraction in Elis by 7:30 PM on Wednesday, October 21.
+
+All systems, including AEQ and Elis, will be operational again on Thursday, October 22, from 4:00 AM.
+
+Failure to comply may result in the loss of all your work and additional work required by the AEQ support team.
+
+Thank you for your cooperation.
+
+AEQ crew",
+  "subject": "Plánovaná odstávka / Planned maintenance - 21.10.2026 - 19:30-01:00",
+}
+`;
+
+exports[`releaseNotifications templates snapshots renders every application template: sql: Application notification (SQL) 1`] = `
+{
+  "preview": {
+    "notifyFrom": "2026-10-17 00:00",
+    "titleCS": "Plánovaná odstávka 21.10 od 19:30 do 01:00 - EW nasazovací release - nová verze AEQ",
+    "titleEN": "Planned maintenance on Oct 21 from 19:30 to 01:00 - EW deployment release - new version of AEQ",
+    "validFrom": "2026-10-21 20:00",
+    "validTo": "2026-10-22 01:00",
+  },
+  "sql": "DECLARE
+    @MaintenanceFrom DATETIME = '2026-10-21 20:00:00',
+    @SafetyDuration INT = 30,
+    @DurationInMinutes INT = 300,
+    @NotifyInAdvanceDays INT = 4,
+    @Code NVARCHAR(32) = N'MAINTENANCE',
+    @TitleEN NVARCHAR(1024) = N'Planned maintenance on {date} from {from} to {to} - EW deployment release - new version of AEQ',
+    @TitleCS NVARCHAR(1024) = N'Plánovaná odstávka {date} od {from} do {to} - EW nasazovací release - nová verze AEQ',
+    @LinkToDetail NVARCHAR(1024) = NULL
+
+INSERT INTO [dbo].[SystemNotification]([NotificationType], [TitleEN], [TitleCS], [ValidFrom], [ValidTo], [NotifyFrom], [LinkToDetail])
+    SELECT
+        (SELECT [Id] FROM [dbo].[SystemNotificationType] WHERE [Code] = @Code),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleEN,'{date}',SUBSTRING(CONVERT(VARCHAR(100),@MaintenanceFrom,7),1,CHARINDEX(',',CONVERT(VARCHAR(100),@MaintenanceFrom,7))-1)),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleCS,'{date}',CONCAT(CAST(DAY(@MaintenanceFrom) AS VARCHAR(2)),'.',CAST(MONTH(@MaintenanceFrom) AS VARCHAR(2)))),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        @MaintenanceFrom,
+        DATEADD(MINUTE, @DurationInMinutes, @MaintenanceFrom),
+        CAST(DATEADD(DAY, -1 * @NotifyInAdvanceDays, @MaintenanceFrom) AS DATE),
+        @LinkToDetail
+
+SELECT * FROM [dbo].[SystemNotification]
+    WHERE [Deleted] = 0
+    ORDER BY [ValidFrom] DESC
+",
+}
+`;
+
+exports[`releaseNotifications templates snapshots renders every application template: text: Teams message 1`] = `
+"Ahoj všem,
+
+tuto středu 21. října 2026 proběhne celofiremní aplikační release, kdy dojde k nasazení nové verze AEQ. Odstávka se dotkne všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, ...
+
+Prosím, ukončete ve středu 21. října v 19:30 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+
+Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. října od 4:00 ráno.
+
+V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
+`;
+
+exports[`releaseNotifications templates snapshots renders every maintenance template: email: Email 1`] = `
+{
+  "body": "Ahoj všem,
+
+tuto středu 21. října 2026 proběhne celofiremní maintenance release, kdy dojde k odstávce všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, včetně AEQ a Elis.
+
+Prosím, ukončete ve středu 21. října v 19:30 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+
+Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. října od 4:00 ráno.
+
+V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu.
+
+Děkujeme za spolupráci
+
+AEQ crew
+
+----------------------------------------------------------------------------------------------------
+
+Hello everyone,
+
+This Wednesday, October 21, 2026, there will be a company-wide maintenance release. The downtime will affect all key systems such as SAP, NAV, CRM, DMS, ODS, including AEQ and Elis.
+
+Please, stop all activities in AEQ and the invoice extraction in Elis by 7:30 PM on Wednesday, October 21.
+
+All systems, including AEQ and Elis, will be operational again on Thursday, October 22, from 4:00 AM.
+
+Failure to comply may result in the loss of all your work and additional work required by the AEQ support team.
+
+Thank you for your cooperation.
+
+AEQ crew",
+  "subject": "Plánovaná odstávka / Planned maintenance - 21.10.2026 - 19:30-01:00",
+}
+`;
+
+exports[`releaseNotifications templates snapshots renders every maintenance template: sql: Application notification (SQL) 1`] = `
+{
+  "preview": {
+    "notifyFrom": "2026-10-17 00:00",
+    "titleCS": "Plánovaná odstávka 21.10 od 19:30 do 01:00 - technický release bez změn v AEQ",
+    "titleEN": "Planned maintenance on Oct 21 from 19:30 to 01:00 - technical release without any changes in AEQ",
+    "validFrom": "2026-10-21 20:00",
+    "validTo": "2026-10-22 01:00",
+  },
+  "sql": "DECLARE
+    @MaintenanceFrom DATETIME = '2026-10-21 20:00:00',
+    @SafetyDuration INT = 30,
+    @DurationInMinutes INT = 300,
+    @NotifyInAdvanceDays INT = 4,
+    @Code NVARCHAR(32) = N'MAINTENANCE',
+    @TitleEN NVARCHAR(1024) = N'Planned maintenance on {date} from {from} to {to} - technical release without any changes in AEQ',
+    @TitleCS NVARCHAR(1024) = N'Plánovaná odstávka {date} od {from} do {to} - technický release bez změn v AEQ',
+    @LinkToDetail NVARCHAR(1024) = NULL
+
+INSERT INTO [dbo].[SystemNotification]([NotificationType], [TitleEN], [TitleCS], [ValidFrom], [ValidTo], [NotifyFrom], [LinkToDetail])
+    SELECT
+        (SELECT [Id] FROM [dbo].[SystemNotificationType] WHERE [Code] = @Code),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleEN,'{date}',SUBSTRING(CONVERT(VARCHAR(100),@MaintenanceFrom,7),1,CHARINDEX(',',CONVERT(VARCHAR(100),@MaintenanceFrom,7))-1)),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        REPLACE(
+            REPLACE(
+                REPLACE(@TitleCS,'{date}',CONCAT(CAST(DAY(@MaintenanceFrom) AS VARCHAR(2)),'.',CAST(MONTH(@MaintenanceFrom) AS VARCHAR(2)))),
+                '{from}',CONVERT(VARCHAR(5),DATEADD(minute, -1 * @SafetyDuration, @MaintenanceFrom),8)),
+            '{to}',CONVERT(VARCHAR(5),DATEADD(MINUTE,@DurationInMinutes,@MaintenanceFrom),8)),
+        @MaintenanceFrom,
+        DATEADD(MINUTE, @DurationInMinutes, @MaintenanceFrom),
+        CAST(DATEADD(DAY, -1 * @NotifyInAdvanceDays, @MaintenanceFrom) AS DATE),
+        @LinkToDetail
+
+SELECT * FROM [dbo].[SystemNotification]
+    WHERE [Deleted] = 0
+    ORDER BY [ValidFrom] DESC
+",
+}
+`;
+
+exports[`releaseNotifications templates snapshots renders every maintenance template: text: Teams message 1`] = `
+"Ahoj všem,
+
+tuto středu 21. října 2026 proběhne celofiremní maintenance release, kdy dojde k odstávce všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, včetně AEQ a Elis.
+
+Prosím, ukončete ve středu 21. října v 19:30 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.
+
+Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. října od 4:00 ráno.
+
+V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
+`;

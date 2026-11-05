@@ -1,6 +1,7 @@
 import { addDays, addMinutes, format, getDay, isValid, parseISO, setHours, startOfDay, subMinutes } from "date-fns"
-import type { Release, ReleaseType } from "@/utils/interfaces"
+import type { Release } from "@/utils/interfaces"
 import { toDateTimeInputValue } from "@/utils/release"
+import { notificationTemplates } from "@/utils/releaseNotificationTemplates"
 
 /**
  * Editable inputs of the release notifications, kept as strings so they map 1:1 to form fields.
@@ -23,19 +24,45 @@ export interface NotificationParams {
   systemsBackAt: string
 }
 
-export type NotificationParamErrors = Partial<Record<keyof NotificationParams, string>>
+export type NotificationInput = keyof NotificationParams
 
-interface ResolvedParams {
-  maintenanceFrom: Date
-  safetyDuration: number
-  durationInMinutes: number
-  notifyInAdvanceDays: number
+export type NotificationParamErrors = Partial<Record<NotificationInput, string>>
+
+/** Where the email recipients come from; only the team-wide To/CC lists from Release settings so far */
+export type EmailRecipientSource = "releaseSettings"
+
+/** System notification inserted by an SQL script; supplies the defaults of the SQL parameters */
+export interface SqlTemplate {
+  kind: "sql"
+  name: string
   code: string
+  /** Single-brace `{date}`, `{from}` and `{to}` are filled in by the SQL script, not by the renderer */
   titleEN: string
   titleCS: string
-  linkToDetail: string | null
-  systemsBackAt: Date
+  /** Empty means `NULL` */
+  linkToDetail: string
+  notifyInAdvanceDays: number
 }
+
+export interface EmailTemplate {
+  kind: "email"
+  name: string
+  /** Supports `{{point.format}}` variables */
+  subject: string
+  /** Supports `{{point.format}}` variables */
+  body: string
+  recipients: EmailRecipientSource
+}
+
+/** Plain text to copy, e.g. a Teams message */
+export interface TextTemplate {
+  kind: "text"
+  name: string
+  /** Supports `{{point.format}}` variables */
+  body: string
+}
+
+export type NotificationTemplate = SqlTemplate | EmailTemplate | TextTemplate
 
 export interface TitlePreview {
   titleEN: string
@@ -45,9 +72,31 @@ export interface TitlePreview {
   notifyFrom: Date
 }
 
+export interface SqlNotification {
+  sql: string
+  preview: TitlePreview
+}
+
 export interface EmailNotification {
   subject: string
   body: string
+}
+
+/** A template with its output; the output is `null` while the parameters are invalid */
+export type NotificationBlock =
+  | { kind: "sql"; template: SqlTemplate; output: SqlNotification | null }
+  | { kind: "email"; template: EmailTemplate; output: EmailNotification | null }
+  | { kind: "text"; template: TextTemplate; output: string | null }
+
+interface ResolvedSqlParams {
+  maintenanceFrom: Date
+  safetyDuration: number
+  durationInMinutes: number
+  notifyInAdvanceDays: number
+  code: string
+  titleEN: string
+  titleCS: string
+  linkToDetail: string | null
 }
 
 const CodeMaxLength = 32
@@ -55,33 +104,31 @@ const TextMaxLength = 1024
 const MaxMinutes = 7 * 24 * 60
 const MaxNotifyDays = 60
 const DefaultSystemsBackHour = 4
-const EmailSeparator = "-".repeat(100)
 
-interface TypeTexts {
-  titleEN: string
-  titleCS: string
-  introCS: string
-  introEN: string
-}
+/** All inputs in form order */
+const allInputs: NotificationInput[] = [
+  "maintenanceFrom",
+  "systemsBackAt",
+  "code",
+  "safetyDuration",
+  "durationInMinutes",
+  "notifyInAdvanceDays",
+  "titleEN",
+  "titleCS",
+  "linkToDetail",
+]
 
-const typeTexts: Record<ReleaseType, TypeTexts> = {
-  application: {
-    titleEN: "EW deployment release - new version of AEQ",
-    titleCS: "EW nasazovací release - nová verze AEQ",
-    introCS:
-      "aplikační release, kdy dojde k nasazení nové verze AEQ. Odstávka se dotkne všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, ...",
-    introEN:
-      "application release, during which the new version of AEQ will be deployed. The downtime will affect all key systems such as SAP, NAV, CRM, DMS, ODS, ...",
-  },
-  maintenance: {
-    titleEN: "technical release without any changes in AEQ",
-    titleCS: "technický release bez změn v AEQ",
-    introCS:
-      "maintenance release, kdy dojde k odstávce všech klíčových systémů jako SAP, NAV, CRM, DMS, ODS, včetně AEQ a Elis.",
-    introEN:
-      "maintenance release. The downtime will affect all key systems such as SAP, NAV, CRM, DMS, ODS, including AEQ and Elis.",
-  },
-}
+/** Inputs of the SQL `DECLARE` block */
+const sqlInputs: NotificationInput[] = [
+  "maintenanceFrom",
+  "safetyDuration",
+  "durationInMinutes",
+  "notifyInAdvanceDays",
+  "code",
+  "titleEN",
+  "titleCS",
+  "linkToDetail",
+]
 
 const csMonthsGenitive = [
   "ledna",
@@ -109,9 +156,72 @@ const csWeekdays = [
   { on: "v sobotu", upcoming: "tuto sobotu" },
 ]
 
+interface PointDefinition {
+  /** Inputs the point is calculated from; they decide which fields the parameter form shows */
+  inputs: NotificationInput[]
+  /** Only called after the inputs passed validation */
+  at: (params: NotificationParams) => Date
+}
+
+/** Points in time the texts talk about */
+const points = {
+  /** Start of the maintenance */
+  start: { inputs: ["maintenanceFrom"], at: (p) => parseDateTime(p.maintenanceFrom) as Date },
+  /** When users have to stop working: the start minus the safety duration */
+  stop: {
+    inputs: ["maintenanceFrom", "safetyDuration"],
+    at: (p) => subMinutes(parseDateTime(p.maintenanceFrom) as Date, Number(p.safetyDuration)),
+  },
+  /** End of the maintenance: the start plus the duration */
+  end: {
+    inputs: ["maintenanceFrom", "durationInMinutes"],
+    at: (p) => addMinutes(parseDateTime(p.maintenanceFrom) as Date, Number(p.durationInMinutes)),
+  },
+  /** When all systems are back; needs the start because it is validated against it */
+  back: { inputs: ["maintenanceFrom", "systemsBackAt"], at: (p) => parseDateTime(p.systemsBackAt) as Date },
+} satisfies Record<string, PointDefinition>
+
+type Point = keyof typeof points
+
+const formats = {
+  /** `tuto středu` */
+  csWeekdayUpcoming: (date) => csWeekdays[getDay(date)].upcoming,
+  /** `ve středu` */
+  csWeekdayOn: (date) => csWeekdays[getDay(date)].on,
+  /** `22. října` */
+  csDate: (date) => `${date.getDate()}. ${csMonthsGenitive[date.getMonth()]}`,
+  /** `2026` */
+  year: (date) => String(date.getFullYear()),
+  /** `9:30` */
+  csTime: (date) => format(date, "H:mm"),
+  /** `ráno`, `dopoledne`, `odpoledne` or `večer` */
+  csDayPart,
+  /** `Wednesday, October 22, 2026` */
+  enLongDate: (date) => format(date, "EEEE, MMMM d, yyyy"),
+  /** `Wednesday, October 22` */
+  enWeekdayDate: (date) => format(date, "EEEE, MMMM d"),
+  /** `7:30 PM` */
+  enTime: (date) => format(date, "h:mm a"),
+  /** `22.10.2026` */
+  date: (date) => format(date, "d.M.yyyy"),
+  /** `09:30` */
+  time: (date) => format(date, "HH:mm"),
+} satisfies Record<string, (date: Date) => string>
+
+type Format = keyof typeof formats
+
+/** The closed catalogue of `{{point.format}}` variables usable in templates */
+export type Variable = `${Point}.${Format}`
+
+/** Double braces never clash with the single-brace SQL placeholders */
+const VariablePattern = /\{\{([^{}]*)\}\}/g
+
 export function defaultNotificationParams(release: Pick<Release, "release_at" | "release_type">): NotificationParams {
   const start = parseISO(release.release_at)
-  const texts = typeTexts[release.release_type]
+  // The parameters are shared by all templates, so the first system notification supplies the SQL defaults
+  const sql = notificationTemplates[release.release_type].find(
+    (template): template is SqlTemplate => template.kind === "sql",
+  )
   const systemsBackAt = isValid(start)
     ? toInputValue(setHours(startOfDay(addDays(start, 1)), DefaultSystemsBackHour))
     : ""
@@ -120,16 +230,37 @@ export function defaultNotificationParams(release: Pick<Release, "release_at" | 
     maintenanceFrom: toDateTimeInputValue(release.release_at),
     safetyDuration: "30",
     durationInMinutes: "300",
-    notifyInAdvanceDays: "4",
-    code: "MAINTENANCE",
-    titleEN: `Planned maintenance on {date} from {from} to {to} - ${texts.titleEN}`,
-    titleCS: `Plánovaná odstávka {date} od {from} do {to} - ${texts.titleCS}`,
-    linkToDetail: "",
+    notifyInAdvanceDays: sql ? String(sql.notifyInAdvanceDays) : "",
+    code: sql?.code ?? "",
+    titleEN: sql?.titleEN ?? "",
+    titleCS: sql?.titleCS ?? "",
+    linkToDetail: sql?.linkToDetail ?? "",
     systemsBackAt,
   }
 }
 
-export function validateNotificationParams(params: NotificationParams): NotificationParamErrors {
+/** Inputs needed by the templates, in form order */
+export function requiredInputs(templates: readonly NotificationTemplate[]): NotificationInput[] {
+  const needed = new Set<NotificationInput>()
+
+  for (const template of templates) {
+    if (template.kind === "sql") sqlInputs.forEach((input) => needed.add(input))
+
+    for (const text of variableTexts(template)) {
+      for (const variable of variablesIn(text)) {
+        if (isVariable(variable)) points[pointOf(variable)].inputs.forEach((input) => needed.add(input))
+      }
+    }
+  }
+
+  return allInputs.filter((input) => needed.has(input))
+}
+
+/** Validates only the given inputs; the others are not shown in the form */
+export function validateNotificationParams(
+  params: NotificationParams,
+  inputs: readonly NotificationInput[],
+): NotificationParamErrors {
   const errors: NotificationParamErrors = {}
   const start = parseDateTime(params.maintenanceFrom)
   const systemsBackAt = parseDateTime(params.systemsBackAt)
@@ -150,12 +281,52 @@ export function validateNotificationParams(params: NotificationParams): Notifica
   if (!systemsBackAt) errors.systemsBackAt = "Enter a valid date and time"
   else if (start && systemsBackAt <= start) errors.systemsBackAt = "Must be after the start"
 
-  return errors
+  const shown: NotificationParamErrors = {}
+  for (const input of inputs) {
+    if (errors[input]) shown[input] = errors[input]
+  }
+  return shown
 }
 
-/** Returns typed values, or `null` when any parameter is invalid */
-function resolveParams(params: NotificationParams): ResolvedParams | null {
-  if (Object.keys(validateNotificationParams(params)).length > 0) return null
+/**
+ * Renders every template. The templates share one parameter form, so all outputs are `null`
+ * while any input they need is invalid.
+ */
+export function renderNotifications(
+  templates: readonly NotificationTemplate[],
+  params: NotificationParams,
+): NotificationBlock[] {
+  const valid = Object.keys(validateNotificationParams(params, requiredInputs(templates))).length === 0
+
+  return templates.map((template): NotificationBlock => {
+    switch (template.kind) {
+      case "sql": {
+        const sql = valid ? buildNotificationSql(params) : null
+        const preview = valid ? buildTitlePreview(params) : null
+        return { kind: "sql", template, output: sql && preview ? { sql, preview } : null }
+      }
+      case "email":
+        return {
+          kind: "email",
+          template,
+          output: valid
+            ? { subject: renderVariables(template.subject, params), body: renderVariables(template.body, params) }
+            : null,
+        }
+      case "text":
+        return { kind: "text", template, output: valid ? renderVariables(template.body, params) : null }
+    }
+  })
+}
+
+/** `{{…}}` variables in the text that are not in the catalogue */
+export function unknownVariables(text: string): string[] {
+  return variablesIn(text).filter((variable) => !isVariable(variable))
+}
+
+/** Returns typed values, or `null` when any SQL parameter is invalid */
+function resolveSqlParams(params: NotificationParams): ResolvedSqlParams | null {
+  if (Object.keys(validateNotificationParams(params, sqlInputs)).length > 0) return null
 
   return {
     maintenanceFrom: parseDateTime(params.maintenanceFrom) as Date,
@@ -166,7 +337,6 @@ function resolveParams(params: NotificationParams): ResolvedParams | null {
     titleEN: params.titleEN,
     titleCS: params.titleCS,
     linkToDetail: params.linkToDetail.trim() || null,
-    systemsBackAt: parseDateTime(params.systemsBackAt) as Date,
   }
 }
 
@@ -175,7 +345,7 @@ function resolveParams(params: NotificationParams): ResolvedParams | null {
  * the placeholder replacement stays in SQL so the script matches the one used so far.
  */
 export function buildNotificationSql(params: NotificationParams): string | null {
-  const p = resolveParams(params)
+  const p = resolveSqlParams(params)
   if (!p) return null
 
   return `DECLARE
@@ -214,7 +384,7 @@ SELECT * FROM [dbo].[SystemNotification]
 
 /** Mirrors what the SQL script stores, so the result can be checked before running it */
 export function buildTitlePreview(params: NotificationParams): TitlePreview | null {
-  const p = resolveParams(params)
+  const p = resolveSqlParams(params)
   if (!p) return null
 
   const from = format(subMinutes(p.maintenanceFrom, p.safetyDuration), "HH:mm")
@@ -233,71 +403,54 @@ export function buildTitlePreview(params: NotificationParams): TitlePreview | nu
   }
 }
 
-export function buildTeamsMessage(params: NotificationParams, releaseType: ReleaseType): string | null {
-  const p = resolveParams(params)
-  if (!p) return null
-
-  return czechText(p, releaseType)
-}
-
-export function buildEmail(params: NotificationParams, releaseType: ReleaseType): EmailNotification | null {
-  const p = resolveParams(params)
-  if (!p) return null
-
-  const stopAt = subMinutes(p.maintenanceFrom, p.safetyDuration)
-  const endAt = addMinutes(p.maintenanceFrom, p.durationInMinutes)
-  const subject = `Plánovaná odstávka / Planned maintenance - ${format(p.maintenanceFrom, "d.M.yyyy")} - ${format(stopAt, "HH:mm")}-${format(endAt, "HH:mm")}`
-
-  const body = [
-    czechText(p, releaseType),
-    "Děkujeme za spolupráci",
-    "AEQ crew",
-    EmailSeparator,
-    englishText(p, releaseType),
-    "Thank you for your cooperation.",
-    "AEQ crew",
-  ].join("\n\n")
-
-  return { subject, body }
-}
-
 /** `mailto:` link with recipients and subject; the body is pasted separately because long encoded bodies get truncated */
 export function buildMailtoHref(to: string[], cc: string[], subject: string): string {
-  const query = [cc.length > 0 ? `cc=${encodeURIComponent(cc.join(","))}` : "", `subject=${encodeURIComponent(subject)}`]
+  const query = [
+    cc.length > 0 ? `cc=${encodeURIComponent(cc.join(","))}` : "",
+    `subject=${encodeURIComponent(subject)}`,
+  ]
     .filter(Boolean)
     .join("&")
 
   return `mailto:${to.join(",")}?${query}`
 }
 
-function czechText(p: ResolvedParams, releaseType: ReleaseType): string {
-  const stopAt = subMinutes(p.maintenanceFrom, p.safetyDuration)
-  const backAt = p.systemsBackAt
-
-  return [
-    "Ahoj všem,",
-    `${csWeekdays[getDay(p.maintenanceFrom)].upcoming} ${csDate(p.maintenanceFrom)} ${p.maintenanceFrom.getFullYear()} proběhne celofiremní ${typeTexts[releaseType].introCS}`,
-    `Prosím, ukončete ${csWeekdays[getDay(stopAt)].on} ${csDate(stopAt)} v ${format(stopAt, "H:mm")} veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.`,
-    `Všechny systémy včetně AEQ a Elis budou fungovat opět ${csWeekdays[getDay(backAt)].on} ${csDate(backAt)} od ${format(backAt, "H:mm")} ${csDayPart(backAt)}.`,
-    "V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu.",
-  ].join("\n\n")
+/** Replaces known variables; anything else, including the single-brace SQL placeholders, passes through */
+function renderVariables(text: string, params: NotificationParams): string {
+  return text.replace(VariablePattern, (match, variable: string) => {
+    if (!isVariable(variable)) return match
+    return formats[formatOf(variable)](points[pointOf(variable)].at(params))
+  })
 }
 
-function englishText(p: ResolvedParams, releaseType: ReleaseType): string {
-  const stopAt = subMinutes(p.maintenanceFrom, p.safetyDuration)
-  const backAt = p.systemsBackAt
-
-  return [
-    "Hello everyone,",
-    `This ${format(p.maintenanceFrom, "EEEE, MMMM d, yyyy")}, there will be a company-wide ${typeTexts[releaseType].introEN}`,
-    `Please, stop all activities in AEQ and the invoice extraction in Elis by ${format(stopAt, "h:mm a")} on ${format(stopAt, "EEEE, MMMM d")}.`,
-    `All systems, including AEQ and Elis, will be operational again on ${format(backAt, "EEEE, MMMM d")}, from ${format(backAt, "h:mm a")}.`,
-    "Failure to comply may result in the loss of all your work and additional work required by the AEQ support team.",
-  ].join("\n\n")
+function variablesIn(text: string): string[] {
+  return Array.from(text.matchAll(VariablePattern), (match) => match[1])
 }
 
-function csDate(date: Date): string {
-  return `${date.getDate()}. ${csMonthsGenitive[date.getMonth()]}`
+/** Template texts that may contain `{{…}}` variables */
+function variableTexts(template: NotificationTemplate): string[] {
+  switch (template.kind) {
+    case "sql":
+      // The titles go to the SQL script as they are, only its single-brace placeholders apply
+      return []
+    case "email":
+      return [template.subject, template.body]
+    case "text":
+      return [template.body]
+  }
+}
+
+function isVariable(value: string): value is Variable {
+  const parts = value.split(".")
+  return parts.length === 2 && Object.hasOwn(points, parts[0]) && Object.hasOwn(formats, parts[1])
+}
+
+function pointOf(variable: Variable): Point {
+  return variable.split(".")[0] as Point
+}
+
+function formatOf(variable: Variable): Format {
+  return variable.split(".")[1] as Format
 }
 
 function csDayPart(date: Date): string {
