@@ -121,6 +121,19 @@ describe("ReleasesScreen", () => {
     expect(screen.getByText("20 Oct 2026, 14:00")).toBeInTheDocument()
   })
 
+  it("labels team releases and hotfixes", async () => {
+    const { fetchReleases } = require("@/app/api/fetches")
+    fetchReleases.mockResolvedValue([
+      { ...mockReleases[0], id: 11, release_code: "20261101", release_type: "team" },
+      { ...mockReleases[0], id: 12, release_code: "20261101-hotfix", release_type: "hotfix" },
+    ])
+
+    renderScreen()
+
+    expect(await screen.findByText("Team release")).toBeInTheDocument()
+    expect(screen.getByText("Hotfix")).toBeInTheDocument()
+  })
+
   it("marks assignees who left the team", async () => {
     renderScreen()
 

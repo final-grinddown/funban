@@ -114,7 +114,7 @@ export function ReleaseFormModal({ isOpen, release, users, onClose, onSave, isSu
                   fullWidth={true}
                   autoFocus={!isEdit}
                   error={!!error}
-                  helperText={error?.message}
+                  helperText={error?.message ?? "Must be unique; add a suffix for another release that day, e.g. 20261020-hotfix"}
                 />
               )}
             />

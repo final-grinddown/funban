@@ -7,9 +7,11 @@ import type { EmailTemplate, NotificationTemplate, SqlTemplate, TextTemplate } f
  * Email and text templates use `{{point.format}}` variables:
  * - points: `start` (maintenance start), `stop` (start minus the safety duration),
  *   `end` (start plus the duration), `back` (all systems back)
- * - formats: `csWeekdayUpcoming` (tuto středu), `csWeekdayOn` (ve středu), `csDate` (22. října), `year`,
+ * - formats: `csRelativeDay` (dnes / zítra / ve středu 22. října, relative to when the page renders),
+ *   `csWeekday` (středa), `csWeekdayUpcoming` (tuto středu), `csWeekdayOn` (ve středu), `csDate` (22. října), `year`,
  *   `csTime` (9:30), `csDayPart` (večer), `enLongDate` (Wednesday, October 22, 2026),
  *   `enWeekdayDate` (Wednesday, October 22), `enTime` (7:30 PM), `date` (22.10.2026), `time` (09:30)
+ * - amount `duration` (the duration input) with format `csMinutes` (1 minutu, 2 minuty, 10 minut)
  *
  * SQL titles use the single-brace `{date}`, `{from}` and `{to}` filled in by the SQL script.
  * The parameter form shows only the inputs the templates of the type need.
@@ -91,4 +93,24 @@ export const notificationTemplates: Record<ReleaseType, readonly NotificationTem
     teamsMessage(maintenance.introCS),
     announcementEmail(maintenance.introCS, maintenance.introEN),
   ],
+  // Nothing until the team agrees what a team release sends and to whom
+  team: [],
+  hotfix: [
+    {
+      kind: "text",
+      name: "Teams message",
+      body:
+        "Ahoj, bohužel máme další opravu AEQ. Sice jde o drobnost, ale mohla by znepříjemnit život některým z vás. " +
+        "Bylo by možné {{start.csRelativeDay}} {{start.csDayPart}} ({{start.csWeekday}} po {{start.csTime}}) " +
+        "odstavit tak na {{duration.csMinutes}} AEQ a nasadit opravu?",
+    },
+  ],
+}
+
+/** Default length of the outage in minutes, the `durationInMinutes` parameter */
+export const defaultDurationInMinutes: Record<ReleaseType, number> = {
+  application: 300,
+  maintenance: 300,
+  team: 300,
+  hotfix: 10,
 }

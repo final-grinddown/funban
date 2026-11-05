@@ -1,4 +1,5 @@
-import { buildReleaseLeaderboard } from "../release"
+import type { Release, ReleaseType } from "@/utils/interfaces"
+import { buildReleaseLeaderboard, releaseTypeColors, releaseTypeLabels } from "../release"
 
 type LeaderboardRelease = Parameters<typeof buildReleaseLeaderboard>[0][number]
 
@@ -65,6 +66,41 @@ describe("buildReleaseLeaderboard", () => {
       [3, 1],
       [2, 2],
       [1, 2],
+    ])
+  })
+})
+
+describe("release types", () => {
+  it("labels the new types", () => {
+    expect(releaseTypeLabels.team).toBe("Team release")
+    expect(releaseTypeLabels.hotfix).toBe("Hotfix")
+  })
+
+  it("gives every type its own colour", () => {
+    const colors = Object.values(releaseTypeColors)
+    expect(new Set(colors).size).toBe(colors.length)
+  })
+
+  it("counts every type in the leaderboard", () => {
+    const types: ReleaseType[] = ["application", "maintenance", "team", "hotfix"]
+    const releases: Release[] = types.map((releaseType, index) => ({
+      id: index + 1,
+      release_code: `2026010${index + 1}`,
+      release_type: releaseType,
+      release_at: `2026-01-0${index + 1}T20:00:00`,
+      deployed_by_us: releaseType !== "hotfix",
+      assignee_id: 1,
+      assignee_name: "User 1",
+      closed_at: null,
+      close_summary: null,
+      notes: null,
+      tasks: [],
+      created_at: "2026-01-01T00:00:00",
+      updated_at: "2026-01-01T00:00:00",
+    }))
+
+    expect(buildReleaseLeaderboard(releases, null)).toEqual([
+      { assigneeId: 1, name: "User 1", rank: 1, total: 4, overseen: 1, lastReleaseAt: "2026-01-04T20:00:00" },
     ])
   })
 })
