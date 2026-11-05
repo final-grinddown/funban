@@ -99,9 +99,9 @@ export const notificationTemplates: Record<ReleaseType, readonly NotificationTem
       name: "Teams message",
       body: [
         "Ahoj Everyone,",
-        "{{start.csWeekdayOn}} {{start.csDate}} {{start.year}} proběhne release nové verze AEQ a to ve večerních hodinách.",
+        "{{start.csWeekdayUpcoming}} {{start.csDate}} {{start.year}} proběhne release nové verze AEQ a to ve večerních hodinách.",
         "Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.",
-        "Prosím, ukončete {{start.csWeekdayOn}} {{start.csDate}} v {{start.csTime}} veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
+        "Prosím, ukončete {{start.csWeekdayUpcoming}} {{start.csDate}} v {{start.csTime}} veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
         "Díky za pochopení a spolupráci.",
       ].join("\n"),
     },

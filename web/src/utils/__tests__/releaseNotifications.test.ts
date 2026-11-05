@@ -400,9 +400,9 @@ describe("releaseNotifications", () => {
       expect(buildTeamsMessage(team, "team")).toBe(
         [
           "Ahoj Everyone,",
-          "v pondělí 2. listopadu 2026 proběhne release nové verze AEQ a to ve večerních hodinách.",
+          "toto pondělí 2. listopadu 2026 proběhne release nové verze AEQ a to ve večerních hodinách.",
           "Odstávka by měla být krátká - do 15ti minut, ale pro jistotu počítejte s 1 hodinou.",
-          "Prosím, ukončete v pondělí 2. listopadu v 20:00 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
+          "Prosím, ukončete toto pondělí 2. listopadu v 20:00 veškeré činnosti jak v AEQ, tak i vytěžování faktur v Elis.",
           "Díky za pochopení a spolupráci.",
         ].join("\n"),
       )
