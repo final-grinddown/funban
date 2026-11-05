@@ -73,7 +73,8 @@ export function ReleaseNotifications({ release }: Props) {
   const errors = validateNotificationParams(params, inputs)
   const hasErrors = Object.keys(errors).length > 0
 
-  const blocks = useMemo(() => renderNotifications(templates, params), [templates, params])
+  // Not memoised: relative days such as "dnes" follow the time of each render
+  const blocks = renderNotifications(templates, params)
 
   const handleChange = (name: NotificationInput) => (event: ChangeEvent<HTMLInputElement>) => {
     setParams((current) => ({ ...current, [name]: event.target.value }))

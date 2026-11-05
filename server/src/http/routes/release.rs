@@ -28,7 +28,7 @@ const NOTES_MAX_LEN: usize = 20000;
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ReleaseRequest {
     release_code: String,
-    /// `application` or `maintenance`
+    /// `application`, `maintenance`, `team` or `hotfix`
     release_type: String,
     /// ISO-like local datetime, e.g. `2026-10-20T14:00` or `2026-10-20T14:00:00`
     release_at: String,
@@ -478,6 +478,19 @@ mod tests {
     }
 
     #[test]
+    fn new_release_types_are_parsed() {
+        let parse = |release_type: &str| {
+            request("20261020", release_type, "2026-10-20T14:30")
+                .into_insert()
+                .map(|insert| insert.release_type)
+        };
+
+        assert_eq!(parse("team").unwrap(), ReleaseType::Team);
+        assert_eq!(parse("hotfix").unwrap(), ReleaseType::Hotfix);
+        assert!(matches!(parse("emergency"), Err(Error::BadRequest(_))));
+    }
+
+    #[test]
     fn deployed_by_us_defaults_to_true() {
         let mut overseen = request("20261020", "application", "2026-10-20T14:30");
         overseen.deployed_by_us = Some(false);
@@ -534,7 +547,7 @@ mod tests {
         assert!(request(&"x".repeat(33), "application", "2026-10-20T14:30")
             .into_insert()
             .is_err());
-        assert!(request("20261020", "hotfix", "2026-10-20T14:30")
+        assert!(request("20261020", "emergency", "2026-10-20T14:30")
             .into_insert()
             .is_err());
         assert!(request("20261020", "application", "not-a-date")

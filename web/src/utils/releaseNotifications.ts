@@ -1,7 +1,18 @@
-import { addDays, addMinutes, format, getDay, isValid, parseISO, setHours, startOfDay, subMinutes } from "date-fns"
+import {
+  addDays,
+  addMinutes,
+  differenceInCalendarDays,
+  format,
+  getDay,
+  isValid,
+  parseISO,
+  setHours,
+  startOfDay,
+  subMinutes,
+} from "date-fns"
 import type { Release } from "@/utils/interfaces"
 import { toDateTimeInputValue } from "@/utils/release"
-import { notificationTemplates } from "@/utils/releaseNotificationTemplates"
+import { defaultDurationInMinutes, notificationTemplates } from "@/utils/releaseNotificationTemplates"
 
 /**
  * Editable inputs of the release notifications, kept as strings so they map 1:1 to form fields.
@@ -147,13 +158,13 @@ const csMonthsGenitive = [
 
 /** Indexed by `getDay()` (0 = Sunday); Czech needs a different preposition and demonstrative per day */
 const csWeekdays = [
-  { on: "v neděli", upcoming: "tuto neděli" },
-  { on: "v pondělí", upcoming: "toto pondělí" },
-  { on: "v úterý", upcoming: "toto úterý" },
-  { on: "ve středu", upcoming: "tuto středu" },
-  { on: "ve čtvrtek", upcoming: "tento čtvrtek" },
-  { on: "v pátek", upcoming: "tento pátek" },
-  { on: "v sobotu", upcoming: "tuto sobotu" },
+  { plain: "neděle", on: "v neděli", upcoming: "tuto neděli" },
+  { plain: "pondělí", on: "v pondělí", upcoming: "toto pondělí" },
+  { plain: "úterý", on: "v úterý", upcoming: "toto úterý" },
+  { plain: "středa", on: "ve středu", upcoming: "tuto středu" },
+  { plain: "čtvrtek", on: "ve čtvrtek", upcoming: "tento čtvrtek" },
+  { plain: "pátek", on: "v pátek", upcoming: "tento pátek" },
+  { plain: "sobota", on: "v sobotu", upcoming: "tuto sobotu" },
 ]
 
 interface PointDefinition {
@@ -183,13 +194,23 @@ const points = {
 
 type Point = keyof typeof points
 
+/** Formats of a point in time; `now` is when the texts are rendered */
 const formats = {
+  /** `dnes`, `zítra`, otherwise `ve středu 22. října`; relative to when the texts are rendered */
+  csRelativeDay: (date, now) => {
+    const days = differenceInCalendarDays(date, now)
+    if (days === 0) return "dnes"
+    if (days === 1) return "zítra"
+    return `${csWeekdayOn(date)} ${csDate(date)}`
+  },
+  /** `středa` */
+  csWeekday: (date) => csWeekdays[getDay(date)].plain,
   /** `tuto středu` */
   csWeekdayUpcoming: (date) => csWeekdays[getDay(date)].upcoming,
   /** `ve středu` */
-  csWeekdayOn: (date) => csWeekdays[getDay(date)].on,
+  csWeekdayOn,
   /** `22. října` */
-  csDate: (date) => `${date.getDate()}. ${csMonthsGenitive[date.getMonth()]}`,
+  csDate,
   /** `2026` */
   year: (date) => String(date.getFullYear()),
   /** `9:30` */
@@ -206,12 +227,34 @@ const formats = {
   date: (date) => format(date, "d.M.yyyy"),
   /** `09:30` */
   time: (date) => format(date, "HH:mm"),
-} satisfies Record<string, (date: Date) => string>
+} satisfies Record<string, (date: Date, now: Date) => string>
 
 type Format = keyof typeof formats
 
-/** The closed catalogue of `{{point.format}}` variables usable in templates */
-export type Variable = `${Point}.${Format}`
+interface AmountDefinition {
+  /** Inputs the amount is read from; they decide which fields the parameter form shows */
+  inputs: NotificationInput[]
+  /** Only called after the inputs passed validation */
+  value: (params: NotificationParams) => number
+}
+
+/** Amounts the texts talk about, as opposed to points in time */
+const amounts = {
+  /** Length of the maintenance in minutes */
+  duration: { inputs: ["durationInMinutes"], value: (p) => Number(p.durationInMinutes) },
+} satisfies Record<string, AmountDefinition>
+
+type Amount = keyof typeof amounts
+
+const amountFormats = {
+  /** `1 minutu`, `2 minuty`, `5 minut` */
+  csMinutes: (minutes) => `${minutes} ${csPlural(minutes, "minutu", "minuty", "minut")}`,
+} satisfies Record<string, (value: number) => string>
+
+type AmountFormat = keyof typeof amountFormats
+
+/** The closed catalogue of `{{point.format}}` and `{{amount.format}}` variables usable in templates */
+export type Variable = `${Point}.${Format}` | `${Amount}.${AmountFormat}`
 
 /** Double braces never clash with the single-brace SQL placeholders */
 const VariablePattern = /\{\{([^{}]*)\}\}/g
@@ -229,7 +272,7 @@ export function defaultNotificationParams(release: Pick<Release, "release_at" | 
   return {
     maintenanceFrom: toDateTimeInputValue(release.release_at),
     safetyDuration: "30",
-    durationInMinutes: "300",
+    durationInMinutes: String(defaultDurationInMinutes[release.release_type]),
     notifyInAdvanceDays: sql ? String(sql.notifyInAdvanceDays) : "",
     code: sql?.code ?? "",
     titleEN: sql?.titleEN ?? "",
@@ -247,8 +290,9 @@ export function requiredInputs(templates: readonly NotificationTemplate[]): Noti
     if (template.kind === "sql") sqlInputs.forEach((input) => needed.add(input))
 
     for (const text of variableTexts(template)) {
-      for (const variable of variablesIn(text)) {
-        if (isVariable(variable)) points[pointOf(variable)].inputs.forEach((input) => needed.add(input))
+      for (const value of variablesIn(text)) {
+        const variable = parseVariable(value)
+        if (variable) inputsOf(variable).forEach((input) => needed.add(input))
       }
     }
   }
@@ -290,11 +334,12 @@ export function validateNotificationParams(
 
 /**
  * Renders every template. The templates share one parameter form, so all outputs are `null`
- * while any input they need is invalid.
+ * while any input they need is invalid. Relative days such as `dnes` are relative to `now`.
  */
 export function renderNotifications(
   templates: readonly NotificationTemplate[],
   params: NotificationParams,
+  now: Date = new Date(),
 ): NotificationBlock[] {
   const valid = Object.keys(validateNotificationParams(params, requiredInputs(templates))).length === 0
 
@@ -310,18 +355,21 @@ export function renderNotifications(
           kind: "email",
           template,
           output: valid
-            ? { subject: renderVariables(template.subject, params), body: renderVariables(template.body, params) }
+            ? {
+                subject: renderVariables(template.subject, params, now),
+                body: renderVariables(template.body, params, now),
+              }
             : null,
         }
       case "text":
-        return { kind: "text", template, output: valid ? renderVariables(template.body, params) : null }
+        return { kind: "text", template, output: valid ? renderVariables(template.body, params, now) : null }
     }
   })
 }
 
 /** `{{…}}` variables in the text that are not in the catalogue */
 export function unknownVariables(text: string): string[] {
-  return variablesIn(text).filter((variable) => !isVariable(variable))
+  return variablesIn(text).filter((variable) => parseVariable(variable) === null)
 }
 
 /** Returns typed values, or `null` when any SQL parameter is invalid */
@@ -416,10 +464,16 @@ export function buildMailtoHref(to: string[], cc: string[], subject: string): st
 }
 
 /** Replaces known variables; anything else, including the single-brace SQL placeholders, passes through */
-function renderVariables(text: string, params: NotificationParams): string {
-  return text.replace(VariablePattern, (match, variable: string) => {
-    if (!isVariable(variable)) return match
-    return formats[formatOf(variable)](points[pointOf(variable)].at(params))
+function renderVariables(text: string, params: NotificationParams, now: Date): string {
+  return text.replace(VariablePattern, (match, value: string) => {
+    const variable = parseVariable(value)
+    if (!variable) return match
+    switch (variable.kind) {
+      case "point":
+        return formats[variable.format](points[variable.point].at(params), now)
+      case "amount":
+        return amountFormats[variable.format](amounts[variable.amount].value(params))
+    }
   })
 }
 
@@ -440,17 +494,41 @@ function variableTexts(template: NotificationTemplate): string[] {
   }
 }
 
-function isVariable(value: string): value is Variable {
+type ParsedVariable =
+  | { kind: "point"; point: Point; format: Format }
+  | { kind: "amount"; amount: Amount; format: AmountFormat }
+
+/** `null` when the value is not in the catalogue */
+function parseVariable(value: string): ParsedVariable | null {
   const parts = value.split(".")
-  return parts.length === 2 && Object.hasOwn(points, parts[0]) && Object.hasOwn(formats, parts[1])
+  if (parts.length !== 2) return null
+  const [source, format] = parts
+
+  if (Object.hasOwn(points, source) && Object.hasOwn(formats, format))
+    return { kind: "point", point: source as Point, format: format as Format }
+  if (Object.hasOwn(amounts, source) && Object.hasOwn(amountFormats, format))
+    return { kind: "amount", amount: source as Amount, format: format as AmountFormat }
+  return null
 }
 
-function pointOf(variable: Variable): Point {
-  return variable.split(".")[0] as Point
+/** Inputs a variable is calculated from */
+function inputsOf(variable: ParsedVariable): NotificationInput[] {
+  return variable.kind === "point" ? points[variable.point].inputs : amounts[variable.amount].inputs
 }
 
-function formatOf(variable: Variable): Format {
-  return variable.split(".")[1] as Format
+/** Czech plural: one (1), few (2–4), many (0, 5 and more) */
+function csPlural(count: number, one: string, few: string, many: string): string {
+  if (count === 1) return one
+  if (count >= 2 && count <= 4) return few
+  return many
+}
+
+function csWeekdayOn(date: Date): string {
+  return csWeekdays[getDay(date)].on
+}
+
+function csDate(date: Date): string {
+  return `${date.getDate()}. ${csMonthsGenitive[date.getMonth()]}`
 }
 
 function csDayPart(date: Date): string {

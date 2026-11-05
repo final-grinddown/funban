@@ -23,6 +23,8 @@ async fn set_up_template(db: &MySqlPool) -> sqlx::Result<()> {
             },
             step("Build application", Some(ReleaseType::Application)),
             step("Run maintenance script", Some(ReleaseType::Maintenance)),
+            step("Notify team channel", Some(ReleaseType::Team)),
+            step("Patch AEQ", Some(ReleaseType::Hotfix)),
             step("Verify", None),
         ],
     )
@@ -118,6 +120,26 @@ async fn update_release_reassigns(db: MySqlPool) -> sqlx::Result<()> {
     assert!(!updated.deployed_by_us);
     assert_eq!(updated.assignee_id, Some(2));
     assert_eq!(updated.assignee_name.as_deref(), Some("Bob"));
+
+    Ok(())
+}
+
+#[sqlx::test(fixtures("users"))]
+async fn update_release_to_and_from_new_types(db: MySqlPool) -> sqlx::Result<()> {
+    let added = release::add(&db, &release_insert("20261020", 1)).await?;
+
+    let mut changes = release_insert("20261020", 1);
+    changes.release_type = ReleaseType::Hotfix;
+    let hotfix = release::update(&db, added.id, &changes).await?.unwrap();
+    assert_eq!(hotfix.release_type, "hotfix");
+
+    changes.release_type = ReleaseType::Team;
+    let team = release::update(&db, added.id, &changes).await?.unwrap();
+    assert_eq!(team.release_type, "team");
+
+    changes.release_type = ReleaseType::Application;
+    let application = release::update(&db, added.id, &changes).await?.unwrap();
+    assert_eq!(application.release_type, "application");
 
     Ok(())
 }
@@ -314,8 +336,26 @@ async fn add_copies_template_steps_for_release_type(db: MySqlPool) -> sqlx::Resu
         vec!["Announce", "Run maintenance script", "Verify"]
     );
 
+    let mut team_insert = release_insert("20261022", 1);
+    team_insert.release_type = ReleaseType::Team;
+    let team = release::add(&db, &team_insert).await?;
+    assert_eq!(team.release_type, "team");
+    assert_eq!(
+        task_titles(&db, team.id).await?,
+        vec!["Announce", "Notify team channel", "Verify"]
+    );
+
+    let mut hotfix_insert = release_insert("20261022-hotfix", 1);
+    hotfix_insert.release_type = ReleaseType::Hotfix;
+    let hotfix = release::add(&db, &hotfix_insert).await?;
+    assert_eq!(hotfix.release_type, "hotfix");
+    assert_eq!(
+        task_titles(&db, hotfix.id).await?,
+        vec!["Announce", "Patch AEQ", "Verify"]
+    );
+
     let all = release::read_all_tasks(&db).await?;
-    assert_eq!(all.len(), 6);
+    assert_eq!(all.len(), 12);
     assert_eq!(all[0].timing.as_deref(), Some("3 days before release"));
     assert_eq!(all[1].timing, None);
     assert!(all[..3].iter().all(|t| t.release_id == application.id));

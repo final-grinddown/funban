@@ -296,6 +296,70 @@ describe("releaseNotifications", () => {
     })
   })
 
+  describe("hotfix", () => {
+    // Thursday
+    const hotfix = defaultNotificationParams({ release_at: "2026-10-22T20:00:00", release_type: "hotfix" })
+    const render = (params: NotificationParams, now: Date) =>
+      renderNotifications(notificationTemplates.hotfix, params, now).map((block) => block.output)
+
+    it("has only the Teams message", () => {
+      expect(notificationTemplates.hotfix.map((t) => [t.kind, t.name])).toEqual([["text", "Teams message"]])
+    })
+
+    it("defaults to the release start and 10 minutes", () => {
+      expect(hotfix.maintenanceFrom).toBe("2026-10-22T20:00")
+      expect(hotfix.durationInMinutes).toBe("10")
+    })
+
+    it("asks only for the start and the duration", () => {
+      expect(requiredInputs(notificationTemplates.hotfix)).toEqual(["maintenanceFrom", "durationInMinutes"])
+    })
+
+    it("renders the agreed message for a same-day slot", () => {
+      expect(render(hotfix, new Date(2026, 9, 22, 9, 15))).toEqual([
+        "Ahoj, bohužel máme další opravu AEQ. Sice jde o drobnost, ale mohla by znepříjemnit život některým z vás. " +
+          "Bylo by možné dnes večer (čtvrtek po 20:00) odstavit tak na 10 minut AEQ a nasadit opravu?",
+      ])
+    })
+
+    it("says zítra for tomorrow and names the day otherwise", () => {
+      expect(render(hotfix, new Date(2026, 9, 21, 23, 59))[0]).toContain(
+        "možné zítra večer (čtvrtek po 20:00) odstavit",
+      )
+      expect(render(hotfix, new Date(2026, 9, 19, 10, 0))[0]).toContain(
+        "možné ve čtvrtek 22. října večer (čtvrtek po 20:00) odstavit",
+      )
+    })
+
+    it("follows the day part and time of the start", () => {
+      const morning = { ...hotfix, maintenanceFrom: "2026-10-23T07:30" }
+      expect(render(morning, new Date(2026, 9, 22, 9, 0))[0]).toContain("možné zítra ráno (pátek po 7:30) odstavit")
+    })
+
+    it.each([
+      ["1", "1 minutu"],
+      ["2", "2 minuty"],
+      ["4", "4 minuty"],
+      ["5", "5 minut"],
+      ["22", "22 minut"],
+    ])("writes %s minutes with the Czech plural", (minutes, expected) => {
+      const text: NotificationTemplate = { kind: "text", name: "Test", body: "{{duration.csMinutes}}" }
+      expect(renderNotifications([text], { ...hotfix, durationInMinutes: minutes })[0].output).toBe(expected)
+    })
+
+    it("needs only the duration input for the duration variable", () => {
+      expect(requiredInputs([{ kind: "text", name: "Test", body: "{{duration.csMinutes}}" }])).toEqual([
+        "durationInMinutes",
+      ])
+    })
+  })
+
+  describe("team release", () => {
+    it("has no templates yet", () => {
+      expect(notificationTemplates.team).toEqual([])
+    })
+  })
+
   describe("requiredInputs", () => {
     const text = (body: string): NotificationTemplate => ({ kind: "text", name: "Test", body })
 

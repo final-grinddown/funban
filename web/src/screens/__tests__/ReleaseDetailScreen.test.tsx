@@ -160,6 +160,38 @@ describe("ReleaseDetailScreen", () => {
     expect(screen.getByLabelText("All systems back at")).toBeInTheDocument()
   })
 
+  it("shows only the Teams message of a hotfix", async () => {
+    const { fetchRelease } = require("@/app/api/fetches")
+    fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "hotfix", release_code: "20261020-hotfix" })
+
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument()
+    expect(screen.getByText("Hotfix")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Teams message" })).toBeInTheDocument()
+    expect(screen.getByText(/Ahoj, bohužel máme další opravu AEQ\./)).toBeInTheDocument()
+    expect(screen.getByText(/\(úterý po 14:00\) odstavit tak na 10 minut AEQ/)).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Application notification (SQL)" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Email" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Open in mail client" })).not.toBeInTheDocument()
+    expect(screen.queryByText(/DECLARE/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Start")).toBeInTheDocument()
+    expect(screen.getByLabelText("Duration (min)")).toHaveValue(10)
+    expect(screen.queryByLabelText("All systems back at")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Safety duration (min)")).not.toBeInTheDocument()
+  })
+
+  it("shows no notifications for a team release", async () => {
+    const { fetchRelease } = require("@/app/api/fetches")
+    fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "team" })
+
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { name: "Release 20261020" })).toBeInTheDocument()
+    expect(screen.getByText("Team release")).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument()
+  })
+
   it("updates notifications when a parameter changes", async () => {
     renderScreen()
 

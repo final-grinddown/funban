@@ -91,6 +91,8 @@ Všechny systémy včetně AEQ a Elis budou fungovat opět ve čtvrtek 22. říj
 V případě nedodržení hrozí ztráta veškeré vaší práce + nutné vícepráce na straně AEQ supportu."
 `;
 
+exports[`releaseNotifications templates snapshots renders every hotfix template: text: Teams message 1`] = `"Ahoj, bohužel máme další opravu AEQ. Sice jde o drobnost, ale mohla by znepříjemnit život některým z vás. Bylo by možné ve středu 21. října večer (středa po 20:00) odstavit tak na 10 minut AEQ a nasadit opravu?"`;
+
 exports[`releaseNotifications templates snapshots renders every maintenance template: email: Email 1`] = `
 {
   "body": "Ahoj všem,

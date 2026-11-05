@@ -10,6 +10,7 @@ const mockTemplates: { application: NotificationTemplate[]; maintenance: Notific
 }
 
 jest.mock("@/utils/releaseNotificationTemplates", () => ({
+  ...jest.requireActual("@/utils/releaseNotificationTemplates"),
   get notificationTemplates() {
     return mockTemplates
   },

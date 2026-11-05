@@ -9,6 +9,10 @@ use utoipa::ToSchema;
 pub enum ReleaseType {
     Application,
     Maintenance,
+    /// Smaller deployment touching only the team's part of the stack
+    Team,
+    /// Urgent, short-notice fix outside the normal release cadence
+    Hotfix,
 }
 
 impl ReleaseType {
@@ -16,6 +20,8 @@ impl ReleaseType {
         match self {
             ReleaseType::Application => "application",
             ReleaseType::Maintenance => "maintenance",
+            ReleaseType::Team => "team",
+            ReleaseType::Hotfix => "hotfix",
         }
     }
 }
@@ -27,6 +33,8 @@ impl TryFrom<&str> for ReleaseType {
         match value {
             "application" => Ok(ReleaseType::Application),
             "maintenance" => Ok(ReleaseType::Maintenance),
+            "team" => Ok(ReleaseType::Team),
+            "hotfix" => Ok(ReleaseType::Hotfix),
             other => Err(format!("Invalid release type: {}", other)),
         }
     }

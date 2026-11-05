@@ -4,11 +4,15 @@ import type { Release, ReleaseType } from "@/utils/interfaces"
 export const releaseTypeLabels: Record<ReleaseType, string> = {
   application: "Application",
   maintenance: "Maintenance",
+  team: "Team release",
+  hotfix: "Hotfix",
 }
 
-export const releaseTypeColors: Record<ReleaseType, "primary" | "secondary"> = {
+export const releaseTypeColors: Record<ReleaseType, "primary" | "secondary" | "info" | "warning"> = {
   application: "primary",
   maintenance: "secondary",
+  team: "info",
+  hotfix: "warning",
 }
 
 export function deploymentLabel(deployedByUs: boolean): string {
