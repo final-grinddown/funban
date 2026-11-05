@@ -1,12 +1,32 @@
+import { format } from "date-fns"
+import type { ReleaseType } from "@/utils/interfaces"
 import {
-  buildEmail,
   buildMailtoHref,
   buildNotificationSql,
-  buildTeamsMessage,
   buildTitlePreview,
   defaultNotificationParams,
+  NotificationParams,
+  NotificationTemplate,
+  renderNotifications,
+  requiredInputs,
+  unknownVariables,
   validateNotificationParams,
 } from "../releaseNotifications"
+import { notificationTemplates } from "../releaseNotificationTemplates"
+
+/** The output of the type's only template of the given kind */
+function outputOf<K extends NotificationTemplate["kind"]>(params: NotificationParams, type: ReleaseType, kind: K) {
+  const blocks = renderNotifications(notificationTemplates[type], params).filter((b) => b.kind === kind)
+  expect(blocks).toHaveLength(1)
+  return blocks[0].output
+}
+
+const buildTeamsMessage = (params: NotificationParams, type: ReleaseType) =>
+  outputOf(params, type, "text") as string | null
+const buildEmail = (params: NotificationParams, type: ReleaseType) =>
+  outputOf(params, type, "email") as { subject: string; body: string } | null
+
+const applicationInputs = requiredInputs(notificationTemplates.application)
 
 describe("releaseNotifications", () => {
   // Thursday, the example from the templates used so far
@@ -38,19 +58,22 @@ describe("releaseNotifications", () => {
 
   describe("validateNotificationParams", () => {
     it("accepts defaults", () => {
-      expect(validateNotificationParams(application)).toEqual({})
+      expect(validateNotificationParams(application, applicationInputs)).toEqual({})
     })
 
     it("reports invalid fields", () => {
-      const errors = validateNotificationParams({
-        ...application,
-        maintenanceFrom: "",
-        safetyDuration: "-1",
-        durationInMinutes: "0",
-        notifyInAdvanceDays: "1.5",
-        code: " ",
-        titleEN: "",
-      })
+      const errors = validateNotificationParams(
+        {
+          ...application,
+          maintenanceFrom: "",
+          safetyDuration: "-1",
+          durationInMinutes: "0",
+          notifyInAdvanceDays: "1.5",
+          code: " ",
+          titleEN: "",
+        },
+        applicationInputs,
+      )
 
       expect(Object.keys(errors).sort()).toEqual(
         ["code", "durationInMinutes", "maintenanceFrom", "notifyInAdvanceDays", "safetyDuration", "titleEN"].sort(),
@@ -58,9 +81,9 @@ describe("releaseNotifications", () => {
     })
 
     it("requires systems to be back after the start", () => {
-      expect(validateNotificationParams({ ...application, systemsBackAt: "2025-02-20T19:00" })).toHaveProperty(
-        "systemsBackAt",
-      )
+      expect(
+        validateNotificationParams({ ...application, systemsBackAt: "2025-02-20T19:00" }, applicationInputs),
+      ).toHaveProperty("systemsBackAt")
     })
 
     it("builds nothing while invalid", () => {
@@ -167,7 +190,9 @@ describe("releaseNotifications", () => {
       const email = buildEmail(application, "application")
 
       expect(email?.subject).toBe("Plánovaná odstávka / Planned maintenance - 20.2.2025 - 19:30-01:00")
-      expect(email?.body).toContain("Všechny systémy včetně AEQ a Elis budou fungovat opět v pátek 21. února od 4:00 ráno.")
+      expect(email?.body).toContain(
+        "Všechny systémy včetně AEQ a Elis budou fungovat opět v pátek 21. února od 4:00 ráno.",
+      )
       expect(email?.body).toContain("Děkujeme za spolupráci\n\nAEQ crew")
       expect(email?.body).toContain(
         "This Thursday, February 20, 2025, there will be a company-wide application release, during which the new version of AEQ will be deployed.",
@@ -197,6 +222,128 @@ describe("releaseNotifications", () => {
 
     it("omits empty cc", () => {
       expect(buildMailtoHref(["a@x.com"], [], "S")).toBe("mailto:a@x.com?subject=S")
+    })
+  })
+
+  describe("templates", () => {
+    const types = Object.keys(notificationTemplates) as ReleaseType[]
+    it.each(types)("uses only known variables in %s templates", (type) => {
+      for (const template of notificationTemplates[type]) {
+        switch (template.kind) {
+          case "sql":
+            // Sent to SQL as they are, so no variables at all
+            for (const text of [template.titleEN, template.titleCS, template.linkToDetail]) {
+              expect(text).not.toMatch(/\{\{|\}\}/)
+            }
+            break
+          case "email":
+            expect(unknownVariables(template.subject)).toEqual([])
+            expect(unknownVariables(template.body)).toEqual([])
+            break
+          case "text":
+            expect(unknownVariables(template.body)).toEqual([])
+            break
+        }
+      }
+    })
+
+    it("detects unknown variables", () => {
+      expect(unknownVariables("{{start.date}} {{strat.date}} {{start.dat}} {date}")).toEqual([
+        "strat.date",
+        "start.dat",
+      ])
+    })
+
+    describe("snapshots", () => {
+      beforeAll(() => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 9, 1, 12, 0))
+      })
+
+      afterAll(() => {
+        jest.useRealTimers()
+      })
+
+      it.each(types)("renders every %s template", (type) => {
+        // Wednesday
+        const params = defaultNotificationParams({ release_at: "2026-10-21T20:00:00", release_type: type })
+        const blocks = renderNotifications(notificationTemplates[type], params)
+
+        for (const { template, output } of blocks) {
+          expect(output).not.toBeNull()
+          // Dates as local strings, so the snapshot doesn't depend on the machine's timezone
+          const snapshot = JSON.parse(
+            JSON.stringify(output, function (this: Record<string, unknown>, key, value) {
+              const raw = this[key]
+              return raw instanceof Date ? format(raw, "yyyy-MM-dd HH:mm") : value
+            }),
+          )
+          expect(snapshot).toMatchSnapshot(`${template.kind}: ${template.name}`)
+        }
+      })
+    })
+
+    it("passes single-brace SQL placeholders through", () => {
+      const params = defaultNotificationParams({ release_at: "2025-02-20T20:00:00", release_type: "application" })
+      const textTemplate: NotificationTemplate = {
+        kind: "text",
+        name: "Test",
+        body: "{date} {from} {to} {{start.time}}",
+      }
+
+      expect(renderNotifications([textTemplate], params)[0].output).toBe("{date} {from} {to} 20:00")
+      expect(buildNotificationSql(params)).toContain("REPLACE(@TitleEN,'{date}'")
+      expect(buildNotificationSql(params)).toContain("N'Planned maintenance on {date} from {from} to {to} - ")
+    })
+  })
+
+  describe("requiredInputs", () => {
+    const text = (body: string): NotificationTemplate => ({ kind: "text", name: "Test", body })
+
+    it("needs only the start for the start point", () => {
+      expect(requiredInputs([text("{{start.date}} {{start.time}}")])).toEqual(["maintenanceFrom"])
+    })
+
+    it("adds the inputs of each point", () => {
+      expect(requiredInputs([text("{{stop.time}}"), text("{{end.time}} {{back.csDayPart}}")]).sort()).toEqual(
+        ["durationInMinutes", "maintenanceFrom", "safetyDuration", "systemsBackAt"].sort(),
+      )
+    })
+
+    it("needs the SQL fields for a system notification", () => {
+      const sql: NotificationTemplate = {
+        kind: "sql",
+        name: "SQL",
+        code: "MAINTENANCE",
+        titleEN: "EN",
+        titleCS: "CS",
+        linkToDetail: "",
+        notifyInAdvanceDays: 4,
+      }
+
+      expect(requiredInputs([sql]).sort()).toEqual(
+        [
+          "code",
+          "durationInMinutes",
+          "linkToDetail",
+          "maintenanceFrom",
+          "notifyInAdvanceDays",
+          "safetyDuration",
+          "titleCS",
+          "titleEN",
+        ].sort(),
+      )
+    })
+
+    it("needs nothing without templates", () => {
+      expect(requiredInputs([])).toEqual([])
+    })
+
+    it("validates only the required inputs", () => {
+      const params = defaultNotificationParams({ release_at: "2025-02-20T20:00:00", release_type: "application" })
+      const invalid = { ...params, durationInMinutes: "abc", code: "" }
+
+      expect(validateNotificationParams(invalid, requiredInputs([text("{{start.time}}")]))).toEqual({})
+      expect(renderNotifications([text("{{start.time}}")], invalid)[0].output).toBe("20:00")
     })
   })
 })

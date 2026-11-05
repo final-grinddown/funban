@@ -142,6 +142,24 @@ describe("ReleaseDetailScreen", () => {
     )
   })
 
+  it("shows the SQL, Teams and email blocks of an application release", async () => {
+    const { fetchRelease } = require("@/app/api/fetches")
+    fetchRelease.mockResolvedValue({ ...mockRelease, release_type: "application" })
+
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { name: "Application notification (SQL)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Teams message" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Email" })).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Planned maintenance on Oct 20 from 13:30 to 19:00 - EW deployment release - new version of AEQ",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Plánovaná odstávka / Planned maintenance - 20.10.2026 - 13:30-19:00")).toBeInTheDocument()
+    expect(screen.getByLabelText("All systems back at")).toBeInTheDocument()
+  })
+
   it("updates notifications when a parameter changes", async () => {
     renderScreen()
 
