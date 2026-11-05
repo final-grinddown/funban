@@ -12,7 +12,11 @@ import {
 } from "date-fns"
 import type { Release } from "@/utils/interfaces"
 import { toDateTimeInputValue } from "@/utils/release"
-import { defaultDurationInMinutes, notificationTemplates } from "@/utils/releaseNotificationTemplates"
+import {
+  defaultDurationInMinutes,
+  defaultSafetyDurationInMinutes,
+  notificationTemplates,
+} from "@/utils/releaseNotificationTemplates"
 
 /**
  * Editable inputs of the release notifications, kept as strings so they map 1:1 to form fields.
@@ -271,7 +275,7 @@ export function defaultNotificationParams(release: Pick<Release, "release_at" | 
 
   return {
     maintenanceFrom: toDateTimeInputValue(release.release_at),
-    safetyDuration: "30",
+    safetyDuration: String(defaultSafetyDurationInMinutes[release.release_type]),
     durationInMinutes: String(defaultDurationInMinutes[release.release_type]),
     notifyInAdvanceDays: sql ? String(sql.notifyInAdvanceDays) : "",
     code: sql?.code ?? "",

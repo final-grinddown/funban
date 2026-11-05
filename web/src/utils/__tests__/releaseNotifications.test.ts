@@ -300,19 +300,49 @@ describe("releaseNotifications", () => {
     // Thursday
     const hotfix = defaultNotificationParams({ release_at: "2026-10-22T20:00:00", release_type: "hotfix" })
     const render = (params: NotificationParams, now: Date) =>
-      renderNotifications(notificationTemplates.hotfix, params, now).map((block) => block.output)
+      renderNotifications(notificationTemplates.hotfix, params, now)
+        .filter((block) => block.kind === "text")
+        .map((block) => block.output)
 
-    it("has only the Teams message", () => {
-      expect(notificationTemplates.hotfix.map((t) => [t.kind, t.name])).toEqual([["text", "Teams message"]])
+    it("has the system notification and the Teams message", () => {
+      expect(notificationTemplates.hotfix.map((t) => [t.kind, t.name])).toEqual([
+        ["sql", "Application notification (SQL)"],
+        ["text", "Teams message"],
+      ])
     })
 
-    it("defaults to the release start and 10 minutes", () => {
-      expect(hotfix.maintenanceFrom).toBe("2026-10-22T20:00")
-      expect(hotfix.durationInMinutes).toBe("10")
+    it("defaults to the release start, 10 minutes, no safety duration and a day of notice", () => {
+      expect(hotfix).toMatchObject({
+        maintenanceFrom: "2026-10-22T20:00",
+        durationInMinutes: "10",
+        safetyDuration: "0",
+        notifyInAdvanceDays: "1",
+        code: "MAINTENANCE",
+        titleEN: "Short outage of AEQ is planned on {date} from {from} to {to} - hotfixing of current version",
+        titleCS: "Krátký výpadek AEQ je plánován na {date} od {from} do {to} - oprava aktuální verze",
+        linkToDetail: "",
+      })
     })
 
-    it("asks only for the start and the duration", () => {
-      expect(requiredInputs(notificationTemplates.hotfix)).toEqual(["maintenanceFrom", "durationInMinutes"])
+    it("asks for the SQL inputs but not when systems are back", () => {
+      expect(requiredInputs(notificationTemplates.hotfix)).toEqual([
+        "maintenanceFrom",
+        "code",
+        "safetyDuration",
+        "durationInMinutes",
+        "notifyInAdvanceDays",
+        "titleEN",
+        "titleCS",
+        "linkToDetail",
+      ])
+    })
+
+    it("previews the hotfix titles", () => {
+      const preview = buildTitlePreview(hotfix)
+      expect(preview?.titleEN).toBe(
+        "Short outage of AEQ is planned on Oct 22 from 20:00 to 20:10 - hotfixing of current version",
+      )
+      expect(preview?.titleCS).toBe("Krátký výpadek AEQ je plánován na 22.10 od 20:00 do 20:10 - oprava aktuální verze")
     })
 
     it("renders the agreed message for a same-day slot", () => {

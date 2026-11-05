@@ -97,6 +97,15 @@ export const notificationTemplates: Record<ReleaseType, readonly NotificationTem
   team: [],
   hotfix: [
     {
+      kind: "sql",
+      name: "Application notification (SQL)",
+      code: "MAINTENANCE",
+      titleEN: "Short outage of AEQ is planned on {date} from {from} to {to} - hotfixing of current version",
+      titleCS: "Krátký výpadek AEQ je plánován na {date} od {from} do {to} - oprava aktuální verze",
+      linkToDetail: "",
+      notifyInAdvanceDays: 1,
+    },
+    {
       kind: "text",
       name: "Teams message",
       body:
@@ -113,4 +122,12 @@ export const defaultDurationInMinutes: Record<ReleaseType, number> = {
   maintenance: 300,
   team: 300,
   hotfix: 10,
+}
+
+/** Default minutes before the start when users are asked to stop working, the `safetyDuration` parameter */
+export const defaultSafetyDurationInMinutes: Record<ReleaseType, number> = {
+  application: 30,
+  maintenance: 30,
+  team: 30,
+  hotfix: 0,
 }
