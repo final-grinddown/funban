@@ -8,11 +8,12 @@ export const releaseTypeLabels: Record<ReleaseType, string> = {
   hotfix: "Hotfix",
 }
 
-export const releaseTypeColors: Record<ReleaseType, "primary" | "secondary" | "info" | "warning"> = {
+export const releaseTypeColors: Record<ReleaseType, "primary" | "secondary" | "info" | "error"> = {
   application: "primary",
   maintenance: "secondary",
   team: "info",
-  hotfix: "warning",
+  // Red, so it does not blend with the orange secondary of maintenance
+  hotfix: "error",
 }
 
 export function deploymentLabel(deployedByUs: boolean): string {
