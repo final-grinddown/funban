@@ -69,12 +69,21 @@ async fn replace_and_read_steps_in_order(db: MySqlPool) -> sqlx::Result<()> {
         ReleaseStep {
             title: "Announce".to_string(),
             timing: Some("3 days before release".to_string()),
-            release_type: None,
+            release_types: Vec::new(),
         },
         ReleaseStep {
             title: "Build application".to_string(),
             timing: None,
-            release_type: Some(ReleaseType::Application),
+            release_types: vec![ReleaseType::Application],
+        },
+        ReleaseStep {
+            title: "Not for hotfixes".to_string(),
+            timing: None,
+            release_types: vec![
+                ReleaseType::Application,
+                ReleaseType::Maintenance,
+                ReleaseType::Team,
+            ],
         },
         ReleaseStep {
             title: "Verify
@@ -83,7 +92,7 @@ async fn replace_and_read_steps_in_order(db: MySqlPool) -> sqlx::Result<()> {
 - check metrics"
                 .to_string(),
             timing: None,
-            release_type: None,
+            release_types: Vec::new(),
         },
     ];
     assert_eq!(release_settings::replace_steps(&db, &steps).await?, steps);

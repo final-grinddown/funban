@@ -14,6 +14,6 @@ title: string,
  */
 timing: string | null, 
 /**
- * `None` applies the step to every release type
+ * Release types the step applies to; empty applies the step to every release type
  */
-release_type: ReleaseType | null, };
+release_types: Array<ReleaseType>, };

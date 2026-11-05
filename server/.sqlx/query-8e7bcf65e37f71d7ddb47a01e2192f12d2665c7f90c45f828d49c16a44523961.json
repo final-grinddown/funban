@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT title, timing, release_type FROM release_step_templates ORDER BY position, id\n        ",
+  "query": "\n        SELECT title, timing, release_types FROM release_step_templates ORDER BY position, id\n        ",
   "describe": {
     "columns": [
       {
@@ -23,11 +23,11 @@
       },
       {
         "ordinal": 2,
-        "name": "release_type",
+        "name": "release_types",
         "type_info": {
           "type": "VarString",
           "flags": "",
-          "max_size": 80
+          "max_size": 400
         }
       }
     ],
@@ -40,5 +40,5 @@
       true
     ]
   },
-  "hash": "8dcc627b05d8abdf6a1928afbbbbb1ad042adffd28b52732ad81e7e6706a8181"
+  "hash": "8e7bcf65e37f71d7ddb47a01e2192f12d2665c7f90c45f828d49c16a44523961"
 }

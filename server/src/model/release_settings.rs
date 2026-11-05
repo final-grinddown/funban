@@ -12,8 +12,8 @@ pub struct ReleaseStep {
     pub title: String,
     /// Free-text hint of when to do the step, e.g. "3 days before release"
     pub timing: Option<String>,
-    /// `None` applies the step to every release type
-    pub release_type: Option<ReleaseType>,
+    /// Release types the step applies to; empty applies the step to every release type
+    pub release_types: Vec<ReleaseType>,
 }
 
 /// Team-wide settings for release notifications

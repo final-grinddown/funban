@@ -7,12 +7,12 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
-  FormControl,
+  FormControlLabel,
+  FormGroup,
+  FormLabel,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -29,7 +29,15 @@ import { releaseTypeLabels } from "@/utils/release"
 
 const STEP_TITLE_MAX_LENGTH = 2000
 const STEP_TIMING_MAX_LENGTH = 100
-const ALL_TYPES = "all"
+const RELEASE_TYPES = Object.keys(releaseTypeLabels) as ReleaseType[]
+
+/** Toggles one type; an empty list means every type, so selecting all of them collapses back to empty */
+function toggleReleaseType(current: ReleaseType[], type: ReleaseType, checked: boolean): ReleaseType[] {
+  const effective = current.length === 0 ? RELEASE_TYPES : current
+  const selected = checked ? [...effective, type] : effective.filter((t) => t !== type)
+  const ordered = RELEASE_TYPES.filter((t) => selected.includes(t))
+  return ordered.length === RELEASE_TYPES.length ? [] : ordered
+}
 
 /** Steps being edited, with a stable key so rows keep focus while reordering */
 interface StepRow extends ReleaseStep {
@@ -75,16 +83,16 @@ export function ReleaseStepsForm() {
   }
 
   const handleAdd = () => {
-    setRows((current) => [...current, toRow({ title: "", timing: null, release_type: null })])
+    setRows((current) => [...current, toRow({ title: "", timing: null, release_types: [] })])
   }
 
   const handleSave = () => {
     saveMutation.mutate(
       rows
-        .map(({ title, timing, release_type }) => ({
+        .map(({ title, timing, release_types }) => ({
           title: title.trim(),
           timing: timing?.trim() || null,
-          release_type,
+          release_types,
         }))
         .filter((step) => step.title.length > 0),
     )
@@ -125,7 +133,7 @@ export function ReleaseStepsForm() {
                 minRows={1}
                 fullWidth
               />
-              <Stack direction="row" spacing={1} alignItems="flex-start">
+              <Box display="flex" flexWrap="wrap" alignItems="center" columnGap={2} rowGap={1}>
                 <TextField
                   label="When"
                   placeholder="e.g. 3 days before release"
@@ -134,30 +142,15 @@ export function ReleaseStepsForm() {
                   error={isTimingTooLong(row)}
                   helperText={isTimingTooLong(row) ? `Must be ${STEP_TIMING_MAX_LENGTH} characters or less` : undefined}
                   size="small"
-                  fullWidth
+                  sx={{ width: 240 }}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id={`step-type-${row.key}`}>Applies to</InputLabel>
-                  <Select
-                    labelId={`step-type-${row.key}`}
-                    label="Applies to"
-                    value={row.release_type ?? ALL_TYPES}
-                    onChange={(event) =>
-                      updateRow(row.key, {
-                        release_type: event.target.value === ALL_TYPES ? null : (event.target.value as ReleaseType),
-                      })
-                    }
-                  >
-                    <MenuItem value={ALL_TYPES}>All types</MenuItem>
-                    {(Object.keys(releaseTypeLabels) as ReleaseType[]).map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {releaseTypeLabels[type]}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
+                <ReleaseTypesField
+                  id={`step-types-${row.key}`}
+                  value={row.release_types}
+                  onChange={(release_types) => updateRow(row.key, { release_types })}
+                />
+              </Box>
             </Stack>
             <IconButton
               aria-label={`Move step ${index + 1} up`}
@@ -195,5 +188,48 @@ export function ReleaseStepsForm() {
         </Button>
       </Box>
     </>
+  )
+}
+
+interface ReleaseTypesFieldProps {
+  id: string
+  /** Empty means every release type */
+  value: ReleaseType[]
+  onChange: (value: ReleaseType[]) => void
+}
+
+/** "All" plus one checkbox per type; all types start checked so excluding one is a single click */
+function ReleaseTypesField({ id, value, onChange }: ReleaseTypesFieldProps) {
+  const isAll = value.length === 0
+  const isChecked = (type: ReleaseType) => isAll || value.includes(type)
+  const checkedCount = isAll ? RELEASE_TYPES.length : value.length
+
+  return (
+    <Box role="group" aria-labelledby={id} display="flex" alignItems="center" flexWrap="wrap" columnGap={1}>
+      <FormLabel id={id} sx={{ fontSize: "0.875rem" }}>
+        Applies to
+      </FormLabel>
+      <FormGroup row>
+        <FormControlLabel
+          label="All"
+          control={<Checkbox size="small" checked={isAll} indeterminate={!isAll} onChange={() => onChange([])} />}
+        />
+        {RELEASE_TYPES.map((type) => (
+          <FormControlLabel
+            key={type}
+            label={releaseTypeLabels[type]}
+            control={
+              <Checkbox
+                size="small"
+                checked={isChecked(type)}
+                // A step applies to at least one type
+                disabled={isChecked(type) && checkedCount === 1}
+                onChange={(event) => onChange(toggleReleaseType(value, type, event.target.checked))}
+              />
+            }
+          />
+        ))}
+      </FormGroup>
+    </Box>
   )
 }

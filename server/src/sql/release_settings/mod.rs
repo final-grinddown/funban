@@ -65,7 +65,7 @@ pub async fn update(db: &MySqlPool, settings: &ReleaseSettings) -> sqlx::Result<
 pub async fn read_steps(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseStep>> {
     let rows = sqlx::query!(
         r#"
-        SELECT title, timing, release_type FROM release_step_templates ORDER BY position, id
+        SELECT title, timing, release_types FROM release_step_templates ORDER BY position, id
         "#,
     )
     .fetch_all(db)
@@ -73,16 +73,20 @@ pub async fn read_steps(db: &MySqlPool) -> sqlx::Result<Vec<ReleaseStep>> {
 
     rows.into_iter()
         .map(|r| {
-            let release_type = r
-                .release_type
+            let release_types = r
+                .release_types
                 .as_deref()
+                .unwrap_or_default()
+                .split(',')
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
                 .map(ReleaseType::try_from)
-                .transpose()
+                .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| sqlx::Error::Decode(e.into()))?;
             Ok(ReleaseStep {
                 title: r.title,
                 timing: r.timing,
-                release_type,
+                release_types,
             })
         })
         .collect()
@@ -104,14 +108,23 @@ pub async fn replace_steps(
     .await?;
 
     for (position, step) in steps.iter().enumerate() {
+        // An empty list is stored as NULL, which applies the step to every release type
+        let release_types = (!step.release_types.is_empty()).then(|| {
+            step.release_types
+                .iter()
+                .map(ReleaseType::as_str)
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+
         sqlx::query!(
             r#"
-            INSERT INTO release_step_templates (title, timing, release_type, position)
+            INSERT INTO release_step_templates (title, timing, release_types, position)
             VALUES (?, ?, ?, ?)
             "#,
             step.title,
             step.timing,
-            step.release_type.map(|t| t.as_str()),
+            release_types,
             position as i32,
         )
         .execute(&mut *tx)
