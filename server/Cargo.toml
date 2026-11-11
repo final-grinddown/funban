@@ -54,7 +54,7 @@ futures = "0.3.32"
 bytes = "1"
 json-patch = "5.0.0"
 utoipa = { version = "6.0.0", features = ["chrono"] }
-argon2 = { version = "0.5.3" }
+argon2 = { version = "0.6.0" }
 cookie = "0.18.1"
 base64 = "0.23.1"
 
