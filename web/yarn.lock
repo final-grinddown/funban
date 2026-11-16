@@ -2567,17 +2567,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.105.2":
-  version: 5.105.2
-  resolution: "@tanstack/query-core@npm:5.105.2"
-  checksum: 10c0/317964efabeabc091efe7b0496b677ab487708dbcfe2c8adcde18533cc118ef24800a3ef2cdb35157320d29fb8e7101049af10c0920d65429a219f9c68e3201a
-  languageName: node
-  linkType: hard
-
 "@tanstack/query-core@npm:5.107.0":
   version: 5.107.0
   resolution: "@tanstack/query-core@npm:5.107.0"
   checksum: 10c0/f1721793e162c6599f2376fe07c493da731d1e61fb5d76f97917c6c0d5337cb88e2ebb89966c5344917f85c78aafd337311280da879624dc145ee49807af0e62
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:5.107.1":
+  version: 5.107.1
+  resolution: "@tanstack/query-core@npm:5.107.1"
+  checksum: 10c0/991070e0d7b9a7fb7459f6399090f22e9769dd30efcea316c3e9a0b5442990378fcdd9ed37548cec0729c627189e091100dbe7d3778c666100c373db0b978963
   languageName: node
   linkType: hard
 
@@ -2617,18 +2617,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.105.2":
-  version: 5.105.2
-  resolution: "@tanstack/react-query@npm:5.105.2"
+"@tanstack/react-query@npm:^5.107.1":
+  version: 5.107.1
+  resolution: "@tanstack/react-query@npm:5.107.1"
   dependencies:
-    "@tanstack/query-core": "npm:5.105.2"
+    "@tanstack/query-core": "npm:5.107.1"
   peerDependencies:
     "@types/react": ^18 || ^19
     react: ^18 || ^19
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/9c2e12441699d506f7cf1e6c13d87f76276104c8661bf6aa66fe3198873c759ce7744f925316d51239bc3ac9f54b57d885e489c49de7eee8c7d737f20c71d141
+  checksum: 10c0/c4a46bbacf5fe69fbe487495e74bad3e17857d19eeccad5e066cf4bbe148a831c082b429a6646874b7809cdf245bbdf08e93cfe3fae52b605edf0c38dcab7369
   languageName: node
   linkType: hard
 
@@ -5797,7 +5797,7 @@ __metadata:
     "@mui/material": "npm:7.3.11"
     "@mui/material-nextjs": "npm:7.3.10"
     "@ryoppippi/unplugin-typia": "npm:2.6.5"
-    "@tanstack/react-query": "npm:^5.105.2"
+    "@tanstack/react-query": "npm:^5.107.1"
     "@tanstack/react-query-devtools": "npm:^5.107.0"
     "@testing-library/dom": "npm:^10.4.2"
     "@testing-library/jest-dom": "npm:^7.0.1"
